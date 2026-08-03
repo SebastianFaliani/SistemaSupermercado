@@ -133,6 +133,20 @@ export function Catalogo({ token, permisos }) {
     } catch (error) { setMensaje(error.message); }
   }
 
+  async function crearMarca(evento) {
+    evento.preventDefault();
+    try {
+      const formulario = new FormData(evento.currentTarget);
+      await solicitar('/api/catalogo/marcas', token, {
+        method: 'POST',
+        body: JSON.stringify({ nombre: formulario.get('nombre') }),
+      });
+      setModalActivo(null);
+      setMensaje('Marca creada correctamente. Ya está disponible en productos.');
+      await cargar();
+    } catch (error) { setMensaje(error.message); }
+  }
+
   async function guardarProducto(evento) {
     evento.preventDefault();
     try {
@@ -167,6 +181,7 @@ export function Catalogo({ token, permisos }) {
         <div><p className="etiqueta">CATÁLOGO</p><h2>Productos y categorías</h2></div>
         <div className="acciones-encabezado">
           {puedeGestionar && <button className="boton boton--secundario" onClick={() => setModalActivo('categoria')}>Nueva categoría</button>}
+          {puedeGestionar && <button className="boton boton--secundario" onClick={() => setModalActivo('marca')}>Nueva marca</button>}
           {puedeGestionar && <button className="boton" onClick={() => { setProductoEditado(null); setModalActivo('producto'); }}>Nuevo producto</button>}
         </div>
       </div>
@@ -215,6 +230,12 @@ export function Catalogo({ token, permisos }) {
         <form className="formulario-modal" onSubmit={crearCategoria}>
           <div><label htmlFor="categoria_nombre">Nombre</label><input id="categoria_nombre" name="nombre" minLength="2" maxLength="100" required placeholder="Ej.: Almacén" /></div>
           <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setModalActivo(null)}>Cancelar</button><button className="boton">Guardar categoría</button></div>
+        </form>
+      </Modal>
+      <Modal abierto={modalActivo === 'marca'} titulo="Nueva marca" alCerrar={() => setModalActivo(null)}>
+        <form className="formulario-modal" onSubmit={crearMarca}>
+          <div><label htmlFor="marca_nombre">Nombre</label><input id="marca_nombre" name="nombre" minLength="2" maxLength="100" required placeholder="Ej.: La Serenísima" /></div>
+          <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setModalActivo(null)}>Cancelar</button><button className="boton">Guardar marca</button></div>
         </form>
       </Modal>
     </section>

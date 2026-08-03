@@ -2,8 +2,8 @@ import { Router } from 'express';
 
 import { requerirAutenticacion } from '../seguridad/autenticacion.middleware.js';
 import { requerirPermiso } from '../seguridad/permisos.middleware.js';
-import { esquemaCategoria, esquemaConsultaProductos, esquemaProducto } from './catalogo.esquemas.js';
-import { actualizarProducto, crearCategoria, crearProducto, listarCategorias, listarProductos, listarReferencias, obtenerProducto } from './catalogo.servicio.js';
+import { esquemaCategoria, esquemaConsultaProductos, esquemaMarca, esquemaProducto } from './catalogo.esquemas.js';
+import { actualizarProducto, crearCategoria, crearMarca, crearProducto, listarCategorias, listarProductos, listarReferencias, obtenerProducto } from './catalogo.servicio.js';
 
 export const rutasCatalogo = Router();
 rutasCatalogo.use(requerirAutenticacion);
@@ -20,6 +20,12 @@ rutasCatalogo.post('/categorias', requerirPermiso('productos.gestionar'), async 
 
 rutasCatalogo.get('/referencias', requerirPermiso('productos.ver'), async (_solicitud, respuesta) => {
   respuesta.json(await listarReferencias());
+});
+
+rutasCatalogo.post('/marcas', requerirPermiso('productos.gestionar'), async (solicitud, respuesta) => {
+  const validacion = esquemaMarca.safeParse(solicitud.body);
+  if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Datos de marca inválidos' });
+  respuesta.status(201).json({ dato: await crearMarca(validacion.data) });
 });
 
 rutasCatalogo.get('/productos', requerirPermiso('productos.ver'), async (solicitud, respuesta) => {

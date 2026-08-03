@@ -9,6 +9,10 @@ export const esquemaCategoria = z.object({
   categoria_padre_id: id.nullable().optional(),
 });
 
+export const esquemaMarca = z.object({
+  nombre: z.string().trim().min(2).max(100),
+});
+
 export const esquemaProducto = z.object({
   nombre: z.string().trim().min(2).max(180),
   descripcion: z.string().trim().max(5000).nullable().optional(),

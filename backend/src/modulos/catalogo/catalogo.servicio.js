@@ -17,6 +17,14 @@ export async function crearCategoria(datos) {
   return { id: resultado.insertId, ...datos };
 }
 
+export async function crearMarca(datos) {
+  const [resultado] = await baseDatos.query(
+    'INSERT INTO marcas (nombre) VALUES (?)',
+    [datos.nombre],
+  );
+  return { id: resultado.insertId, nombre: datos.nombre };
+}
+
 export async function listarReferencias() {
   const [[marcas], [unidades]] = await Promise.all([
     baseDatos.query('SELECT id, nombre FROM marcas WHERE esta_activa = TRUE ORDER BY nombre'),
