@@ -42,3 +42,5 @@ npm run db:migrar
 Más información en [Base de datos](docs/base-datos.md).
 
 La creación del primer usuario y el flujo de acceso están documentados en [Autenticación](docs/autenticacion.md).
+
+La paleta y sus reglas de aplicación están documentadas en [Identidad visual](docs/identidad-visual.md).
