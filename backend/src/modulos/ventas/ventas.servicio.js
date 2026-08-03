@@ -7,11 +7,26 @@ export async function obtenerSesion(usuarioId) {
   return filas[0] || null;
 }
 
-export async function abrirCaja(usuarioId, montoInicial) {
+export async function listarCajasDisponibles() {
+  const [filas] = await baseDatos.query(`SELECT c.id, c.codigo, c.nombre
+    FROM cajas c LEFT JOIN sesiones_caja sc ON sc.caja_id = c.id AND sc.estado = 'abierta'
+    WHERE c.esta_activa = TRUE AND sc.id IS NULL ORDER BY c.nombre`);
+  return filas;
+}
+
+export async function abrirCaja(usuarioId, cajaId, montoInicial) {
   if (await obtenerSesion(usuarioId)) { const error = new Error('Ya tenés una caja abierta'); error.codigoPublico = 'CAJA_ABIERTA'; throw error; }
-  const [[caja]] = await baseDatos.query('SELECT id FROM cajas WHERE esta_activa = TRUE ORDER BY id LIMIT 1');
-  const [resultado] = await baseDatos.query('INSERT INTO sesiones_caja (caja_id, usuario_id, monto_inicial) VALUES (?, ?, ?)', [caja.id, usuarioId, montoInicial]);
-  return { id: resultado.insertId };
+  const [[caja]] = await baseDatos.query(`SELECT c.id FROM cajas c
+    LEFT JOIN sesiones_caja sc ON sc.caja_id = c.id AND sc.estado = 'abierta'
+    WHERE c.id = ? AND c.esta_activa = TRUE AND sc.id IS NULL`, [cajaId]);
+  if (!caja) { const error = new Error('La caja seleccionada ya no está disponible'); error.codigoPublico = 'CAJA_NO_DISPONIBLE'; throw error; }
+  try {
+    const [resultado] = await baseDatos.query('INSERT INTO sesiones_caja (caja_id, usuario_id, monto_inicial) VALUES (?, ?, ?)', [caja.id, usuarioId, montoInicial]);
+    return { id: resultado.insertId };
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') { const publico = new Error('La caja seleccionada acaba de ser ocupada'); publico.codigoPublico = 'CAJA_NO_DISPONIBLE'; throw publico; }
+    throw error;
+  }
 }
 
 export async function referenciasVenta() {

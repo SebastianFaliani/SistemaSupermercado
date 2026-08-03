@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export const esquemaAbrirCaja = z.object({ monto_inicial: z.coerce.number().min(0).max(9999999999999.99) });
+export const esquemaAbrirCaja = z.object({
+  caja_id: z.coerce.number().int().positive(),
+  monto_inicial: z.coerce.number().min(0).max(9999999999999.99),
+});
 export const esquemaCerrarCaja = z.object({ monto_contado: z.coerce.number().min(0).max(9999999999999.99) });
 export const esquemaVenta = z.object({
   detalles: z.array(z.object({ producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive().max(999999999999.999) })).min(1).max(200)
