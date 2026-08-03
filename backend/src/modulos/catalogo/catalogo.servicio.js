@@ -2,7 +2,7 @@ import { baseDatos } from '../../configuracion/base-datos.js';
 
 export async function listarCategorias() {
   const [filas] = await baseDatos.query(
-    `SELECT id, categoria_padre_id, nombre, descripcion, esta_activa
+    `SELECT id, categoria_padre_id, nombre, descripcion, icono_url, esta_activa
      FROM categorias WHERE esta_activa = TRUE ORDER BY nombre`,
   );
   return filas;

@@ -29,6 +29,7 @@ h1 { margin: 12px 0; font-size: clamp(2rem, 6vw, 3.6rem); line-height: 1; }
 .estado--conectada span { background: #198754; }
 .estado--sin_conexion span { background: var(--color-error); }
 .tarjeta--acceso { max-width: 480px; }
+.logo-acceso { display: block; width: min(100%, 350px); margin: 0 auto 18px; border-radius: 10px; }
 form { display: grid; gap: 8px; margin-top: 22px; }
 label { margin-top: 8px; font-size: .9rem; font-weight: 700; }
 input, select, textarea { width: 100%; padding: 10px 11px; border: 1px solid var(--color-gris-200); border-radius: 8px; color: var(--color-negro); background: var(--color-blanco); font: inherit; }
@@ -46,6 +47,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .aplicacion-interna { min-height: 100vh; background: var(--color-gris-50); }
 .barra-superior { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px clamp(15px, 5vw, 54px); color: var(--color-blanco); background: var(--color-primario-900); box-shadow: 0 4px 14px rgb(0 59 70 / 18%); }
 .barra-superior > div { display: flex; align-items: baseline; gap: 12px; }
+.barra-superior .marca-encabezado { align-items: center; }
+.marca-encabezado img { width: 30px; height: 30px; border-radius: 50%; }
 .barra-superior strong { font-size: 1.2rem; }
 .barra-superior span { color: var(--color-acento-100); font-size: .88rem; }
 .usuario-actual button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 8px; color: var(--color-blanco); background: transparent; cursor: pointer; }
@@ -71,7 +74,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .panel { padding: 17px; border: 1px solid var(--color-gris-200); border-radius: 11px; background: var(--color-blanco); box-shadow: 0 6px 19px rgb(0 59 70 / 6%); }
 .panel h3 { margin-top: 0; }
 .lista-simple { margin: 0; padding: 0; list-style: none; }
-.lista-simple li { padding: 8px 0; border-bottom: 1px solid var(--color-gris-200); }
+.lista-simple li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--color-gris-200); }
+.lista-simple img { flex: 0 0 auto; width: 30px; height: 30px; object-fit: contain; }
 .vacio { color: var(--color-gris-500); }
 .tabla-contenedor { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; }

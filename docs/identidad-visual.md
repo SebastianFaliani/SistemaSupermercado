@@ -30,3 +30,10 @@ La interfaz utiliza una escala compacta, aproximadamente un 25% menor que la esc
 - Los modales deben tener título, cierre visible, cierre con Escape y acciones consistentes al pie.
 - La acción primaria se ubica a la derecha y la cancelación usa el estilo secundario.
 - Los formularios extensos utilizan el ancho grande y desplazamiento interno.
+
+## Recursos de marca
+
+- Variantes del logo y favicon: `frontend/public/marca/`.
+- Iconos de categorías: `frontend/public/iconos/categorias/`.
+- Iconos generales del sistema: `frontend/public/iconos/sistema/`.
+- Los iconos de categoría se almacenan en `categorias.icono_url` para permitir reemplazos futuros sin modificar componentes.

@@ -73,7 +73,7 @@ export function Aplicacion() {
     return (
       <div className="aplicacion-interna">
         <header className="barra-superior">
-          <div><strong>Supermercado</strong><span>Gestión local</span></div>
+          <div className="marca-encabezado"><img src="/marca/favicon-circular.png" alt="" /><strong>LA 91</strong><span>Gestión local</span></div>
           <div className="usuario-actual">
             <span>{usuario.nombre_usuario}</span>
             <button type="button" onClick={salir}>Cerrar sesión</button>
@@ -92,8 +92,8 @@ export function Aplicacion() {
   return (
     <main className="contenedor">
       <section className="tarjeta tarjeta--acceso">
+        <img className="logo-acceso" src="/marca/logo-horizontal-claro.png" alt="La 91 Supermercado" />
         <p className="etiqueta">ACCESO AL SISTEMA</p>
-        <h1>Supermercado</h1>
         <p>Ingresá con tu usuario para comenzar.</p>
         <form onSubmit={ingresar}>
           <label htmlFor="nombre_usuario">Usuario</label>

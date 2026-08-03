@@ -154,7 +154,12 @@ export function Catalogo({ token, permisos }) {
           <h3>Categorías</h3>
           {categorias.length ? (
             <ul className="lista-simple">
-              {categorias.map((categoria) => <li key={categoria.id}>{categoria.nombre}</li>)}
+              {categorias.map((categoria) => (
+                <li key={categoria.id}>
+                  {categoria.icono_url && <img src={categoria.icono_url} alt="" />}
+                  <span>{categoria.nombre}</span>
+                </li>
+              ))}
             </ul>
           ) : <p className="vacio">Todavía no hay categorías.</p>}
         </article>
