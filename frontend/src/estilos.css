@@ -154,4 +154,21 @@ body.modal-abierto { overflow: hidden; }
 .tabla-items-compra .dato-secundario { margin: 0; font-size: .7rem; }
 .acciones-tabla { display: flex; gap: 5px; white-space: nowrap; }
 .detalle-estado { margin-top: 0; }
+.caja-actual { display: flex; align-items: flex-end; flex-direction: column; }
+.caja-actual small { color: var(--color-gris-500); }
+.rejilla-venta { display: grid; grid-template-columns: minmax(230px, 30%) 1fr; gap: 12px; }
+.buscador-venta { align-self: start; }
+.resultados-venta { margin-top: 8px; max-height: 62vh; overflow-y: auto; }
+.resultados-venta button { display: grid; width: 100%; padding: 7px; border: 0; border-bottom: 1px solid var(--color-gris-200); color: var(--color-primario-900); background: transparent; text-align: left; cursor: pointer; grid-template-columns: 1fr auto; }
+.resultados-venta button:hover { color: var(--color-blanco); background: var(--color-primario-700); }
+.resultados-venta small { grid-column: 1; opacity: .75; }
+.resultados-venta strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 400; }
+.panel-carrito { min-width: 0; }
+.tabla-carrito { max-height: 54vh; }
+.tabla-carrito th, .tabla-carrito td { padding: 5px 6px; }
+.tabla-carrito input { width: 90px; min-height: 28px; padding: 3px 5px; }
+.pie-venta { display: grid; align-items: center; gap: 8px; padding-top: 12px; grid-template-columns: 1fr auto auto; }
+.pie-venta strong { font-size: 1.35rem; }
+.importe-cobro { display: flex; justify-content: space-between; font-size: 1.05rem; }
+@media (max-width: 800px) { .rejilla-venta { grid-template-columns: 1fr; } }
 .total-compra { text-align: right; }
