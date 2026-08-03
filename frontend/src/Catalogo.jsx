@@ -85,6 +85,7 @@ export function Catalogo({ token, permisos }) {
   const [modalActivo, setModalActivo] = useState(null);
   const [productoEditado, setProductoEditado] = useState(null);
   const [buscar, setBuscar] = useState('');
+  const [textoBusqueda, setTextoBusqueda] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [pagina, setPagina] = useState(1);
   const limite = 25;
@@ -145,10 +146,19 @@ export function Catalogo({ token, permisos }) {
 
   function aplicarFiltros(evento) {
     evento.preventDefault();
-    const formulario = new FormData(evento.currentTarget);
     setPagina(1);
-    setBuscar(formulario.get('buscar').trim());
-    setCategoriaId(formulario.get('categoria_id'));
+    setBuscar(textoBusqueda.trim());
+  }
+
+  function limpiarBusqueda() {
+    setTextoBusqueda('');
+    setBuscar('');
+    setPagina(1);
+  }
+
+  function filtrarPorCategoria(id) {
+    setCategoriaId(id ? String(id) : '');
+    setPagina(1);
   }
 
   const paginas = Math.max(1, Math.ceil(totalProductos / limite));
@@ -165,16 +175,20 @@ export function Catalogo({ token, permisos }) {
       </div>
 
       <form className="barra-filtros" onSubmit={aplicarFiltros}>
-        <input name="buscar" defaultValue={buscar} placeholder="Buscar por nombre, código interno o código de barras" />
-        <select name="categoria_id" defaultValue={categoriaId}><option value="">Todas las categorías</option>{categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}</select>
+        <input name="buscar" value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por nombre, código interno o código de barras" />
         <button className="boton">Buscar</button>
+        {buscar && <button type="button" className="boton boton--secundario" onClick={limpiarBusqueda}>Limpiar</button>}
       </form>
+      {(buscar || categoriaId) && <p className="filtro-activo">Mostrando {totalProductos} resultados{buscar ? ` para “${buscar}”` : ''}{categoriaId ? ` en ${categorias.find((categoria) => String(categoria.id) === categoriaId)?.nombre ?? 'la categoría seleccionada'}` : ''}.</p>}
       {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
 
       <div className="rejilla-catalogo">
         <article className="panel">
           <h3>Categorías</h3>
-          <ul className="lista-simple">{categorias.map((categoria) => <li key={categoria.id}>{categoria.icono_url && <img src={categoria.icono_url} alt="" />}<span>{categoria.nombre}</span></li>)}</ul>
+          <nav className="lista-categorias" aria-label="Filtrar por categoría">
+            <button type="button" className={!categoriaId ? 'categoria-activa' : ''} onClick={() => filtrarPorCategoria(null)}><span className="icono-todas">≡</span><span>Todas</span></button>
+            {categorias.map((categoria) => <button type="button" key={categoria.id} className={categoriaId === String(categoria.id) ? 'categoria-activa' : ''} onClick={() => filtrarPorCategoria(categoria.id)}>{categoria.icono_url && <img src={categoria.icono_url} alt="" />}<span>{categoria.nombre}</span></button>)}
+          </nav>
         </article>
         <article className="panel panel--productos">
           <div className="panel__encabezado"><h3>Productos</h3><span>Página {pagina} de {paginas}</span></div>
