@@ -162,6 +162,7 @@ body.modal-abierto { overflow: hidden; }
 .resultados-venta { margin-top: 8px; max-height: 62vh; overflow-y: auto; }
 .resultados-venta button { display: grid; width: 100%; padding: 7px; border: 0; border-bottom: 1px solid var(--color-gris-200); color: var(--color-primario-900); background: transparent; text-align: left; cursor: pointer; grid-template-columns: 1fr auto; }
 .resultados-venta button:hover { color: var(--color-blanco); background: var(--color-primario-700); }
+.resultados-venta button.resultado-activo { color: var(--color-blanco); background: var(--color-primario-700); outline: 2px solid var(--color-acento-500); outline-offset: -2px; }
 .resultados-venta button:disabled { color: var(--color-gris-500); background: var(--color-gris-50); cursor: not-allowed; opacity: .78; }
 .resultados-venta small { grid-column: 1; opacity: .75; }
 .resultados-venta strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 400; }
