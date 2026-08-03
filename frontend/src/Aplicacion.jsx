@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState } from 'react';
 import { Catalogo } from './Catalogo.jsx';
 import { Inventario } from './Inventario.jsx';
+import { Usuarios } from './Usuarios.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -84,11 +85,16 @@ export function Aplicacion() {
         <nav className="navegacion-principal" aria-label="Módulos principales">
           <button className={moduloActivo === 'catalogo' ? 'activo' : ''} onClick={() => setModuloActivo('catalogo')}>Catálogo</button>
           <button className={moduloActivo === 'inventario' ? 'activo' : ''} onClick={() => setModuloActivo('inventario')}>Inventario</button>
+          {usuario.permisos.includes('usuarios.ver') && <button className={moduloActivo === 'usuarios' ? 'activo' : ''} onClick={() => setModuloActivo('usuarios')}>Usuarios</button>}
         </nav>
         <main className="contenido-interno">
-          {moduloActivo === 'catalogo' ? createElement(Catalogo, {
+          {moduloActivo === 'catalogo' && createElement(Catalogo, {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
-          }) : createElement(Inventario, {
+          })}
+          {moduloActivo === 'inventario' && createElement(Inventario, {
+            token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
+          })}
+          {moduloActivo === 'usuarios' && createElement(Usuarios, {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}
         </main>

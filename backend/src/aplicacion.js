@@ -9,6 +9,7 @@ import { entorno } from './configuracion/entorno.js';
 import { rutasAutenticacion } from './modulos/seguridad/autenticacion.rutas.js';
 import { rutasCatalogo } from './modulos/catalogo/catalogo.rutas.js';
 import { rutasInventario } from './modulos/inventario/inventario.rutas.js';
+import { rutasUsuarios } from './modulos/usuarios/usuarios.rutas.js';
 
 export const aplicacion = express();
 const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -24,6 +25,7 @@ aplicacion.use(
 aplicacion.use('/api/autenticacion', rutasAutenticacion);
 aplicacion.use('/api/catalogo', rutasCatalogo);
 aplicacion.use('/api/inventario', rutasInventario);
+aplicacion.use('/api/usuarios', rutasUsuarios);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {
