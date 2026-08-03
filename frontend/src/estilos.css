@@ -1,0 +1,18 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #153e35;
+  background: #f1f5ee;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+.contenedor { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top right, #d8ead7, transparent 45%); }
+.tarjeta { width: min(100%, 620px); padding: 48px; border: 1px solid #d4dfd3; border-radius: 24px; background: rgb(255 255 255 / 88%); box-shadow: 0 22px 60px rgb(21 62 53 / 12%); }
+.etiqueta { color: #a35d18; font-size: .78rem; font-weight: 800; letter-spacing: .14em; }
+h1 { margin: 12px 0; font-size: clamp(2rem, 6vw, 3.6rem); line-height: 1; }
+.tarjeta > p:not(.etiqueta) { color: #52645e; font-size: 1.1rem; }
+.estado { display: flex; align-items: center; gap: 10px; margin-top: 32px; font-weight: 700; }
+.estado span { width: 11px; height: 11px; border-radius: 50%; background: #c28b25; }
+.estado--conectada span { background: #198754; }
+.estado--sin_conexion span { background: #b42318; }

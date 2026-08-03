@@ -1,0 +1,24 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/servidor.js",
+    "build": "node --check src/servidor.js",
+    "start": "node src/servidor.js",
+    "test": "node --test",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "mysql2": "^3.14.3"
+  },
+  "devDependencies": {
+    "eslint": "^9.33.0",
+    "globals": "^16.3.0"
+  }
+}
