@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Modal } from './componentes/Modal.jsx';
 
 async function solicitar(ruta, token, opciones = {}) {
   const respuesta = await fetch(ruta, {
@@ -20,7 +21,7 @@ export function Catalogo({ token, permisos }) {
   const [totalProductos, setTotalProductos] = useState(0);
   const [referencias, setReferencias] = useState({ marcas: [], unidades_medida: [] });
   const [mensaje, setMensaje] = useState('');
-  const [mostrarProducto, setMostrarProducto] = useState(false);
+  const [modalActivo, setModalActivo] = useState(null);
   const puedeGestionar = permisos.includes('productos.gestionar');
 
   const cargar = useCallback(async () => {
@@ -52,6 +53,7 @@ export function Catalogo({ token, permisos }) {
       });
       evento.currentTarget.reset();
       setMensaje('Categoría creada correctamente.');
+      setModalActivo(null);
       await cargar();
     } catch (error) {
       setMensaje(error.message);
@@ -88,7 +90,7 @@ export function Catalogo({ token, permisos }) {
         }),
       });
       evento.currentTarget.reset();
-      setMostrarProducto(false);
+      setModalActivo(null);
       setMensaje('Producto creado correctamente.');
       await cargar();
     } catch (error) {
@@ -105,13 +107,13 @@ export function Catalogo({ token, permisos }) {
         </div>
         <div className="acciones-encabezado">
           <span className="contador">{totalProductos} productos</span>
-          {puedeGestionar && <button className="boton" onClick={() => setMostrarProducto((valor) => !valor)}>{mostrarProducto ? 'Cancelar' : 'Nuevo producto'}</button>}
+          {puedeGestionar && <button className="boton boton--secundario" onClick={() => setModalActivo('categoria')}>Nueva categoría</button>}
+          {puedeGestionar && <button className="boton" onClick={() => setModalActivo('producto')}>Nuevo producto</button>}
         </div>
       </div>
 
-      {mostrarProducto && (
+      <Modal abierto={modalActivo === 'producto'} titulo="Nuevo producto" ancho="grande" alCerrar={() => setModalActivo(null)}>
         <form className="formulario-producto" onSubmit={crearProducto}>
-          <h3>Nuevo producto</h3>
           <div className="campos-producto">
             <div className="campo campo--ancho"><label htmlFor="producto_nombre">Nombre</label><input id="producto_nombre" name="nombre" minLength="2" maxLength="180" required /></div>
             <div className="campo"><label htmlFor="producto_codigo_barra">Código de barras</label><input id="producto_codigo_barra" name="codigos_barra" minLength="4" required placeholder="Separar varios con comas" /></div>
@@ -131,17 +133,20 @@ export function Catalogo({ token, permisos }) {
           </div>
           <button className="boton">Guardar producto</button>
         </form>
-      )}
+      </Modal>
 
-      {puedeGestionar && (
-        <form className="formulario-en-linea" onSubmit={crearCategoria}>
+      <Modal abierto={modalActivo === 'categoria'} titulo="Nueva categoría" alCerrar={() => setModalActivo(null)}>
+        <form className="formulario-modal" onSubmit={crearCategoria}>
           <div>
-            <label htmlFor="categoria_nombre">Nueva categoría</label>
+            <label htmlFor="categoria_nombre">Nombre</label>
             <input id="categoria_nombre" name="nombre" minLength="2" maxLength="100" required placeholder="Ej.: Almacén" />
           </div>
-          <button className="boton">Agregar categoría</button>
+          <div className="modal__acciones">
+            <button type="button" className="boton boton--secundario" onClick={() => setModalActivo(null)}>Cancelar</button>
+            <button className="boton">Guardar categoría</button>
+          </div>
         </form>
-      )}
+      </Modal>
       {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
 
       <div className="rejilla-catalogo">
