@@ -1,5 +1,6 @@
 import { createElement, useEffect, useState } from 'react';
 import { Catalogo } from './Catalogo.jsx';
+import { Inventario } from './Inventario.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -8,6 +9,7 @@ export function Aplicacion() {
   const [estado, setEstado] = useState('comprobando');
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [moduloActivo, setModuloActivo] = useState('catalogo');
 
   useEffect(() => {
     const token = sessionStorage.getItem(CLAVE_TOKEN);
@@ -79,10 +81,15 @@ export function Aplicacion() {
             <button type="button" onClick={salir}>Cerrar sesión</button>
           </div>
         </header>
+        <nav className="navegacion-principal" aria-label="Módulos principales">
+          <button className={moduloActivo === 'catalogo' ? 'activo' : ''} onClick={() => setModuloActivo('catalogo')}>Catálogo</button>
+          <button className={moduloActivo === 'inventario' ? 'activo' : ''} onClick={() => setModuloActivo('inventario')}>Inventario</button>
+        </nav>
         <main className="contenido-interno">
-          {createElement(Catalogo, {
-            token: sessionStorage.getItem(CLAVE_TOKEN),
-            permisos: usuario.permisos,
+          {moduloActivo === 'catalogo' ? createElement(Catalogo, {
+            token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
+          }) : createElement(Inventario, {
+            token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}
         </main>
       </div>

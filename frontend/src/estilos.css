@@ -53,6 +53,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .barra-superior span { color: var(--color-acento-100); font-size: .88rem; }
 .usuario-actual button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 8px; color: var(--color-blanco); background: transparent; cursor: pointer; }
 .contenido-interno { width: min(1180px, calc(100% - 30px)); margin: 0 auto; padding: 30px 0 48px; }
+.navegacion-principal { display: flex; gap: 3px; padding: 0 clamp(15px, 5vw, 54px); border-bottom: 1px solid var(--color-gris-200); background: var(--color-blanco); }
+.navegacion-principal button { padding: 9px 13px; border: 0; border-bottom: 2px solid transparent; color: var(--color-gris-500); background: transparent; font: inherit; font-weight: 400; cursor: pointer; }
+.navegacion-principal button.activo { border-bottom-color: var(--color-primario-700); color: var(--color-primario-900); }
 .modulo__encabezado { display: flex; align-items: end; justify-content: space-between; gap: 15px; margin-bottom: 21px; }
 .acciones-encabezado { display: flex; align-items: center; gap: 9px; }
 .acciones-encabezado .boton { margin: 0; }
@@ -63,6 +66,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .mensaje { color: var(--color-primario-700); font-weight: 700; }
 .barra-filtros { display: flex; gap: 9px; margin: 0 0 12px; padding: 12px; border: 1px solid var(--color-gris-200); border-radius: 10px; background: var(--color-blanco); }
 .barra-filtros input { flex: 1; }
+.filtro-verificacion { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.filtro-verificacion input { width: 15px; height: 15px; }
 .barra-filtros .boton { margin: 0; }
 .filtro-activo { margin: 0 0 12px; color: var(--color-primario-700); }
 .formulario-producto { margin: 0; }
@@ -95,6 +100,7 @@ th { color: var(--color-gris-500); font-size: .78rem; letter-spacing: .05em; tex
 .paginacion { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .paginacion button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 10px; color: var(--color-primario-700); background: var(--color-blanco); font: inherit; cursor: pointer; }
 .paginacion button:disabled { cursor: default; opacity: .4; }
+.cantidad-baja { color: var(--color-error); font-weight: 700; }
 
 @media (max-width: 760px) {
   .rejilla-catalogo { grid-template-columns: 1fr; }
