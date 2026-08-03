@@ -112,6 +112,14 @@ export function Catalogo({ token, permisos }) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      setPagina(1);
+      setBuscar(textoBusqueda.trim());
+    }, 300);
+    return () => clearTimeout(temporizador);
+  }, [textoBusqueda]);
+
   async function crearCategoria(evento) {
     evento.preventDefault();
     try {
@@ -144,12 +152,6 @@ export function Catalogo({ token, permisos }) {
     } catch (error) { setMensaje(error.message); }
   }
 
-  function aplicarFiltros(evento) {
-    evento.preventDefault();
-    setPagina(1);
-    setBuscar(textoBusqueda.trim());
-  }
-
   function limpiarBusqueda() {
     setTextoBusqueda('');
     setBuscar('');
@@ -173,11 +175,10 @@ export function Catalogo({ token, permisos }) {
         </div>
       </div>
 
-      <form className="barra-filtros" onSubmit={aplicarFiltros}>
+      <div className="barra-filtros" role="search">
         <input name="buscar" value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por nombre, código interno o código de barras" />
-        <button className="boton">Buscar</button>
         {buscar && <button type="button" className="boton boton--secundario" onClick={limpiarBusqueda}>Limpiar</button>}
-      </form>
+      </div>
       <p className="filtro-activo">
         Mostrando {totalProductos.toLocaleString('es-AR')} {buscar || categoriaId ? 'resultados' : 'productos'}
         {buscar ? ` para “${buscar}”` : ''}
