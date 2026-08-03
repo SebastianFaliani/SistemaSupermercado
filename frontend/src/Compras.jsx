@@ -18,6 +18,7 @@ export function Compras({ token, permisos }) {
   const [compraARecibir, setCompraARecibir] = useState(null);
   const [recibiendo, setRecibiendo] = useState(false);
   const [busquedaProducto, setBusquedaProducto] = useState(''); const [mensaje, setMensaje] = useState('');
+  const [resultadoActivo, setResultadoActivo] = useState(-1);
   const limite = 25;
 
   const cargar = useCallback(async () => {
@@ -34,14 +35,25 @@ export function Compras({ token, permisos }) {
   const resultados = useMemo(() => {
     const termino = busquedaProducto.trim().toLocaleLowerCase('es');
     if (termino.length < 2) return [];
-    const agregados = new Set(items.map((item) => item.producto_id));
-    return referencias.productos.filter((producto) => !agregados.has(producto.id)
-      && (`${producto.nombre} ${producto.codigo_barra || ''}`).toLocaleLowerCase('es').includes(termino)).slice(0, 12);
-  }, [busquedaProducto, referencias.productos, items]);
+    return referencias.productos.filter((producto) => (`${producto.nombre} ${producto.codigo_barra || ''}`).toLocaleLowerCase('es').includes(termino)).slice(0, 12);
+  }, [busquedaProducto, referencias.productos]);
+  useEffect(() => {
+    if (resultadoActivo >= 0) document.getElementById(`resultado-compra-${resultados[resultadoActivo]?.id}`)?.scrollIntoView({ block: 'nearest' });
+  }, [resultadoActivo, resultados]);
 
-  function agregar(producto) { setItems((actual) => [...actual, { producto_id: producto.id, nombre: producto.nombre, codigo_barra: producto.codigo_barra, es_pesable: producto.es_pesable, cantidad: 1, costo_unitario: Number(producto.precio_costo) }]); setBusquedaProducto(''); }
+  function agregar(producto, conservarBusqueda = false) { setItems((actual) => { const existente = actual.find((item) => item.producto_id === producto.id); if (existente) return actual.map((item) => item.producto_id === producto.id ? { ...item, cantidad: Number(item.cantidad) + 1 } : item); return [...actual, { producto_id: producto.id, nombre: producto.nombre, codigo_barra: producto.codigo_barra, es_pesable: producto.es_pesable, cantidad: 1, costo_unitario: Number(producto.precio_costo) }]; }); if (!conservarBusqueda) { setBusquedaProducto(''); setResultadoActivo(-1); } }
+  function navegarProductos(evento) {
+    if (evento.key === 'ArrowDown') { evento.preventDefault(); if (resultados.length) setResultadoActivo((actual) => actual >= resultados.length - 1 ? -1 : actual + 1); return; }
+    if (evento.key === 'ArrowUp') { evento.preventDefault(); if (resultados.length) setResultadoActivo((actual) => actual === -1 ? resultados.length - 1 : actual === 0 ? -1 : actual - 1); return; }
+    if (evento.key === 'Escape') { setResultadoActivo(-1); return; }
+    if (evento.key !== 'Enter') return;
+    evento.preventDefault();
+    const exacto = resultados.find((producto) => producto.codigo_barra === busquedaProducto.trim());
+    const producto = exacto || resultados[resultadoActivo] || resultados[0];
+    if (producto) agregar(producto, !exacto);
+  }
   function cambiar(id, campo, valor) { setItems((actual) => actual.map((item) => item.producto_id === id ? { ...item, [campo]: valor } : item)); }
-  function cerrarModal() { setModal(false); setItems([]); setBusquedaProducto(''); setOrdenActual(null); }
+  function cerrarModal() { setModal(false); setItems([]); setBusquedaProducto(''); setResultadoActivo(-1); setOrdenActual(null); }
   async function abrirOrden(compra) {
     try {
       const respuesta = await pedir(`/api/compras/${compra.id}`, token);
@@ -83,8 +95,8 @@ export function Compras({ token, permisos }) {
     <Modal abierto={modal} titulo={ordenActual ? `${soloLectura ? 'Detalle' : 'Editar'} compra #${ordenActual.id}` : 'Nueva orden de compra'} ancho="grande" alCerrar={cerrarModal}><form className="formulario-modal" onSubmit={guardar}>
       {ordenActual && <p className="detalle-estado">Estado: <span className="estado-activo">{ordenActual.estado}</span></p>}
       <div className="campos-producto"><div className="campo"><label>Proveedor</label><select name="proveedor_id" required defaultValue={ordenActual?.proveedor_id ?? ''} disabled={soloLectura}><option value="" disabled>Seleccionar</option>{referencias.proveedores.map((proveedor) => <option key={proveedor.id} value={proveedor.id}>{proveedor.nombre_fantasia || proveedor.razon_social}</option>)}</select></div><div className="campo"><label>Entrega esperada</label><input name="fecha_esperada" type="date" defaultValue={ordenActual?.fecha_esperada?.slice(0, 10) ?? ''} disabled={soloLectura} /></div></div>
-      {!soloLectura && <div className="buscador-productos-compra"><label htmlFor="buscar_producto_compra">Buscar productos</label><input id="buscar_producto_compra" value={busquedaProducto} onChange={(evento) => setBusquedaProducto(evento.target.value)} placeholder="Escribí nombre o código de barras" autoComplete="off" />
-        {resultados.length > 0 && <div className="resultados-productos">{resultados.map((producto) => <button type="button" key={producto.id} onClick={() => agregar(producto)}><span>{producto.nombre}</span><small>{producto.codigo_barra || 'Sin código'} · Costo ${Number(producto.precio_costo).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</small></button>)}</div>}
+      {!soloLectura && <div className="buscador-productos-compra"><label htmlFor="buscar_producto_compra">Buscar productos</label><input id="buscar_producto_compra" role="combobox" aria-expanded={resultados.length > 0} aria-controls="resultados-busqueda-compra" aria-activedescendant={resultadoActivo >= 0 ? `resultado-compra-${resultados[resultadoActivo]?.id}` : undefined} value={busquedaProducto} onChange={(evento) => { setBusquedaProducto(evento.target.value); setResultadoActivo(-1); }} onKeyDown={navegarProductos} placeholder="Escribí nombre o código de barras" autoComplete="off" /><small className="ayuda-buscador">↑/↓ para elegir · Enter para agregar</small>
+        {resultados.length > 0 && <div id="resultados-busqueda-compra" role="listbox" className="resultados-productos">{resultados.map((producto, indice) => <button id={`resultado-compra-${producto.id}`} role="option" aria-selected={resultadoActivo === indice} type="button" key={producto.id} className={resultadoActivo === indice ? 'resultado-activo' : ''} onMouseEnter={() => setResultadoActivo(indice)} onClick={() => agregar(producto, true)}><span>{producto.nombre}</span><small>{producto.codigo_barra || 'Sin código'} · Costo ${Number(producto.precio_costo).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</small></button>)}</div>}
       </div>}
       {items.length ? <div className="tabla-contenedor tabla-items-compra"><table><thead><tr><th>Producto agregado</th><th>Cantidad</th><th>Costo unitario</th><th>Subtotal</th>{!soloLectura && <th></th>}</tr></thead><tbody>{items.map((item) => <tr key={item.producto_id}><td>{item.nombre}<small className="dato-secundario">{item.codigo_barra || 'Sin código'}</small></td><td><input type="number" min={item.es_pesable ? '0.001' : '1'} step={item.es_pesable ? '0.001' : '1'} value={item.cantidad} disabled={soloLectura} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => cambiar(item.producto_id, 'cantidad', evento.target.value)} required /></td><td><input type="number" min="0" step="0.01" value={item.costo_unitario} disabled={soloLectura} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => cambiar(item.producto_id, 'costo_unitario', evento.target.value)} required /></td><td>${(Number(item.cantidad) * Number(item.costo_unitario)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>{!soloLectura && <td><button type="button" className="boton-tabla" onClick={() => setItems((actual) => actual.filter((otro) => otro.producto_id !== item.producto_id))}>Quitar</button></td>}</tr>)}</tbody></table></div> : <p className="vacio">Buscá y agregá al menos un producto.</p>}
       <div><label>Observaciones</label><textarea name="observaciones" maxLength="500" rows="2" defaultValue={ordenActual?.observaciones ?? ''} disabled={soloLectura} /></div><p className="total-compra">Total: <strong>${totalOrden.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></p><div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={cerrarModal}>{soloLectura ? 'Cerrar' : 'Cancelar'}</button>{!soloLectura && <button className="boton" disabled={!items.length}>{ordenActual ? 'Guardar cambios' : 'Crear borrador'}</button>}</div>
