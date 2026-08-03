@@ -20,6 +20,10 @@ export function Inventario({ token, permisos }) {
   const [textoBusqueda, setTextoBusqueda] = useState('');
   const [buscar, setBuscar] = useState('');
   const [soloBajoMinimo, setSoloBajoMinimo] = useState(false);
+  const [categorias, setCategorias] = useState([]);
+  const [marcas, setMarcas] = useState([]);
+  const [categoriaId, setCategoriaId] = useState('');
+  const [marcaId, setMarcaId] = useState('');
   const [pagina, setPagina] = useState(1);
   const [productoAjuste, setProductoAjuste] = useState(null);
   const [mensaje, setMensaje] = useState('');
@@ -40,11 +44,19 @@ export function Inventario({ token, permisos }) {
         solo_bajo_minimo: String(soloBajoMinimo),
       });
       if (buscar) parametros.set('buscar', buscar);
-      const respuesta = await solicitar(`/api/inventario/stock?${parametros}`, token);
+      if (categoriaId) parametros.set('categoria_id', categoriaId);
+      if (marcaId) parametros.set('marca_id', marcaId);
+      const [respuesta, respuestaCategorias, respuestaReferencias] = await Promise.all([
+        solicitar(`/api/inventario/stock?${parametros}`, token),
+        solicitar('/api/catalogo/categorias', token),
+        solicitar('/api/catalogo/referencias', token),
+      ]);
       setExistencias(respuesta.datos);
       setTotal(respuesta.total);
+      setCategorias(respuestaCategorias.datos);
+      setMarcas(respuestaReferencias.marcas);
     } catch (error) { setMensaje(error.message); }
-  }, [token, pagina, buscar, soloBajoMinimo]);
+  }, [token, pagina, buscar, soloBajoMinimo, categoriaId, marcaId]);
 
   const cargarMovimientos = useCallback(async () => {
     try {
@@ -140,10 +152,22 @@ export function Inventario({ token, permisos }) {
       {vista === 'existencias' ? <>
         <div className="barra-filtros" role="search">
           <input value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por producto o código de barras" />
+          <select aria-label="Filtrar por marca" value={marcaId} onChange={(evento) => { setMarcaId(evento.target.value); setPagina(1); }}>
+            <option value="">Todas las marcas</option>
+            {marcas.map((marca) => <option key={marca.id} value={marca.id}>{marca.nombre}</option>)}
+          </select>
           <label className="filtro-verificacion"><input type="checkbox" checked={soloBajoMinimo} onChange={(evento) => { setSoloBajoMinimo(evento.target.checked); setPagina(1); }} /> Solo bajo mínimo</label>
         </div>
-        <p className="filtro-activo">Mostrando {total.toLocaleString('es-AR')} productos{soloBajoMinimo ? ' bajo el mínimo' : ''}{buscar ? ` para “${buscar}”` : ''}.</p>
-        <article className="panel">
+        <p className="filtro-activo">Mostrando {total.toLocaleString('es-AR')} {buscar || categoriaId || marcaId || soloBajoMinimo ? 'resultados' : 'productos'}{soloBajoMinimo ? ' bajo el mínimo' : ''}{buscar ? ` para “${buscar}”` : ''}{categoriaId ? ` en ${categorias.find((categoria) => String(categoria.id) === categoriaId)?.nombre ?? 'la categoría seleccionada'}` : ''}{marcaId ? `. Marca: ${marcas.find((marca) => String(marca.id) === marcaId)?.nombre ?? 'seleccionada'}` : ''}.</p>
+        <div className="rejilla-catalogo">
+          <article className="panel">
+            <h3>Categorías</h3>
+            <nav className="lista-categorias" aria-label="Filtrar por categoría">
+              <button type="button" className={!categoriaId ? 'categoria-activa' : ''} onClick={() => { setCategoriaId(''); setPagina(1); }}><span className="icono-todas">≡</span><span>Todas</span></button>
+              {categorias.map((categoria) => <button type="button" key={categoria.id} className={categoriaId === String(categoria.id) ? 'categoria-activa' : ''} onClick={() => { setCategoriaId(String(categoria.id)); setPagina(1); }}>{categoria.icono_url && <img src={categoria.icono_url} alt="" />}<span>{categoria.nombre}</span></button>)}
+            </nav>
+          </article>
+          <article className="panel panel--productos">
         <div className="panel__encabezado"><h3>Stock actual</h3><span>Página {pagina} de {paginas}</span></div>
         <div className="tabla-contenedor">
           <table><thead><tr><th></th><th>Producto</th><th>Código</th><th>Disponible</th><th>Mínimo</th>{puedeAjustar && <th></th>}</tr></thead>
@@ -157,7 +181,8 @@ export function Inventario({ token, permisos }) {
           </table>
         </div>
         <div className="paginacion"><button disabled={pagina === 1} onClick={() => setPagina((valor) => valor - 1)}>Anterior</button><button disabled={pagina >= paginas} onClick={() => setPagina((valor) => valor + 1)}>Siguiente</button></div>
-        </article>
+          </article>
+        </div>
       </> : <>
         <p className="filtro-activo">Mostrando {totalMovimientos.toLocaleString('es-AR')} movimientos registrados.</p>
         <article className="panel">

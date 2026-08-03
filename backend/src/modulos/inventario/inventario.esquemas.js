@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 export const esquemaConsultaStock = z.object({
   buscar: z.string().trim().max(180).optional(),
+  categoria_id: z.coerce.number().int().positive().optional(),
+  marca_id: z.coerce.number().int().positive().optional(),
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
   solo_bajo_minimo: z.enum(['true', 'false']).optional().transform((valor) => valor === 'true'),

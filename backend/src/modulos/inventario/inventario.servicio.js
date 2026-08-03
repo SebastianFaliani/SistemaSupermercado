@@ -21,6 +21,14 @@ export async function listarStock(consulta) {
   if (consulta.solo_bajo_minimo) {
     condiciones.push('p.stock_minimo > 0 AND COALESCE(e.cantidad, 0) < p.stock_minimo');
   }
+  if (consulta.categoria_id) {
+    condiciones.push('p.categoria_id = ?');
+    parametros.push(consulta.categoria_id);
+  }
+  if (consulta.marca_id) {
+    condiciones.push('p.marca_id = ?');
+    parametros.push(consulta.marca_id);
+  }
   const desplazamiento = (consulta.pagina - 1) * consulta.limite;
   const desde = `FROM productos p
     CROSS JOIN ubicaciones_stock u
