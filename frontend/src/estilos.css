@@ -62,6 +62,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .formulario-en-linea > div { flex: 1; }
 .formulario-en-linea .boton { margin: 0; white-space: nowrap; }
 .mensaje { color: var(--color-primario-700); font-weight: 700; }
+.barra-filtros { display: grid; grid-template-columns: minmax(260px, 1fr) 220px auto; gap: 9px; margin: 0 0 16px; padding: 12px; border: 1px solid var(--color-gris-200); border-radius: 10px; background: var(--color-blanco); }
+.barra-filtros .boton { margin: 0; }
 .formulario-producto { margin: 0; }
 .formulario-producto h3 { margin-top: 0; }
 .campos-producto { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -73,6 +75,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .rejilla-catalogo { display: grid; grid-template-columns: minmax(165px, .7fr) 2fr; gap: 15px; margin-top: 17px; }
 .panel { padding: 17px; border: 1px solid var(--color-gris-200); border-radius: 11px; background: var(--color-blanco); box-shadow: 0 6px 19px rgb(0 59 70 / 6%); }
 .panel h3 { margin-top: 0; }
+.panel__encabezado { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.panel__encabezado span { color: var(--color-gris-500); }
 .lista-simple { margin: 0; padding: 0; list-style: none; }
 .lista-simple li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--color-gris-200); }
 .lista-simple img { flex: 0 0 auto; width: 30px; height: 30px; object-fit: contain; }
@@ -81,6 +85,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 table { width: 100%; border-collapse: collapse; text-align: left; }
 th, td { padding: 8px; border-bottom: 1px solid var(--color-gris-200); }
 th { color: var(--color-gris-500); font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; }
+.miniatura-producto, .miniatura-vacia { display: block; width: 34px; height: 34px; border-radius: 6px; object-fit: contain; background: var(--color-gris-50); }
+.miniatura-vacia { border: 1px dashed var(--color-gris-200); }
+.boton-tabla { border: 0; border-radius: 6px; padding: 6px 9px; color: var(--color-primario-700); background: var(--color-acento-100); font: inherit; font-weight: 700; cursor: pointer; }
+.paginacion { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.paginacion button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 10px; color: var(--color-primario-700); background: var(--color-blanco); font: inherit; cursor: pointer; }
+.paginacion button:disabled { cursor: default; opacity: .4; }
 
 @media (max-width: 760px) {
   .rejilla-catalogo { grid-template-columns: 1fr; }
@@ -89,6 +99,7 @@ th { color: var(--color-gris-500); font-size: .78rem; letter-spacing: .05em; tex
   .campos-producto { grid-template-columns: 1fr; }
   .campo--ancho { grid-column: auto; }
   .modulo__encabezado, .acciones-encabezado { align-items: stretch; flex-direction: column; }
+  .barra-filtros { grid-template-columns: 1fr; }
 }
 
 body.modal-abierto { overflow: hidden; }

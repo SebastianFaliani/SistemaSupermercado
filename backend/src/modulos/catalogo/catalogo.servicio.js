@@ -63,6 +63,24 @@ export async function listarProductos(consulta) {
   return { datos: productos, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
 }
 
+export async function obtenerProducto(productoId) {
+  const [filas] = await baseDatos.query(
+    `SELECT id, categoria_id, marca_id, unidad_medida_id, codigo_interno,
+      nombre, descripcion, contenido_neto, precio_costo, precio_venta,
+      precio_mayorista, porcentaje_margen, cantidad_minima_mayorista,
+      stock_minimo, es_pesable, imagen_url, esta_activo
+     FROM productos WHERE id = ? LIMIT 1`,
+    [productoId],
+  );
+  if (!filas[0]) return null;
+  const [codigos] = await baseDatos.query(
+    `SELECT codigo_barra FROM productos_codigos_barra
+     WHERE producto_id = ? ORDER BY es_principal DESC, id`,
+    [productoId],
+  );
+  return { ...filas[0], codigos_barra: codigos.map(({ codigo_barra }) => codigo_barra) };
+}
+
 export async function crearProducto(datos) {
   const conexion = await baseDatos.getConnection();
   try {
@@ -71,12 +89,13 @@ export async function crearProducto(datos) {
       `INSERT INTO productos
        (categoria_id, marca_id, unidad_medida_id, codigo_interno, nombre,
         descripcion, contenido_neto, precio_costo, precio_venta, precio_mayorista,
-        cantidad_minima_mayorista, stock_minimo, es_pesable, imagen_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        porcentaje_margen, cantidad_minima_mayorista, stock_minimo, es_pesable, imagen_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [datos.categoria_id, datos.marca_id ?? null, datos.unidad_medida_id,
         datos.codigo_interno ?? null, datos.nombre, datos.descripcion ?? null,
         datos.contenido_neto ?? null, datos.precio_costo, datos.precio_venta,
-        datos.precio_mayorista ?? null, datos.cantidad_minima_mayorista ?? null,
+        datos.precio_mayorista ?? null, datos.porcentaje_margen ?? null,
+        datos.cantidad_minima_mayorista ?? null,
         datos.stock_minimo, datos.es_pesable, datos.imagen_url ?? null],
     );
     for (const [indice, codigo] of [...new Set(datos.codigos_barra)].entries()) {
@@ -86,8 +105,70 @@ export async function crearProducto(datos) {
         [resultado.insertId, codigo, indice === 0],
       );
     }
+    await conexion.query(
+      `INSERT INTO historiales_precios
+       (producto_id, precio_costo_nuevo, precio_venta_nuevo, porcentaje_margen, origen)
+       VALUES (?, ?, ?, ?, 'alta_manual')`,
+      [resultado.insertId, datos.precio_costo, datos.precio_venta,
+        datos.porcentaje_margen ?? null],
+    );
     await conexion.commit();
     return { id: resultado.insertId, ...datos };
+  } catch (error) {
+    await conexion.rollback();
+    throw error;
+  } finally {
+    conexion.release();
+  }
+}
+
+export async function actualizarProducto(productoId, datos, usuarioId) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [anteriores] = await conexion.query(
+      `SELECT precio_costo, precio_venta FROM productos WHERE id = ? FOR UPDATE`,
+      [productoId],
+    );
+    if (!anteriores[0]) {
+      await conexion.rollback();
+      return null;
+    }
+    await conexion.query(
+      `UPDATE productos SET categoria_id = ?, marca_id = ?, unidad_medida_id = ?,
+       codigo_interno = ?, nombre = ?, descripcion = ?, contenido_neto = ?,
+       precio_costo = ?, precio_venta = ?, precio_mayorista = ?, porcentaje_margen = ?,
+       cantidad_minima_mayorista = ?, stock_minimo = ?, es_pesable = ?, imagen_url = ?
+       WHERE id = ?`,
+      [datos.categoria_id, datos.marca_id ?? null, datos.unidad_medida_id,
+        datos.codigo_interno ?? null, datos.nombre, datos.descripcion ?? null,
+        datos.contenido_neto ?? null, datos.precio_costo, datos.precio_venta,
+        datos.precio_mayorista ?? null, datos.porcentaje_margen ?? null,
+        datos.cantidad_minima_mayorista ?? null, datos.stock_minimo,
+        datos.es_pesable, datos.imagen_url ?? null, productoId],
+    );
+    await conexion.query('DELETE FROM productos_codigos_barra WHERE producto_id = ?', [productoId]);
+    for (const [indice, codigo] of [...new Set(datos.codigos_barra)].entries()) {
+      await conexion.query(
+        `INSERT INTO productos_codigos_barra (producto_id, codigo_barra, es_principal)
+         VALUES (?, ?, ?)`,
+        [productoId, codigo, indice === 0],
+      );
+    }
+    const anterior = anteriores[0];
+    if (Number(anterior.precio_costo) !== datos.precio_costo ||
+        Number(anterior.precio_venta) !== datos.precio_venta) {
+      await conexion.query(
+        `INSERT INTO historiales_precios
+         (producto_id, usuario_id, precio_costo_anterior, precio_costo_nuevo,
+          precio_venta_anterior, precio_venta_nuevo, porcentaje_margen, origen)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'edicion_manual')`,
+        [productoId, usuarioId, anterior.precio_costo, datos.precio_costo,
+          anterior.precio_venta, datos.precio_venta, datos.porcentaje_margen ?? null],
+      );
+    }
+    await conexion.commit();
+    return { id: productoId, ...datos };
   } catch (error) {
     await conexion.rollback();
     throw error;

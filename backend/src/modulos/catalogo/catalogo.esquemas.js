@@ -21,6 +21,7 @@ export const esquemaProducto = z.object({
   precio_costo: dinero,
   precio_venta: dinero,
   precio_mayorista: dinero.nullable().optional(),
+  porcentaje_margen: z.coerce.number().min(0).max(999.999).nullable().optional(),
   cantidad_minima_mayorista: z.coerce.number().positive().nullable().optional(),
   stock_minimo: z.coerce.number().min(0).default(0),
   es_pesable: z.boolean().default(false),

@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { requerirAutenticacion } from '../seguridad/autenticacion.middleware.js';
 import { requerirPermiso } from '../seguridad/permisos.middleware.js';
 import { esquemaCategoria, esquemaConsultaProductos, esquemaProducto } from './catalogo.esquemas.js';
-import { crearCategoria, crearProducto, listarCategorias, listarProductos, listarReferencias } from './catalogo.servicio.js';
+import { actualizarProducto, crearCategoria, crearProducto, listarCategorias, listarProductos, listarReferencias, obtenerProducto } from './catalogo.servicio.js';
 
 export const rutasCatalogo = Router();
 rutasCatalogo.use(requerirAutenticacion);
@@ -28,8 +28,26 @@ rutasCatalogo.get('/productos', requerirPermiso('productos.ver'), async (solicit
   respuesta.json(await listarProductos(validacion.data));
 });
 
+rutasCatalogo.get('/productos/:id', requerirPermiso('productos.ver'), async (solicitud, respuesta) => {
+  const productoId = Number(solicitud.params.id);
+  if (!Number.isInteger(productoId) || productoId <= 0) return respuesta.status(400).json({ mensaje: 'Producto inválido' });
+  const producto = await obtenerProducto(productoId);
+  if (!producto) return respuesta.status(404).json({ mensaje: 'Producto no encontrado' });
+  respuesta.json({ dato: producto });
+});
+
 rutasCatalogo.post('/productos', requerirPermiso('productos.gestionar'), async (solicitud, respuesta) => {
   const validacion = esquemaProducto.safeParse(solicitud.body);
   if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Datos de producto inválidos', errores: validacion.error.flatten() });
   respuesta.status(201).json({ dato: await crearProducto(validacion.data) });
+});
+
+rutasCatalogo.put('/productos/:id', requerirPermiso('productos.gestionar'), async (solicitud, respuesta) => {
+  const productoId = Number(solicitud.params.id);
+  if (!Number.isInteger(productoId) || productoId <= 0) return respuesta.status(400).json({ mensaje: 'Producto inválido' });
+  const validacion = esquemaProducto.safeParse(solicitud.body);
+  if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Datos de producto inválidos', errores: validacion.error.flatten() });
+  const producto = await actualizarProducto(productoId, validacion.data, solicitud.usuario.id);
+  if (!producto) return respuesta.status(404).json({ mensaje: 'Producto no encontrado' });
+  respuesta.json({ dato: producto });
 });
