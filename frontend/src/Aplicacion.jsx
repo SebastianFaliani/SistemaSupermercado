@@ -3,6 +3,7 @@ import { Catalogo } from './Catalogo.jsx';
 import { Inventario } from './Inventario.jsx';
 import { Usuarios } from './Usuarios.jsx';
 import { Proveedores } from './Proveedores.jsx';
+import { Compras } from './Compras.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -88,6 +89,7 @@ export function Aplicacion() {
           <button className={moduloActivo === 'inventario' ? 'activo' : ''} onClick={() => setModuloActivo('inventario')}>Inventario</button>
           {usuario.permisos.includes('usuarios.ver') && <button className={moduloActivo === 'usuarios' ? 'activo' : ''} onClick={() => setModuloActivo('usuarios')}>Usuarios</button>}
           {usuario.permisos.includes('compras.ver') && <button className={moduloActivo === 'proveedores' ? 'activo' : ''} onClick={() => setModuloActivo('proveedores')}>Proveedores</button>}
+          {usuario.permisos.includes('compras.ver') && <button className={moduloActivo === 'compras' ? 'activo' : ''} onClick={() => setModuloActivo('compras')}>Compras</button>}
         </nav>
         <main className="contenido-interno">
           {moduloActivo === 'catalogo' && createElement(Catalogo, {
@@ -102,6 +104,7 @@ export function Aplicacion() {
           {moduloActivo === 'proveedores' && createElement(Proveedores, {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}
+          {moduloActivo === 'compras' && createElement(Compras, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
         </main>
       </div>
     );

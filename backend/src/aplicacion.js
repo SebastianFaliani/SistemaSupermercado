@@ -11,6 +11,7 @@ import { rutasCatalogo } from './modulos/catalogo/catalogo.rutas.js';
 import { rutasInventario } from './modulos/inventario/inventario.rutas.js';
 import { rutasUsuarios } from './modulos/usuarios/usuarios.rutas.js';
 import { rutasProveedores } from './modulos/proveedores/proveedores.rutas.js';
+import { rutasCompras } from './modulos/compras/compras.rutas.js';
 
 export const aplicacion = express();
 const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -28,6 +29,7 @@ aplicacion.use('/api/catalogo', rutasCatalogo);
 aplicacion.use('/api/inventario', rutasInventario);
 aplicacion.use('/api/usuarios', rutasUsuarios);
 aplicacion.use('/api/proveedores', rutasProveedores);
+aplicacion.use('/api/compras', rutasCompras);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {
