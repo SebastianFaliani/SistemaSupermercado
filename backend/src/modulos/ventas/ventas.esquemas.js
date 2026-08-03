@@ -20,3 +20,4 @@ export const esquemaConsultaVentas = z.object({
 });
 
 export const esquemaIdVenta = z.coerce.number().int().positive();
+export const esquemaAnularVenta = z.object({ motivo: z.string().trim().min(5).max(255) });

@@ -95,11 +95,13 @@ export async function listarVentas(consulta, usuarioId = null) {
     baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, u.nombre_usuario,
       c.nombre AS caja, (SELECT COUNT(*) FROM ventas_detalles vd WHERE vd.venta_id = v.id) AS productos
       ${desde} ORDER BY v.fecha_creacion DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
-    baseDatos.query(`SELECT COUNT(*) AS total, COALESCE(SUM(v.total), 0) AS facturacion ${desde}`, parametros),
+    baseDatos.query(`SELECT COUNT(*) AS total,
+      COALESCE(SUM(IF(v.estado = 'completada', v.total, 0)), 0) AS facturacion ${desde}`, parametros),
     baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
       FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
       JOIN usuarios u ON u.id = v.usuario_id JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id
-      JOIN cajas c ON c.id = sc.caja_id ${donde} GROUP BY vp.medio`, parametros),
+      JOIN cajas c ON c.id = sc.caja_id ${donde ? `${donde} AND` : 'WHERE'} v.estado = 'completada'
+      GROUP BY vp.medio`, parametros),
   ]);
   return { datos, total: resumen[0].total, facturacion: Number(resumen[0].facturacion),
     pagos: Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)])),
@@ -110,6 +112,7 @@ export async function obtenerVenta(id, usuarioId = null) {
   const parametros = [id]; const restriccion = usuarioId ? 'AND v.usuario_id = ?' : '';
   if (usuarioId) parametros.push(usuarioId);
   const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total,
+    v.fecha_anulacion, v.motivo_anulacion,
     u.nombre_usuario, c.nombre AS caja FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
     JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
     WHERE v.id = ? ${restriccion}`, parametros);
@@ -122,6 +125,35 @@ export async function obtenerVenta(id, usuarioId = null) {
     baseDatos.query('SELECT medio, monto FROM ventas_pagos WHERE venta_id = ? ORDER BY id', [id]),
   ]);
   return { ...ventas[0], detalles, pagos };
+}
+
+export async function anularVenta(id, usuarioId, motivo) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [[venta]] = await conexion.query(`SELECT v.estado, v.sesion_caja_id, sc.estado AS estado_caja
+      FROM ventas v JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id WHERE v.id = ? FOR UPDATE`, [id]);
+    if (!venta) { const error = new Error('No se encontró la venta'); error.codigoPublico = 'NO_ENCONTRADA'; throw error; }
+    if (venta.estado !== 'completada') { const error = new Error('La venta ya está anulada'); error.codigoPublico = 'ESTADO_INVALIDO'; throw error; }
+    if (venta.estado_caja !== 'abierta') { const error = new Error('No se puede anular una venta de una caja cerrada'); error.codigoPublico = 'CAJA_CERRADA'; throw error; }
+    const [[ubicacion]] = await conexion.query("SELECT id FROM ubicaciones_stock WHERE codigo = 'LOCAL_PRINCIPAL'");
+    const [detalles] = await conexion.query('SELECT producto_id, cantidad FROM ventas_detalles WHERE venta_id = ?', [id]);
+    const [movimiento] = await conexion.query(`INSERT INTO movimientos_stock
+      (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
+      VALUES (?, ?, 'entrada_anulacion_venta', ?, 'venta_anulada', ?)`, [ubicacion.id, usuarioId, motivo, id]);
+    for (const detalle of detalles) {
+      const [[existencia]] = await conexion.query(`SELECT cantidad FROM existencias
+        WHERE producto_id = ? AND ubicacion_id = ? FOR UPDATE`, [detalle.producto_id, ubicacion.id]);
+      const anterior = Number(existencia.cantidad); const nueva = anterior + Number(detalle.cantidad);
+      await conexion.query('UPDATE existencias SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', [nueva, detalle.producto_id, ubicacion.id]);
+      await conexion.query(`INSERT INTO movimientos_stock_detalles
+        (movimiento_stock_id, producto_id, cantidad_anterior, variacion, cantidad_nueva)
+        VALUES (?, ?, ?, ?, ?)`, [movimiento.insertId, detalle.producto_id, anterior, detalle.cantidad, nueva]);
+    }
+    await conexion.query(`UPDATE ventas SET estado = 'anulada', anulada_por_usuario_id = ?,
+      motivo_anulacion = ?, fecha_anulacion = CURRENT_TIMESTAMP(3) WHERE id = ?`, [usuarioId, motivo, id]);
+    await conexion.commit(); return { id, productos_reintegrados: detalles.length, movimiento_id: movimiento.insertId };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 
 export async function crearVenta(usuarioId, datos) {
