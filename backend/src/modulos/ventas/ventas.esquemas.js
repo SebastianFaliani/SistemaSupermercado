@@ -8,7 +8,8 @@ export const esquemaCerrarCaja = z.object({ monto_contado: z.coerce.number().min
 export const esquemaVenta = z.object({
   detalles: z.array(z.object({ producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive().max(999999999999.999) })).min(1).max(200)
     .refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto'),
-  pagos: z.array(z.object({ medio: z.enum(['efectivo', 'debito', 'credito', 'transferencia']), monto: z.coerce.number().positive() })).min(1).max(4),
+  pagos: z.array(z.object({ medio: z.enum(['efectivo', 'debito', 'credito', 'transferencia']), monto: z.coerce.number().positive() })).min(1).max(4)
+    .refine((pagos) => new Set(pagos.map((pago) => pago.medio)).size === pagos.length, 'No puede repetirse un medio de pago'),
 });
 
 export const esquemaConsultaVentas = z.object({
