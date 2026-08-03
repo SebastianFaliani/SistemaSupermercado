@@ -26,6 +26,18 @@ export const esquemaProducto = z.object({
   stock_minimo: z.coerce.number().min(0).default(0),
   es_pesable: z.boolean().default(false),
   imagen_url: z.string().trim().max(500).nullable().optional(),
+}).superRefine((datos, contexto) => {
+  if (datos.es_pesable) return;
+  for (const campo of ['cantidad_minima_mayorista', 'stock_minimo']) {
+    const valor = datos[campo];
+    if (valor !== null && valor !== undefined && !Number.isInteger(valor)) {
+      contexto.addIssue({
+        code: 'custom',
+        path: [campo],
+        message: 'Debe ser un número entero para productos no pesables',
+      });
+    }
+  }
 });
 
 export const esquemaConsultaProductos = z.object({

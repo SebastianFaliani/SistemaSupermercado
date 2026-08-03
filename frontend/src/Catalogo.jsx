@@ -39,6 +39,8 @@ function datosDesdeFormulario(formulario) {
 }
 
 function FormularioProducto({ producto, categorias, referencias, alGuardar, alCancelar }) {
+  const [esPesable, setEsPesable] = useState(Boolean(producto?.es_pesable));
+  const seleccionarContenido = (evento) => evento.currentTarget.select();
   function recalcularVenta(evento) {
     const formulario = evento.currentTarget.form;
     const costo = Number(formulario.elements.precio_costo.value);
@@ -62,11 +64,11 @@ function FormularioProducto({ producto, categorias, referencias, alGuardar, alCa
         <div className="campo"><label htmlFor="producto_margen">Margen (%)</label><input id="producto_margen" name="porcentaje_margen" type="number" min="0" max="999.999" step="0.001" defaultValue={producto?.porcentaje_margen ?? 30} onInput={recalcularVenta} required /></div>
         <div className="campo"><label htmlFor="producto_venta">Precio de venta</label><input id="producto_venta" name="precio_venta" type="number" min="0" step="0.01" defaultValue={producto?.precio_venta ?? ''} required /></div>
         <div className="campo"><label htmlFor="producto_mayorista">Nuestro precio mayorista</label><input id="producto_mayorista" name="precio_mayorista" type="number" min="0" step="0.01" defaultValue={producto?.precio_mayorista ?? ''} /></div>
-        <div className="campo"><label htmlFor="producto_cantidad_mayorista">Cantidad mínima mayorista</label><input id="producto_cantidad_mayorista" name="cantidad_minima_mayorista" type="number" min="0.001" step="0.001" defaultValue={producto?.cantidad_minima_mayorista ?? ''} /></div>
-        <div className="campo"><label htmlFor="producto_stock_minimo">Stock mínimo</label><input id="producto_stock_minimo" name="stock_minimo" type="number" min="0" step="0.001" defaultValue={producto?.stock_minimo ?? 0} /></div>
+        <div className="campo"><label htmlFor="producto_cantidad_mayorista">Cantidad mínima mayorista</label><input id="producto_cantidad_mayorista" name="cantidad_minima_mayorista" type="number" min={esPesable ? '0.001' : '1'} step={esPesable ? '0.001' : '1'} defaultValue={producto?.cantidad_minima_mayorista ?? ''} onFocus={seleccionarContenido} /></div>
+        <div className="campo"><label htmlFor="producto_stock_minimo">Stock mínimo</label><input id="producto_stock_minimo" name="stock_minimo" type="number" min="0" step={esPesable ? '0.001' : '1'} defaultValue={producto?.stock_minimo ?? 0} onFocus={seleccionarContenido} /></div>
         <div className="campo campo--ancho"><label htmlFor="producto_imagen">URL de imagen</label><input id="producto_imagen" name="imagen_url" maxLength="500" defaultValue={producto?.imagen_url ?? ''} /></div>
         <div className="campo campo--ancho"><label htmlFor="producto_descripcion">Descripción</label><textarea id="producto_descripcion" name="descripcion" rows="3" defaultValue={producto?.descripcion ?? ''} /></div>
-        <label className="campo-verificacion"><input name="es_pesable" type="checkbox" defaultChecked={Boolean(producto?.es_pesable)} /> Producto pesable</label>
+        <label className="campo-verificacion"><input name="es_pesable" type="checkbox" checked={esPesable} onChange={(evento) => setEsPesable(evento.target.checked)} /> Producto pesable</label>
       </div>
       <div className="modal__acciones">
         <button type="button" className="boton boton--secundario" onClick={alCancelar}>Cancelar</button>

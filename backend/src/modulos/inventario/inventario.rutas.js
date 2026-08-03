@@ -25,6 +25,7 @@ rutasInventario.post('/ajustes', requerirPermiso('stock.ajustar'), async (solici
     respuesta.status(201).json({ dato: resultado });
   } catch (error) {
     if (error.codigoPublico === 'SIN_CAMBIOS') return respuesta.status(409).json({ mensaje: error.message });
+    if (error.codigoPublico === 'CANTIDAD_ENTERA') return respuesta.status(400).json({ mensaje: error.message });
     throw error;
   }
 });

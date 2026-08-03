@@ -29,7 +29,7 @@ export async function listarStock(consulta) {
   const [[datos], [conteo]] = await Promise.all([
     baseDatos.query(
       `SELECT p.id AS producto_id, u.id AS ubicacion_id, p.nombre, p.imagen_url,
-       p.stock_minimo, COALESCE(e.cantidad, 0) AS cantidad,
+       p.stock_minimo, p.es_pesable, COALESCE(e.cantidad, 0) AS cantidad,
        COALESCE(e.cantidad_reservada, 0) AS cantidad_reservada,
        (SELECT pcb.codigo_barra FROM productos_codigos_barra pcb
         WHERE pcb.producto_id = p.id ORDER BY pcb.es_principal DESC, pcb.id LIMIT 1) AS codigo_barra
@@ -45,6 +45,17 @@ export async function ajustarStock(datos, usuarioId) {
   const conexion = await baseDatos.getConnection();
   try {
     await conexion.beginTransaction();
+    const [[producto]] = await conexion.query(
+      `SELECT precio_costo, es_pesable FROM productos WHERE id = ?`,
+      [datos.producto_id],
+    );
+    if (!producto) throw new Error('No se encontró el producto');
+    const permiteDecimales = Boolean(producto.es_pesable);
+    if (!permiteDecimales && !Number.isInteger(datos.cantidad_nueva)) {
+      const error = new Error('La cantidad debe ser un número entero');
+      error.codigoPublico = 'CANTIDAD_ENTERA';
+      throw error;
+    }
     await conexion.query(
       `INSERT IGNORE INTO existencias (producto_id, ubicacion_id, cantidad)
        VALUES (?, ?, 0)`,
@@ -67,10 +78,6 @@ export async function ajustarStock(datos, usuarioId) {
       `INSERT INTO movimientos_stock (ubicacion_id, usuario_id, tipo, motivo)
        VALUES (?, ?, 'ajuste_manual', ?)`,
       [datos.ubicacion_id, usuarioId, datos.motivo],
-    );
-    const [[producto]] = await conexion.query(
-      'SELECT precio_costo FROM productos WHERE id = ?',
-      [datos.producto_id],
     );
     await conexion.query(
       `INSERT INTO movimientos_stock_detalles

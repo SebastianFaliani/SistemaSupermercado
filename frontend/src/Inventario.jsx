@@ -25,6 +25,7 @@ export function Inventario({ token, permisos }) {
   const [mensaje, setMensaje] = useState('');
   const limite = 25;
   const puedeAjustar = permisos.includes('stock.ajustar');
+  const seleccionarContenido = (evento) => evento.currentTarget.select();
 
   const cargar = useCallback(async () => {
     try {
@@ -101,7 +102,7 @@ export function Inventario({ token, permisos }) {
         {productoAjuste && <form className="formulario-modal" onSubmit={guardarAjuste}>
           <p><strong>{productoAjuste.nombre}</strong></p>
           <p>Stock actual: {Number(productoAjuste.cantidad).toLocaleString('es-AR')}</p>
-          <div><label htmlFor="cantidad_nueva">Cantidad física contada</label><input id="cantidad_nueva" name="cantidad_nueva" type="number" min="0" step="0.001" defaultValue={productoAjuste.cantidad} required /></div>
+          <div><label htmlFor="cantidad_nueva">Cantidad física contada</label><input id="cantidad_nueva" name="cantidad_nueva" type="number" min="0" step={productoAjuste.es_pesable ? '0.001' : '1'} defaultValue={productoAjuste.cantidad} onFocus={seleccionarContenido} required /></div>
           <div><label htmlFor="motivo_ajuste">Motivo del ajuste</label><textarea id="motivo_ajuste" name="motivo" minLength="5" maxLength="255" rows="3" required /></div>
           <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setProductoAjuste(null)}>Cancelar</button><button className="boton">Registrar ajuste</button></div>
         </form>}
