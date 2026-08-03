@@ -1,0 +1,3 @@
+ALTER TABLE marcas
+  ADD COLUMN origen VARCHAR(40) NOT NULL DEFAULT 'manual' AFTER nombre,
+  ADD COLUMN esta_confirmada BOOLEAN NOT NULL DEFAULT TRUE AFTER origen;

@@ -28,6 +28,16 @@ npm run catalogo:importar -- --aplicar
 
 El importador considera el precio mayorista de la fuente como costo de compra, calcula el precio de venta con un margen del 30% y lo redondea al múltiplo de $10 más cercano. También registra el precio inicial en el historial y copia las imágenes al almacenamiento local, fuera de Git.
 
+## Inferir marcas desde los nombres
+
+La vista previa analiza bloques en mayúsculas y no modifica datos:
+
+```bash
+npm run marcas:inferir
+```
+
+La aplicación se realiza con `npm run marcas:inferir -- --aplicar`. Las marcas detectadas quedan con origen `inferencia_nombre` y pendientes de confirmación. Los productos pesables se omiten para evitar confundir descripciones de cortes con marcas.
+
 ## Convenciones
 
 - tablas y campos en español, `snake_case` y sin tildes;

@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "db:migrar": "node scripts/migrar.js",
     "admin:crear": "node scripts/crear-administrador.js",
-    "catalogo:importar": "node scripts/importar-catalogo.js"
+    "catalogo:importar": "node scripts/importar-catalogo.js",
+    "marcas:inferir": "node scripts/inferir-marcas.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
