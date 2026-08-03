@@ -152,12 +152,6 @@ export function Catalogo({ token, permisos }) {
     } catch (error) { setMensaje(error.message); }
   }
 
-  function limpiarBusqueda() {
-    setTextoBusqueda('');
-    setBuscar('');
-    setPagina(1);
-  }
-
   function filtrarPorCategoria(id) {
     setCategoriaId(id ? String(id) : '');
     setPagina(1);
@@ -177,7 +171,6 @@ export function Catalogo({ token, permisos }) {
 
       <div className="barra-filtros" role="search">
         <input name="buscar" value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por nombre, código interno o código de barras" />
-        {buscar && <button type="button" className="boton boton--secundario" onClick={limpiarBusqueda}>Limpiar</button>}
       </div>
       <p className="filtro-activo">
         Mostrando {totalProductos.toLocaleString('es-AR')} {buscar || categoriaId ? 'resultados' : 'productos'}
