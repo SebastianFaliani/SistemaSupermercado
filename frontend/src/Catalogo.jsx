@@ -89,6 +89,7 @@ export function Catalogo({ token, permisos }) {
   const [buscar, setBuscar] = useState('');
   const [textoBusqueda, setTextoBusqueda] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
+  const [marcaId, setMarcaId] = useState('');
   const [pagina, setPagina] = useState(1);
   const limite = 25;
   const puedeGestionar = permisos.includes('productos.gestionar');
@@ -98,6 +99,7 @@ export function Catalogo({ token, permisos }) {
       const parametros = new URLSearchParams({ pagina: String(pagina), limite: String(limite) });
       if (buscar) parametros.set('buscar', buscar);
       if (categoriaId) parametros.set('categoria_id', categoriaId);
+      if (marcaId) parametros.set('marca_id', marcaId);
       const [respuestaCategorias, respuestaProductos, respuestaReferencias] = await Promise.all([
         solicitar('/api/catalogo/categorias', token),
         solicitar(`/api/catalogo/productos?${parametros}`, token),
@@ -110,7 +112,7 @@ export function Catalogo({ token, permisos }) {
     } catch (error) {
       setMensaje(error.message);
     }
-  }, [token, pagina, buscar, categoriaId]);
+  }, [token, pagina, buscar, categoriaId, marcaId]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -188,11 +190,16 @@ export function Catalogo({ token, permisos }) {
 
       <div className="barra-filtros" role="search">
         <input name="buscar" value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por nombre, código interno o código de barras" />
+        <select aria-label="Filtrar por marca" value={marcaId} onChange={(evento) => { setMarcaId(evento.target.value); setPagina(1); }}>
+          <option value="">Todas las marcas</option>
+          {referencias.marcas.map((marca) => <option key={marca.id} value={marca.id}>{marca.nombre}</option>)}
+        </select>
       </div>
       <p className="filtro-activo">
-        Mostrando {totalProductos.toLocaleString('es-AR')} {buscar || categoriaId ? 'resultados' : 'productos'}
+        Mostrando {totalProductos.toLocaleString('es-AR')} {buscar || categoriaId || marcaId ? 'resultados' : 'productos'}
         {buscar ? ` para “${buscar}”` : ''}
         {categoriaId ? ` en ${categorias.find((categoria) => String(categoria.id) === categoriaId)?.nombre ?? 'la categoría seleccionada'}` : ''}.
+        {marcaId ? ` Marca: ${referencias.marcas.find((marca) => String(marca.id) === marcaId)?.nombre ?? 'seleccionada'}.` : ''}
       </p>
       {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
 

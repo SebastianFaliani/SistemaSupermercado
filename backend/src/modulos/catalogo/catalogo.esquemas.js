@@ -47,6 +47,7 @@ export const esquemaProducto = z.object({
 export const esquemaConsultaProductos = z.object({
   buscar: z.string().trim().max(180).optional(),
   categoria_id: id.optional(),
+  marca_id: id.optional(),
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
 });

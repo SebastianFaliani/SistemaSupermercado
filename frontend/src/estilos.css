@@ -68,6 +68,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .mensaje { color: var(--color-primario-700); font-weight: 700; }
 .barra-filtros { display: flex; gap: 9px; margin: 0 0 12px; padding: 12px; border: 1px solid var(--color-gris-200); border-radius: 10px; background: var(--color-blanco); }
 .barra-filtros input { flex: 1; }
+.barra-filtros > select { flex: 0 0 210px; }
 .filtro-verificacion { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
 .filtro-verificacion input { width: 15px; height: 15px; }
 .barra-filtros .boton { margin: 0; }
@@ -112,6 +113,7 @@ th { color: var(--color-gris-500); font-size: .78rem; letter-spacing: .05em; tex
   .campo--ancho { grid-column: auto; }
   .modulo__encabezado, .acciones-encabezado { align-items: stretch; flex-direction: column; }
   .barra-filtros { align-items: stretch; flex-direction: column; }
+  .barra-filtros > select { flex-basis: auto; }
 }
 
 body.modal-abierto { overflow: hidden; }

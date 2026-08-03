@@ -43,6 +43,10 @@ export async function listarProductos(consulta) {
     condiciones.push('p.categoria_id = ?');
     parametros.push(consulta.categoria_id);
   }
+  if (consulta.marca_id) {
+    condiciones.push('p.marca_id = ?');
+    parametros.push(consulta.marca_id);
+  }
   if (consulta.buscar) {
     condiciones.push(`(p.nombre LIKE ? OR p.codigo_interno LIKE ? OR EXISTS (
       SELECT 1 FROM productos_codigos_barra pcb
