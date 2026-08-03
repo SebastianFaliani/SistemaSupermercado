@@ -20,7 +20,10 @@ export async function listarCompras(consulta) {
 export async function referenciasCompras() {
   const [[proveedores], [productos]] = await Promise.all([
     baseDatos.query('SELECT id, razon_social, nombre_fantasia FROM proveedores WHERE esta_activo = TRUE ORDER BY COALESCE(nombre_fantasia, razon_social)'),
-    baseDatos.query('SELECT id, nombre, precio_costo, es_pesable FROM productos WHERE esta_activo = TRUE ORDER BY nombre'),
+    baseDatos.query(`SELECT p.id, p.nombre, p.precio_costo, p.es_pesable,
+      (SELECT pcb.codigo_barra FROM productos_codigos_barra pcb
+       WHERE pcb.producto_id = p.id ORDER BY pcb.es_principal DESC, pcb.id LIMIT 1) AS codigo_barra
+      FROM productos p WHERE p.esta_activo = TRUE ORDER BY p.nombre`),
   ]);
   return { proveedores, productos };
 }

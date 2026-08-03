@@ -142,3 +142,11 @@ body.modal-abierto { overflow: hidden; }
 .estado-inactivo { color: var(--color-gris-500); background: var(--color-gris-200); }
 .campo small { display: block; margin-top: 4px; color: var(--color-gris-500); }
 .dato-secundario { display: block; margin-top: 2px; color: var(--color-gris-500); }
+.buscador-productos-compra { position: relative; }
+.resultados-productos { position: absolute; z-index: 4; width: 100%; max-height: 260px; overflow-y: auto; border: 1px solid var(--color-gris-200); border-radius: 8px; background: var(--color-blanco); box-shadow: 0 10px 25px rgb(0 59 70 / 16%); }
+.resultados-productos button { display: flex; width: 100%; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--color-gris-200); color: var(--color-primario-900); background: var(--color-blanco); text-align: left; cursor: pointer; flex-direction: column; }
+.resultados-productos button:hover { color: var(--color-blanco); background: var(--color-primario-700); }
+.resultados-productos small { margin-top: 2px; opacity: .78; }
+.tabla-items-compra { max-height: 38vh; }
+.tabla-items-compra input { width: 115px; }
+.total-compra { text-align: right; }
