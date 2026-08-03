@@ -38,6 +38,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .boton:hover { background: var(--color-primario-900); }
 .boton:disabled { cursor: wait; opacity: .65; }
 .boton--secundario { color: var(--color-primario-900); background: var(--color-acento-100); }
+.boton--secundario:hover { color: var(--color-blanco); background: var(--color-primario-700); }
+.boton:focus-visible, .usuario-actual button:focus-visible, .navegacion-principal button:focus-visible, .boton-tabla:focus-visible, .paginacion button:focus-visible { outline: 3px solid var(--color-acento-500); outline-offset: 2px; }
 .mensaje-error { margin: 6px 0 0; color: var(--color-error); font-size: .9rem; font-weight: 700; }
 
 @media (max-width: 540px) {
