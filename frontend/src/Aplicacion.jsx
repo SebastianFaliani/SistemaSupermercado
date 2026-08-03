@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { createElement, useEffect, useState } from 'react';
+import { Catalogo } from './Catalogo.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -70,16 +71,21 @@ export function Aplicacion() {
 
   if (estado === 'autenticado') {
     return (
-      <main className="contenedor">
-        <section className="tarjeta">
-          <p className="etiqueta">SESIÓN INICIADA</p>
-          <h1>Hola, {usuario.nombre_usuario}</h1>
-          <p>Roles asignados: {usuario.roles.join(', ') || 'ninguno'}.</p>
-          <button type="button" className="boton boton--secundario" onClick={salir}>
-            Cerrar sesión
-          </button>
-        </section>
-      </main>
+      <div className="aplicacion-interna">
+        <header className="barra-superior">
+          <div><strong>Supermercado</strong><span>Gestión local</span></div>
+          <div className="usuario-actual">
+            <span>{usuario.nombre_usuario}</span>
+            <button type="button" onClick={salir}>Cerrar sesión</button>
+          </div>
+        </header>
+        <main className="contenido-interno">
+          {createElement(Catalogo, {
+            token: sessionStorage.getItem(CLAVE_TOKEN),
+            permisos: usuario.permisos,
+          })}
+        </main>
+      </div>
     );
   }
 

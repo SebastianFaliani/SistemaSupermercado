@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { comprobarBaseDatos } from './configuracion/base-datos.js';
 import { entorno } from './configuracion/entorno.js';
 import { rutasAutenticacion } from './modulos/seguridad/autenticacion.rutas.js';
+import { rutasCatalogo } from './modulos/catalogo/catalogo.rutas.js';
 
 export const aplicacion = express();
 
@@ -13,6 +14,7 @@ aplicacion.use(helmet());
 aplicacion.use(cors({ origin: entorno.origenFrontend }));
 aplicacion.use(express.json({ limit: '1mb' }));
 aplicacion.use('/api/autenticacion', rutasAutenticacion);
+aplicacion.use('/api/catalogo', rutasCatalogo);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {
