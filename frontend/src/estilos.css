@@ -189,5 +189,25 @@ body.modal-abierto { overflow: hidden; }
 .devoluciones-previas h3, .devoluciones-previas p { margin: 0 0 5px; }
 .resumen-cambio { display: grid; gap: 5px 12px; padding: 9px; border-radius: 8px; background: var(--color-gris-50); grid-template-columns: 1fr auto; }
 .resumen-cambio strong { font-weight: 400; text-align: right; }
+.encabezado-ticket { display: none; text-align: center; }
+.encabezado-ticket img { width: 180px; max-height: 60px; object-fit: contain; }
+.encabezado-ticket p { margin: 4px 0; }
+.pie-ticket { display: none; text-align: center; }
+@media print {
+  @page { size: 80mm auto; margin: 4mm; }
+  body * { visibility: hidden; }
+  .modal-fondo, .modal, .modal__contenido, .comprobante-venta, .comprobante-venta * { visibility: visible; }
+  .modal-fondo { position: absolute; inset: 0; display: block; padding: 0; background: none; }
+  .modal { width: 72mm; max-height: none; overflow: visible; border: 0; box-shadow: none; }
+  .modal__encabezado, .modal__acciones { display: none; }
+  .modal__contenido { padding: 0; }
+  .encabezado-ticket, .pie-ticket { display: block; }
+  .detalle-venta-cabecera { display: grid; margin: 8px 0; font-size: 9pt; grid-template-columns: 1fr 1fr; }
+  .tabla-items-compra { max-height: none; overflow: visible; border: 0; }
+  .tabla-items-compra th, .tabla-items-compra td { padding: 3px 2px; font-size: 8pt; }
+  .tabla-items-compra th:nth-child(2), .tabla-items-compra td:nth-child(2),
+  .tabla-items-compra th:nth-child(4), .tabla-items-compra td:nth-child(4) { display: none; }
+  .detalle-venta-pie { font-size: 9pt; }
+}
 @media (max-width: 800px) { .rejilla-venta { grid-template-columns: 1fr; } }
 .total-compra { text-align: right; }
