@@ -10,3 +10,13 @@ export const esquemaVenta = z.object({
     .refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto'),
   pagos: z.array(z.object({ medio: z.enum(['efectivo', 'debito', 'credito', 'transferencia']), monto: z.coerce.number().positive() })).min(1).max(4),
 });
+
+export const esquemaConsultaVentas = z.object({
+  buscar: z.string().trim().max(120).optional(),
+  fecha_desde: z.string().date().optional(),
+  fecha_hasta: z.string().date().optional(),
+  pagina: z.coerce.number().int().positive().default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(25),
+});
+
+export const esquemaIdVenta = z.coerce.number().int().positive();

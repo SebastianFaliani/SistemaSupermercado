@@ -72,6 +72,58 @@ export async function referenciasVenta() {
   return productos;
 }
 
+function condicionesVentas(consulta, usuarioId) {
+  const condiciones = []; const parametros = [];
+  if (usuarioId) { condiciones.push('v.usuario_id = ?'); parametros.push(usuarioId); }
+  if (consulta.buscar) {
+    condiciones.push(`(v.id = ? OR u.nombre_usuario LIKE ? OR EXISTS (
+      SELECT 1 FROM ventas_detalles vd JOIN productos p ON p.id = vd.producto_id
+      WHERE vd.venta_id = v.id AND p.nombre LIKE ?))`);
+    const patron = `%${consulta.buscar}%`; parametros.push(Number(consulta.buscar) || 0, patron, patron);
+  }
+  if (consulta.fecha_desde) { condiciones.push('v.fecha_creacion >= ?'); parametros.push(`${consulta.fecha_desde} 00:00:00`); }
+  if (consulta.fecha_hasta) { condiciones.push('v.fecha_creacion < DATE_ADD(?, INTERVAL 1 DAY)'); parametros.push(`${consulta.fecha_hasta} 00:00:00`); }
+  return { donde: condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '', parametros };
+}
+
+export async function listarVentas(consulta, usuarioId = null) {
+  const { donde, parametros } = condicionesVentas(consulta, usuarioId);
+  const desde = `FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
+    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id ${donde}`;
+  const offset = (consulta.pagina - 1) * consulta.limite;
+  const [[datos], [resumen], [pagos]] = await Promise.all([
+    baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, u.nombre_usuario,
+      c.nombre AS caja, (SELECT COUNT(*) FROM ventas_detalles vd WHERE vd.venta_id = v.id) AS productos
+      ${desde} ORDER BY v.fecha_creacion DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
+    baseDatos.query(`SELECT COUNT(*) AS total, COALESCE(SUM(v.total), 0) AS facturacion ${desde}`, parametros),
+    baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
+      FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
+      JOIN usuarios u ON u.id = v.usuario_id JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id
+      JOIN cajas c ON c.id = sc.caja_id ${donde} GROUP BY vp.medio`, parametros),
+  ]);
+  return { datos, total: resumen[0].total, facturacion: Number(resumen[0].facturacion),
+    pagos: Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)])),
+    pagina: consulta.pagina, limite: consulta.limite };
+}
+
+export async function obtenerVenta(id, usuarioId = null) {
+  const parametros = [id]; const restriccion = usuarioId ? 'AND v.usuario_id = ?' : '';
+  if (usuarioId) parametros.push(usuarioId);
+  const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total,
+    u.nombre_usuario, c.nombre AS caja FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
+    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
+    WHERE v.id = ? ${restriccion}`, parametros);
+  if (!ventas[0]) return null;
+  const [[detalles], [pagos]] = await Promise.all([
+    baseDatos.query(`SELECT p.nombre, pcb.codigo_barra, vd.cantidad, vd.precio_unitario, vd.subtotal
+      FROM ventas_detalles vd JOIN productos p ON p.id = vd.producto_id
+      LEFT JOIN productos_codigos_barra pcb ON pcb.producto_id = p.id AND pcb.es_principal = TRUE
+      WHERE vd.venta_id = ? ORDER BY vd.id`, [id]),
+    baseDatos.query('SELECT medio, monto FROM ventas_pagos WHERE venta_id = ? ORDER BY id', [id]),
+  ]);
+  return { ...ventas[0], detalles, pagos };
+}
+
 export async function crearVenta(usuarioId, datos) {
   const conexion = await baseDatos.getConnection();
   try {
