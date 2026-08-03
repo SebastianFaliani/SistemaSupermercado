@@ -168,7 +168,6 @@ export function Catalogo({ token, permisos }) {
       <div className="modulo__encabezado">
         <div><p className="etiqueta">CATÁLOGO</p><h2>Productos y categorías</h2></div>
         <div className="acciones-encabezado">
-          <span className="contador">{totalProductos} productos</span>
           {puedeGestionar && <button className="boton boton--secundario" onClick={() => setModalActivo('categoria')}>Nueva categoría</button>}
           {puedeGestionar && <button className="boton" onClick={() => { setProductoEditado(null); setModalActivo('producto'); }}>Nuevo producto</button>}
         </div>
@@ -179,7 +178,11 @@ export function Catalogo({ token, permisos }) {
         <button className="boton">Buscar</button>
         {buscar && <button type="button" className="boton boton--secundario" onClick={limpiarBusqueda}>Limpiar</button>}
       </form>
-      {(buscar || categoriaId) && <p className="filtro-activo">Mostrando {totalProductos} resultados{buscar ? ` para “${buscar}”` : ''}{categoriaId ? ` en ${categorias.find((categoria) => String(categoria.id) === categoriaId)?.nombre ?? 'la categoría seleccionada'}` : ''}.</p>}
+      <p className="filtro-activo">
+        Mostrando {totalProductos.toLocaleString('es-AR')} {buscar || categoriaId ? 'resultados' : 'productos'}
+        {buscar ? ` para “${buscar}”` : ''}
+        {categoriaId ? ` en ${categorias.find((categoria) => String(categoria.id) === categoriaId)?.nombre ?? 'la categoría seleccionada'}` : ''}.
+      </p>
       {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
 
       <div className="rejilla-catalogo">
