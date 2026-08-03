@@ -40,3 +40,5 @@ npm run db:migrar
 - `docs/`: decisiones y documentación funcional.
 
 Más información en [Base de datos](docs/base-datos.md).
+
+La creación del primer usuario y el flujo de acceso están documentados en [Autenticación](docs/autenticacion.md).

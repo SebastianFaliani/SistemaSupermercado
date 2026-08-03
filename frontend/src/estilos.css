@@ -16,3 +16,16 @@ h1 { margin: 12px 0; font-size: clamp(2rem, 6vw, 3.6rem); line-height: 1; }
 .estado span { width: 11px; height: 11px; border-radius: 50%; background: #c28b25; }
 .estado--conectada span { background: #198754; }
 .estado--sin_conexion span { background: #b42318; }
+.tarjeta--acceso { max-width: 480px; }
+form { display: grid; gap: 10px; margin-top: 30px; }
+label { margin-top: 8px; font-size: .9rem; font-weight: 700; }
+input { width: 100%; padding: 13px 14px; border: 1px solid #b9c9c3; border-radius: 10px; color: #153e35; background: white; font: inherit; }
+input:focus { border-color: #1d6b59; outline: 3px solid rgb(29 107 89 / 14%); }
+.boton { margin-top: 14px; padding: 13px 18px; border: 0; border-radius: 10px; color: white; background: #1d6b59; font: inherit; font-weight: 800; cursor: pointer; }
+.boton:disabled { cursor: wait; opacity: .65; }
+.boton--secundario { color: #153e35; background: #e1ebe6; }
+.mensaje-error { margin: 6px 0 0; color: #b42318; font-size: .9rem; font-weight: 700; }
+
+@media (max-width: 540px) {
+  .tarjeta { padding: 30px 24px; }
+}

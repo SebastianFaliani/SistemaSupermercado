@@ -15,7 +15,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:migrar": "npm run db:migrar --workspace backend"
+    "db:migrar": "npm run db:migrar --workspace backend",
+    "admin:crear": "npm run admin:crear --workspace backend --"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

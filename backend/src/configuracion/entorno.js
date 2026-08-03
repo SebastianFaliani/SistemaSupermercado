@@ -14,4 +14,8 @@ export const entorno = {
     usuario: process.env.BD_USUARIO ?? 'supermercado_app',
     clave: process.env.BD_CLAVE ?? '',
   },
+  jwt: {
+    secreto: process.env.JWT_SECRETO ?? '',
+    duracion: process.env.JWT_DURACION ?? '8h',
+  },
 };

@@ -9,14 +9,19 @@
     "start": "node src/servidor.js",
     "test": "node --test",
     "lint": "eslint .",
-    "db:migrar": "node scripts/migrar.js"
+    "db:migrar": "node scripts/migrar.js",
+    "admin:crear": "node scripts/crear-administrador.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.6.1",
     "helmet": "^8.1.0",
-    "mysql2": "^3.14.3"
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.14.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "eslint": "^9.33.0",
