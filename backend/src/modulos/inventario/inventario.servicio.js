@@ -41,6 +41,29 @@ export async function listarStock(consulta) {
   return { datos, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
 }
 
+export async function listarMovimientos(consulta) {
+  const desplazamiento = (consulta.pagina - 1) * consulta.limite;
+  const [[datos], [conteo]] = await Promise.all([
+    baseDatos.query(
+      `SELECT msd.id, ms.id AS movimiento_id, ms.fecha_creacion, ms.tipo, ms.motivo,
+       us.nombre_usuario, p.id AS producto_id, p.nombre AS producto,
+       pcb.codigo_barra, msd.cantidad_anterior, msd.variacion,
+       msd.cantidad_nueva, msd.costo_unitario, ub.nombre AS ubicacion
+       FROM movimientos_stock_detalles msd
+       JOIN movimientos_stock ms ON ms.id = msd.movimiento_stock_id
+       JOIN productos p ON p.id = msd.producto_id
+       JOIN usuarios us ON us.id = ms.usuario_id
+       JOIN ubicaciones_stock ub ON ub.id = ms.ubicacion_id
+       LEFT JOIN productos_codigos_barra pcb
+         ON pcb.producto_id = p.id AND pcb.es_principal = TRUE
+       ORDER BY ms.fecha_creacion DESC, msd.id DESC LIMIT ? OFFSET ?`,
+      [consulta.limite, desplazamiento],
+    ),
+    baseDatos.query('SELECT COUNT(*) AS total FROM movimientos_stock_detalles'),
+  ]);
+  return { datos, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
+}
+
 export async function ajustarStock(datos, usuarioId) {
   const conexion = await baseDatos.getConnection();
   try {

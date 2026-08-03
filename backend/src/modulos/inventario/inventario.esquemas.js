@@ -13,3 +13,8 @@ export const esquemaAjusteStock = z.object({
   cantidad_nueva: z.coerce.number().min(0).max(999999999999.999),
   motivo: z.string().trim().min(5).max(255),
 });
+
+export const esquemaConsultaMovimientos = z.object({
+  pagina: z.coerce.number().int().positive().default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(25),
+});

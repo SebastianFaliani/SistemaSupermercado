@@ -23,6 +23,10 @@ export function Inventario({ token, permisos }) {
   const [pagina, setPagina] = useState(1);
   const [productoAjuste, setProductoAjuste] = useState(null);
   const [mensaje, setMensaje] = useState('');
+  const [vista, setVista] = useState('existencias');
+  const [movimientos, setMovimientos] = useState([]);
+  const [totalMovimientos, setTotalMovimientos] = useState(0);
+  const [paginaMovimientos, setPaginaMovimientos] = useState(1);
   const limite = 25;
   const puedeAjustar = permisos.includes('stock.ajustar');
   const seleccionarContenido = (evento) => evento.currentTarget.select();
@@ -41,7 +45,21 @@ export function Inventario({ token, permisos }) {
     } catch (error) { setMensaje(error.message); }
   }, [token, pagina, buscar, soloBajoMinimo]);
 
+  const cargarMovimientos = useCallback(async () => {
+    try {
+      const respuesta = await solicitar(
+        `/api/inventario/movimientos?pagina=${paginaMovimientos}&limite=${limite}`,
+        token,
+      );
+      setMovimientos(respuesta.datos);
+      setTotalMovimientos(respuesta.total);
+    } catch (error) { setMensaje(error.message); }
+  }, [token, paginaMovimientos]);
+
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    if (vista === 'movimientos') cargarMovimientos();
+  }, [vista, cargarMovimientos]);
   useEffect(() => {
     const temporizador = setTimeout(() => {
       setPagina(1);
@@ -70,19 +88,26 @@ export function Inventario({ token, permisos }) {
   }
 
   const paginas = Math.max(1, Math.ceil(total / limite));
+  const paginasMovimientos = Math.max(1, Math.ceil(totalMovimientos / limite));
 
   return (
     <section className="modulo">
       <div className="modulo__encabezado">
         <div><p className="etiqueta">INVENTARIO</p><h2>Existencias del local</h2></div>
       </div>
-      <div className="barra-filtros" role="search">
-        <input value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por producto o código de barras" />
-        <label className="filtro-verificacion"><input type="checkbox" checked={soloBajoMinimo} onChange={(evento) => { setSoloBajoMinimo(evento.target.checked); setPagina(1); }} /> Solo bajo mínimo</label>
+      <div className="selector-vista">
+        <button className={vista === 'existencias' ? 'activo' : ''} onClick={() => setVista('existencias')}>Existencias</button>
+        <button className={vista === 'movimientos' ? 'activo' : ''} onClick={() => setVista('movimientos')}>Movimientos</button>
       </div>
-      <p className="filtro-activo">Mostrando {total.toLocaleString('es-AR')} productos{soloBajoMinimo ? ' bajo el mínimo' : ''}{buscar ? ` para “${buscar}”` : ''}.</p>
       {mensaje && <p className="mensaje" role="status">{mensaje}</p>}
-      <article className="panel">
+
+      {vista === 'existencias' ? <>
+        <div className="barra-filtros" role="search">
+          <input value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por producto o código de barras" />
+          <label className="filtro-verificacion"><input type="checkbox" checked={soloBajoMinimo} onChange={(evento) => { setSoloBajoMinimo(evento.target.checked); setPagina(1); }} /> Solo bajo mínimo</label>
+        </div>
+        <p className="filtro-activo">Mostrando {total.toLocaleString('es-AR')} productos{soloBajoMinimo ? ' bajo el mínimo' : ''}{buscar ? ` para “${buscar}”` : ''}.</p>
+        <article className="panel">
         <div className="panel__encabezado"><h3>Stock actual</h3><span>Página {pagina} de {paginas}</span></div>
         <div className="tabla-contenedor">
           <table><thead><tr><th></th><th>Producto</th><th>Código</th><th>Disponible</th><th>Reservado</th><th>Mínimo</th>{puedeAjustar && <th></th>}</tr></thead>
@@ -96,7 +121,25 @@ export function Inventario({ token, permisos }) {
           </table>
         </div>
         <div className="paginacion"><button disabled={pagina === 1} onClick={() => setPagina((valor) => valor - 1)}>Anterior</button><button disabled={pagina >= paginas} onClick={() => setPagina((valor) => valor + 1)}>Siguiente</button></div>
-      </article>
+        </article>
+      </> : <>
+        <p className="filtro-activo">Mostrando {totalMovimientos.toLocaleString('es-AR')} movimientos registrados.</p>
+        <article className="panel">
+          <div className="panel__encabezado"><h3>Historial de movimientos</h3><span>Página {paginaMovimientos} de {paginasMovimientos}</span></div>
+          {movimientos.length ? <div className="tabla-contenedor">
+            <table><thead><tr><th>Fecha</th><th>Producto</th><th>Usuario</th><th>Anterior</th><th>Variación</th><th>Nueva</th><th>Motivo</th></tr></thead>
+              <tbody>{movimientos.map((movimiento) => <tr key={movimiento.id}>
+                <td>{new Date(movimiento.fecha_creacion).toLocaleString('es-AR')}</td>
+                <td>{movimiento.producto}</td><td>{movimiento.nombre_usuario}</td>
+                <td>{Number(movimiento.cantidad_anterior).toLocaleString('es-AR')}</td>
+                <td className={Number(movimiento.variacion) < 0 ? 'variacion-negativa' : 'variacion-positiva'}>{Number(movimiento.variacion) > 0 ? '+' : ''}{Number(movimiento.variacion).toLocaleString('es-AR')}</td>
+                <td>{Number(movimiento.cantidad_nueva).toLocaleString('es-AR')}</td><td>{movimiento.motivo}</td>
+              </tr>)}</tbody>
+            </table>
+          </div> : <p className="vacio">Todavía no hay movimientos. Se registrarán cuando realices el primer ajuste o una operación de stock.</p>}
+          <div className="paginacion"><button disabled={paginaMovimientos === 1} onClick={() => setPaginaMovimientos((valor) => valor - 1)}>Anterior</button><button disabled={paginaMovimientos >= paginasMovimientos} onClick={() => setPaginaMovimientos((valor) => valor + 1)}>Siguiente</button></div>
+        </article>
+      </>}
 
       <Modal abierto={Boolean(productoAjuste)} titulo="Ajustar stock" alCerrar={() => setProductoAjuste(null)}>
         {productoAjuste && <form className="formulario-modal" onSubmit={guardarAjuste}>

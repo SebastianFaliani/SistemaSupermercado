@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { requerirAutenticacion } from '../seguridad/autenticacion.middleware.js';
 import { requerirPermiso } from '../seguridad/permisos.middleware.js';
-import { esquemaAjusteStock, esquemaConsultaStock } from './inventario.esquemas.js';
-import { ajustarStock, listarStock, listarUbicaciones } from './inventario.servicio.js';
+import { esquemaAjusteStock, esquemaConsultaMovimientos, esquemaConsultaStock } from './inventario.esquemas.js';
+import { ajustarStock, listarMovimientos, listarStock, listarUbicaciones } from './inventario.servicio.js';
 
 export const rutasInventario = Router();
 rutasInventario.use(requerirAutenticacion);
@@ -15,6 +15,12 @@ rutasInventario.get('/stock', requerirPermiso('stock.ver'), async (solicitud, re
   const validacion = esquemaConsultaStock.safeParse(solicitud.query);
   if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Consulta inválida' });
   respuesta.json(await listarStock(validacion.data));
+});
+
+rutasInventario.get('/movimientos', requerirPermiso('stock.ver'), async (solicitud, respuesta) => {
+  const validacion = esquemaConsultaMovimientos.safeParse(solicitud.query);
+  if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Consulta inválida' });
+  respuesta.json(await listarMovimientos(validacion.data));
 });
 
 rutasInventario.post('/ajustes', requerirPermiso('stock.ajustar'), async (solicitud, respuesta) => {
