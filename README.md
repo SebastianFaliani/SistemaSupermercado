@@ -27,6 +27,7 @@ npm run build
 npm test
 npm run lint
 npm run format
+npm run db:migrar
 ```
 
 ## Estructura
@@ -37,3 +38,5 @@ npm run format
 - `base_datos/`: migraciones y datos iniciales.
 - `storage/`: archivos locales fuera de la base de datos.
 - `docs/`: decisiones y documentación funcional.
+
+Más información en [Base de datos](docs/base-datos.md).

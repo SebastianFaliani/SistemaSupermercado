@@ -8,7 +8,8 @@
     "build": "node --check src/servidor.js",
     "start": "node src/servidor.js",
     "test": "node --test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:migrar": "node scripts/migrar.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
