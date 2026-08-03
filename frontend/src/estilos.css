@@ -147,6 +147,11 @@ body.modal-abierto { overflow: hidden; }
 .resultados-productos button { display: flex; width: 100%; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--color-gris-200); color: var(--color-primario-900); background: var(--color-blanco); text-align: left; cursor: pointer; flex-direction: column; }
 .resultados-productos button:hover { color: var(--color-blanco); background: var(--color-primario-700); }
 .resultados-productos small { margin-top: 2px; opacity: .78; }
-.tabla-items-compra { max-height: 38vh; }
-.tabla-items-compra input { width: 115px; }
+.tabla-items-compra { max-height: 46vh; border: 1px solid var(--color-gris-200); border-radius: 8px; }
+.tabla-items-compra th, .tabla-items-compra td { padding: 4px 6px; }
+.tabla-items-compra th { position: sticky; top: 0; z-index: 1; background: var(--color-blanco); }
+.tabla-items-compra input { width: 105px; min-height: 28px; padding: 3px 6px; }
+.tabla-items-compra .dato-secundario { margin: 0; font-size: .7rem; }
+.acciones-tabla { display: flex; gap: 5px; white-space: nowrap; }
+.detalle-estado { margin-top: 0; }
 .total-compra { text-align: right; }

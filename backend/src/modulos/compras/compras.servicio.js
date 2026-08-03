@@ -28,6 +28,18 @@ export async function referenciasCompras() {
   return { proveedores, productos };
 }
 
+export async function obtenerCompra(id) {
+  const [ordenes] = await baseDatos.query(`SELECT oc.*, COALESCE(p.nombre_fantasia, p.razon_social) AS proveedor
+    FROM ordenes_compra oc JOIN proveedores p ON p.id = oc.proveedor_id WHERE oc.id = ?`, [id]);
+  if (!ordenes[0]) return null;
+  const [detalles] = await baseDatos.query(`SELECT d.producto_id, p.nombre, pcb.codigo_barra,
+    p.es_pesable, d.cantidad, d.costo_unitario, d.subtotal
+    FROM ordenes_compra_detalles d JOIN productos p ON p.id = d.producto_id
+    LEFT JOIN productos_codigos_barra pcb ON pcb.producto_id = p.id AND pcb.es_principal = TRUE
+    WHERE d.orden_compra_id = ? ORDER BY d.id`, [id]);
+  return { ...ordenes[0], detalles };
+}
+
 export async function crearCompra(datos, usuarioId) {
   const conexion = await baseDatos.getConnection();
   try {
@@ -42,6 +54,27 @@ export async function crearCompra(datos, usuarioId) {
       (orden_compra_id, producto_id, cantidad, costo_unitario, subtotal) VALUES (?, ?, ?, ?, ?)`,
     [orden.insertId, item.producto_id, item.cantidad, item.costo_unitario, item.cantidad * item.costo_unitario]);
     await conexion.commit(); return { id: orden.insertId, total };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
+export async function editarCompra(id, datos) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [[orden]] = await conexion.query('SELECT estado FROM ordenes_compra WHERE id = ? FOR UPDATE', [id]);
+    if (!orden) { const error = new Error('No se encontró la compra'); error.codigoPublico = 'NO_ENCONTRADA'; throw error; }
+    if (orden.estado !== 'borrador') { const error = new Error('Solo se pueden editar compras en borrador'); error.codigoPublico = 'ESTADO_INVALIDO'; throw error; }
+    const total = datos.detalles.reduce((suma, item) => suma + item.cantidad * item.costo_unitario, 0);
+    await conexion.query(`UPDATE ordenes_compra SET proveedor_id = ?, fecha_esperada = ?,
+      observaciones = ?, total = ?, modalidad_entrega = ?, responsable_retiro = ?,
+      numero_comprobante = ? WHERE id = ?`, [datos.proveedor_id, datos.fecha_esperada || null,
+      datos.observaciones || null, total, datos.modalidad_entrega,
+      datos.responsable_retiro || null, datos.numero_comprobante || null, id]);
+    await conexion.query('DELETE FROM ordenes_compra_detalles WHERE orden_compra_id = ?', [id]);
+    for (const item of datos.detalles) await conexion.query(`INSERT INTO ordenes_compra_detalles
+      (orden_compra_id, producto_id, cantidad, costo_unitario, subtotal) VALUES (?, ?, ?, ?, ?)`,
+    [id, item.producto_id, item.cantidad, item.costo_unitario, item.cantidad * item.costo_unitario]);
+    await conexion.commit(); return { id, total };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 

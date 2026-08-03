@@ -22,3 +22,4 @@ export const esquemaCrearCompra = z.object({
 });
 
 export const esquemaIdCompra = z.coerce.number().int().positive();
+export const esquemaEditarCompra = esquemaCrearCompra;
