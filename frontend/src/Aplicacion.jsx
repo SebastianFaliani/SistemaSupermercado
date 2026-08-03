@@ -107,7 +107,7 @@ export function Aplicacion() {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}
           {moduloActivo === 'compras' && createElement(Compras, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
-          {moduloActivo === 'ventas' && createElement(Ventas, { token: sessionStorage.getItem(CLAVE_TOKEN) })}
+          {moduloActivo === 'ventas' && createElement(Ventas, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
         </main>
       </div>
     );

@@ -14,6 +14,38 @@ export async function listarCajasDisponibles() {
   return filas;
 }
 
+export async function resumenCaja(usuarioId) {
+  const sesion = await obtenerSesion(usuarioId);
+  if (!sesion) return null;
+  const [pagos] = await baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
+    FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
+    WHERE v.sesion_caja_id = ? AND v.estado = 'completada' GROUP BY vp.medio`, [sesion.id]);
+  const porMedio = Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)]));
+  const ventas = Object.values(porMedio).reduce((suma, importe) => suma + importe, 0);
+  return { ...sesion, pagos: porMedio, total_ventas: ventas,
+    efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0) };
+}
+
+export async function cerrarCaja(usuarioId, montoContado) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [[sesion]] = await conexion.query(`SELECT id, monto_inicial FROM sesiones_caja
+      WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE`, [usuarioId]);
+    if (!sesion) { const error = new Error('No tenés una caja abierta'); error.codigoPublico = 'SIN_CAJA'; throw error; }
+    const [[pagos]] = await conexion.query(`SELECT COALESCE(SUM(vp.monto), 0) AS efectivo
+      FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
+      WHERE v.sesion_caja_id = ? AND v.estado = 'completada' AND vp.medio = 'efectivo'`, [sesion.id]);
+    const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo);
+    const diferencia = montoContado - esperado;
+    await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
+      diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,
+    [montoContado, diferencia, sesion.id]);
+    await conexion.commit(); return { id: sesion.id, efectivo_esperado: esperado,
+      monto_contado: montoContado, diferencia };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
 export async function abrirCaja(usuarioId, cajaId, montoInicial) {
   if (await obtenerSesion(usuarioId)) { const error = new Error('Ya tenés una caja abierta'); error.codigoPublico = 'CAJA_ABIERTA'; throw error; }
   const [[caja]] = await baseDatos.query(`SELECT c.id FROM cajas c
