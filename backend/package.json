@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "db:migrar": "node scripts/migrar.js",
     "admin:crear": "node scripts/crear-administrador.js",
+    "simulacion:cargar": "node scripts/cargar-simulacion.js",
     "catalogo:importar": "node scripts/importar-catalogo.js",
     "marcas:inferir": "node scripts/inferir-marcas.js"
   },

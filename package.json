@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "db:migrar": "npm run db:migrar --workspace backend",
     "admin:crear": "npm run admin:crear --workspace backend --",
+    "simulacion:cargar": "npm run simulacion:cargar --workspace backend",
     "catalogo:importar": "npm run catalogo:importar --workspace backend --",
     "marcas:inferir": "npm run marcas:inferir --workspace backend --"
   },

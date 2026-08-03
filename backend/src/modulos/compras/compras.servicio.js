@@ -31,11 +31,40 @@ export async function crearCompra(datos, usuarioId) {
     await conexion.beginTransaction();
     const total = datos.detalles.reduce((suma, item) => suma + item.cantidad * item.costo_unitario, 0);
     const [orden] = await conexion.query(`INSERT INTO ordenes_compra
-      (proveedor_id, usuario_id, fecha_esperada, observaciones, total) VALUES (?, ?, ?, ?, ?)`,
-    [datos.proveedor_id, usuarioId, datos.fecha_esperada || null, datos.observaciones || null, total]);
+      (proveedor_id, usuario_id, fecha_esperada, observaciones, total, modalidad_entrega,
+       responsable_retiro, numero_comprobante) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [datos.proveedor_id, usuarioId, datos.fecha_esperada || null, datos.observaciones || null,
+      total, datos.modalidad_entrega, datos.responsable_retiro || null, datos.numero_comprobante || null]);
     for (const item of datos.detalles) await conexion.query(`INSERT INTO ordenes_compra_detalles
       (orden_compra_id, producto_id, cantidad, costo_unitario, subtotal) VALUES (?, ?, ?, ?, ?)`,
     [orden.insertId, item.producto_id, item.cantidad, item.costo_unitario, item.cantidad * item.costo_unitario]);
     await conexion.commit(); return { id: orden.insertId, total };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
+export async function recibirCompra(id, usuarioId) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [[orden]] = await conexion.query('SELECT estado FROM ordenes_compra WHERE id = ? FOR UPDATE', [id]);
+    if (!orden) { const error = new Error('No se encontró la compra'); error.codigoPublico = 'NO_ENCONTRADA'; throw error; }
+    if (!['borrador', 'enviada'].includes(orden.estado)) { const error = new Error('La compra ya fue recibida o cancelada'); error.codigoPublico = 'ESTADO_INVALIDO'; throw error; }
+    const [[ubicacion]] = await conexion.query("SELECT id FROM ubicaciones_stock WHERE codigo = 'LOCAL_PRINCIPAL'");
+    const [detalles] = await conexion.query('SELECT producto_id, cantidad, costo_unitario FROM ordenes_compra_detalles WHERE orden_compra_id = ?', [id]);
+    const [movimiento] = await conexion.query(`INSERT INTO movimientos_stock
+      (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
+      VALUES (?, ?, 'entrada_compra', ?, 'orden_compra', ?)`, [ubicacion.id, usuarioId, `Recepción de compra #${id}`, id]);
+    for (const detalle of detalles) {
+      await conexion.query('INSERT IGNORE INTO existencias (producto_id, ubicacion_id, cantidad) VALUES (?, ?, 0)', [detalle.producto_id, ubicacion.id]);
+      const [[existencia]] = await conexion.query('SELECT cantidad FROM existencias WHERE producto_id = ? AND ubicacion_id = ? FOR UPDATE', [detalle.producto_id, ubicacion.id]);
+      const anterior = Number(existencia.cantidad); const nueva = anterior + Number(detalle.cantidad);
+      await conexion.query(`INSERT INTO movimientos_stock_detalles
+        (movimiento_stock_id, producto_id, cantidad_anterior, variacion, cantidad_nueva, costo_unitario)
+        VALUES (?, ?, ?, ?, ?, ?)`, [movimiento.insertId, detalle.producto_id, anterior, detalle.cantidad, nueva, detalle.costo_unitario]);
+      await conexion.query('UPDATE existencias SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', [nueva, detalle.producto_id, ubicacion.id]);
+    }
+    await conexion.query(`UPDATE ordenes_compra SET estado = 'recibida', recibido_por_usuario_id = ?,
+      fecha_recepcion = CURRENT_TIMESTAMP(3) WHERE id = ?`, [usuarioId, id]);
+    await conexion.commit(); return { id, productos_recibidos: detalles.length, movimiento_id: movimiento.insertId };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
