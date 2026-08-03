@@ -110,12 +110,12 @@ export function Inventario({ token, permisos }) {
         <article className="panel">
         <div className="panel__encabezado"><h3>Stock actual</h3><span>Página {pagina} de {paginas}</span></div>
         <div className="tabla-contenedor">
-          <table><thead><tr><th></th><th>Producto</th><th>Código</th><th>Disponible</th><th>Reservado</th><th>Mínimo</th>{puedeAjustar && <th></th>}</tr></thead>
+          <table><thead><tr><th></th><th>Producto</th><th>Código</th><th>Disponible</th><th>Mínimo</th>{puedeAjustar && <th></th>}</tr></thead>
             <tbody>{existencias.map((item) => <tr key={item.producto_id}>
               <td>{item.imagen_url ? <img className="miniatura-producto" src={item.imagen_url} alt="" /> : <span className="miniatura-vacia" />}</td>
               <td>{item.nombre}</td><td>{item.codigo_barra}</td>
               <td className={Number(item.cantidad) < Number(item.stock_minimo) ? 'cantidad-baja' : ''}>{Number(item.cantidad).toLocaleString('es-AR')}</td>
-              <td>{Number(item.cantidad_reservada).toLocaleString('es-AR')}</td><td>{Number(item.stock_minimo).toLocaleString('es-AR')}</td>
+              <td>{Number(item.stock_minimo).toLocaleString('es-AR')}</td>
               {puedeAjustar && <td><button className="boton-tabla" onClick={() => setProductoAjuste(item)}>Ajustar</button></td>}
             </tr>)}</tbody>
           </table>
