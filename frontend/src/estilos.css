@@ -133,3 +133,7 @@ body.modal-abierto { overflow: hidden; }
 .formulario-modal label { display: block; margin: 0 0 5px; }
 .modal__acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .modal__acciones .boton { margin: 0; }
+.tabla-conteo { max-height: 48vh; border: 1px solid var(--color-gris-200); border-radius: 8px; }
+.tabla-conteo thead { position: sticky; top: 0; background: var(--color-blanco); }
+.tabla-conteo input { width: 125px; }
+.resumen-cambios { align-self: center; margin-right: auto; color: var(--color-gris-500); }

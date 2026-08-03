@@ -124,3 +124,68 @@ export async function ajustarStock(datos, usuarioId) {
     conexion.release();
   }
 }
+
+export async function ajustarStockMasivo(datos, usuarioId) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const detalles = [];
+    for (const ajuste of datos.ajustes) {
+      const [[producto]] = await conexion.query(
+        'SELECT precio_costo, es_pesable FROM productos WHERE id = ? AND esta_activo = TRUE',
+        [ajuste.producto_id],
+      );
+      if (!producto) throw new Error('No se encontró uno de los productos');
+      if (!producto.es_pesable && !Number.isInteger(ajuste.cantidad_nueva)) {
+        const error = new Error('Las cantidades de productos no pesables deben ser enteras');
+        error.codigoPublico = 'CANTIDAD_ENTERA';
+        throw error;
+      }
+      await conexion.query(
+        `INSERT IGNORE INTO existencias (producto_id, ubicacion_id, cantidad)
+         VALUES (?, ?, 0)`,
+        [ajuste.producto_id, datos.ubicacion_id],
+      );
+      const [[existencia]] = await conexion.query(
+        `SELECT cantidad FROM existencias
+         WHERE producto_id = ? AND ubicacion_id = ? FOR UPDATE`,
+        [ajuste.producto_id, datos.ubicacion_id],
+      );
+      const cantidadAnterior = Number(existencia.cantidad);
+      const variacion = ajuste.cantidad_nueva - cantidadAnterior;
+      if (variacion !== 0) detalles.push({ ...ajuste, cantidadAnterior, variacion,
+        costoUnitario: producto.precio_costo });
+    }
+    if (!detalles.length) {
+      const error = new Error('No hay cantidades modificadas');
+      error.codigoPublico = 'SIN_CAMBIOS';
+      throw error;
+    }
+    const [movimiento] = await conexion.query(
+      `INSERT INTO movimientos_stock (ubicacion_id, usuario_id, tipo, motivo)
+       VALUES (?, ?, 'conteo_fisico', ?)`,
+      [datos.ubicacion_id, usuarioId, datos.motivo],
+    );
+    for (const detalle of detalles) {
+      await conexion.query(
+        `INSERT INTO movimientos_stock_detalles
+         (movimiento_stock_id, producto_id, cantidad_anterior, variacion,
+          cantidad_nueva, costo_unitario) VALUES (?, ?, ?, ?, ?, ?)`,
+        [movimiento.insertId, detalle.producto_id, detalle.cantidadAnterior,
+          detalle.variacion, detalle.cantidad_nueva, detalle.costoUnitario],
+      );
+      await conexion.query(
+        `UPDATE existencias SET cantidad = ?
+         WHERE producto_id = ? AND ubicacion_id = ?`,
+        [detalle.cantidad_nueva, detalle.producto_id, datos.ubicacion_id],
+      );
+    }
+    await conexion.commit();
+    return { movimiento_id: movimiento.insertId, productos_actualizados: detalles.length };
+  } catch (error) {
+    await conexion.rollback();
+    throw error;
+  } finally {
+    conexion.release();
+  }
+}

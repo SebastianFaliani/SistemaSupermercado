@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { requerirAutenticacion } from '../seguridad/autenticacion.middleware.js';
 import { requerirPermiso } from '../seguridad/permisos.middleware.js';
-import { esquemaAjusteStock, esquemaConsultaMovimientos, esquemaConsultaStock } from './inventario.esquemas.js';
-import { ajustarStock, listarMovimientos, listarStock, listarUbicaciones } from './inventario.servicio.js';
+import { esquemaAjusteStock, esquemaAjusteStockMasivo, esquemaConsultaMovimientos, esquemaConsultaStock } from './inventario.esquemas.js';
+import { ajustarStock, ajustarStockMasivo, listarMovimientos, listarStock, listarUbicaciones } from './inventario.servicio.js';
 
 export const rutasInventario = Router();
 rutasInventario.use(requerirAutenticacion);
@@ -28,6 +28,19 @@ rutasInventario.post('/ajustes', requerirPermiso('stock.ajustar'), async (solici
   if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Datos de ajuste inválidos', errores: validacion.error.flatten() });
   try {
     const resultado = await ajustarStock(validacion.data, solicitud.usuario.id);
+    respuesta.status(201).json({ dato: resultado });
+  } catch (error) {
+    if (error.codigoPublico === 'SIN_CAMBIOS') return respuesta.status(409).json({ mensaje: error.message });
+    if (error.codigoPublico === 'CANTIDAD_ENTERA') return respuesta.status(400).json({ mensaje: error.message });
+    throw error;
+  }
+});
+
+rutasInventario.post('/ajustes-masivos', requerirPermiso('stock.ajustar'), async (solicitud, respuesta) => {
+  const validacion = esquemaAjusteStockMasivo.safeParse(solicitud.body);
+  if (!validacion.success) return respuesta.status(400).json({ mensaje: 'Datos de conteo inválidos', errores: validacion.error.flatten() });
+  try {
+    const resultado = await ajustarStockMasivo(validacion.data, solicitud.usuario.id);
     respuesta.status(201).json({ dato: resultado });
   } catch (error) {
     if (error.codigoPublico === 'SIN_CAMBIOS') return respuesta.status(409).json({ mensaje: error.message });

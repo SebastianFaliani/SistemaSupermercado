@@ -27,6 +27,7 @@ export function Inventario({ token, permisos }) {
   const [movimientos, setMovimientos] = useState([]);
   const [totalMovimientos, setTotalMovimientos] = useState(0);
   const [paginaMovimientos, setPaginaMovimientos] = useState(1);
+  const [conteoRapido, setConteoRapido] = useState(null);
   const limite = 25;
   const puedeAjustar = permisos.includes('stock.ajustar');
   const seleccionarContenido = (evento) => evento.currentTarget.select();
@@ -87,13 +88,48 @@ export function Inventario({ token, permisos }) {
     } catch (error) { setMensaje(error.message); }
   }
 
+  function abrirConteoRapido() {
+    setConteoRapido(Object.fromEntries(
+      existencias.map((item) => [item.producto_id, String(Number(item.cantidad))]),
+    ));
+  }
+
+  async function guardarConteoRapido(evento) {
+    evento.preventDefault();
+    const formulario = new FormData(evento.currentTarget);
+    const ajustes = existencias
+      .filter((item) => Number(conteoRapido[item.producto_id]) !== Number(item.cantidad))
+      .map((item) => ({
+        producto_id: item.producto_id,
+        cantidad_nueva: Number(conteoRapido[item.producto_id]),
+      }));
+    try {
+      const respuesta = await solicitar('/api/inventario/ajustes-masivos', token, {
+        method: 'POST',
+        body: JSON.stringify({
+          ubicacion_id: existencias[0].ubicacion_id,
+          motivo: formulario.get('motivo'),
+          ajustes,
+        }),
+      });
+      setConteoRapido(null);
+      setMensaje(`${respuesta.dato.productos_actualizados} productos actualizados y movimiento registrado.`);
+      await cargar();
+    } catch (error) { setMensaje(error.message); }
+  }
+
   const paginas = Math.max(1, Math.ceil(total / limite));
   const paginasMovimientos = Math.max(1, Math.ceil(totalMovimientos / limite));
+  const cambiosConteo = conteoRapido ? existencias.filter(
+    (item) => conteoRapido[item.producto_id] !== ''
+      && Number(conteoRapido[item.producto_id]) !== Number(item.cantidad),
+  ).length : 0;
 
   return (
     <section className="modulo">
       <div className="modulo__encabezado">
         <div><p className="etiqueta">INVENTARIO</p><h2>Existencias del local</h2></div>
+        {vista === 'existencias' && puedeAjustar && existencias.length > 0 && <button className="boton" onClick={abrirConteoRapido}>Carga rápida</button>}
       </div>
       <div className="selector-vista">
         <button className={vista === 'existencias' ? 'activo' : ''} onClick={() => setVista('existencias')}>Existencias</button>
@@ -148,6 +184,23 @@ export function Inventario({ token, permisos }) {
           <div><label htmlFor="cantidad_nueva">Cantidad física contada</label><input id="cantidad_nueva" name="cantidad_nueva" type="number" min="0" step={productoAjuste.es_pesable ? '0.001' : '1'} defaultValue={productoAjuste.cantidad} onFocus={seleccionarContenido} required /></div>
           <div><label htmlFor="motivo_ajuste">Motivo del ajuste</label><textarea id="motivo_ajuste" name="motivo" minLength="5" maxLength="255" rows="3" required /></div>
           <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setProductoAjuste(null)}>Cancelar</button><button className="boton">Registrar ajuste</button></div>
+        </form>}
+      </Modal>
+
+      <Modal abierto={Boolean(conteoRapido)} titulo="Carga rápida de existencias" ancho="grande" alCerrar={() => setConteoRapido(null)}>
+        {conteoRapido && <form className="formulario-modal formulario-conteo" onSubmit={guardarConteoRapido}>
+          <p>Ingresá las cantidades contadas de los productos visibles en esta página. Solo se registrarán las que cambies.</p>
+          <div className="tabla-contenedor tabla-conteo">
+            <table><thead><tr><th>Producto</th><th>Actual</th><th>Cantidad contada</th></tr></thead>
+              <tbody>{existencias.map((item) => <tr key={item.producto_id}>
+                <td>{item.nombre}</td>
+                <td>{Number(item.cantidad).toLocaleString('es-AR')}</td>
+                <td><input aria-label={`Cantidad contada de ${item.nombre}`} type="number" min="0" step={item.es_pesable ? '0.001' : '1'} value={conteoRapido[item.producto_id]} onFocus={seleccionarContenido} onChange={(evento) => setConteoRapido((actual) => ({ ...actual, [item.producto_id]: evento.target.value }))} required /></td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+          <div><label htmlFor="motivo_conteo">Motivo</label><input id="motivo_conteo" name="motivo" defaultValue="Carga inicial de existencias" minLength="5" maxLength="255" required /></div>
+          <div className="modal__acciones"><span className="resumen-cambios">{cambiosConteo} {cambiosConteo === 1 ? 'cambio' : 'cambios'}</span><button type="button" className="boton boton--secundario" onClick={() => setConteoRapido(null)}>Cancelar</button><button className="boton" disabled={!cambiosConteo}>Registrar cantidades</button></div>
         </form>}
       </Modal>
     </section>

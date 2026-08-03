@@ -14,6 +14,18 @@ export const esquemaAjusteStock = z.object({
   motivo: z.string().trim().min(5).max(255),
 });
 
+export const esquemaAjusteStockMasivo = z.object({
+  ubicacion_id: z.coerce.number().int().positive(),
+  motivo: z.string().trim().min(5).max(255),
+  ajustes: z.array(z.object({
+    producto_id: z.coerce.number().int().positive(),
+    cantidad_nueva: z.coerce.number().min(0).max(999999999999.999),
+  })).min(1).max(100).refine(
+    (ajustes) => new Set(ajustes.map((ajuste) => ajuste.producto_id)).size === ajustes.length,
+    'No puede repetirse un producto',
+  ),
+});
+
 export const esquemaConsultaMovimientos = z.object({
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
