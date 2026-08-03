@@ -28,3 +28,12 @@ aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
 aplicacion.use((_solicitud, respuesta) => {
   respuesta.status(404).json({ mensaje: 'Ruta no encontrada' });
 });
+
+aplicacion.use((error, _solicitud, respuesta, _siguiente) => {
+  void _siguiente;
+  if (error.code === 'ER_DUP_ENTRY') {
+    return respuesta.status(409).json({ mensaje: 'Ya existe un registro con ese código o nombre' });
+  }
+  console.error(error);
+  respuesta.status(500).json({ mensaje: 'Ocurrió un error interno' });
+});
