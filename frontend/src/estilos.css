@@ -141,3 +141,4 @@ body.modal-abierto { overflow: hidden; }
 .estado-activo { color: var(--color-primario-900); background: var(--color-acento-100); }
 .estado-inactivo { color: var(--color-gris-500); background: var(--color-gris-200); }
 .campo small { display: block; margin-top: 4px; color: var(--color-gris-500); }
+.dato-secundario { display: block; margin-top: 2px; color: var(--color-gris-500); }
