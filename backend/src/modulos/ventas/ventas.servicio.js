@@ -20,10 +20,16 @@ export async function resumenCaja(usuarioId) {
   const [pagos] = await baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
     FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
     WHERE v.sesion_caja_id = ? AND v.estado = 'completada' GROUP BY vp.medio`, [sesion.id]);
+  const [ajustes] = await baseDatos.query(`SELECT dvp.medio,
+    SUM(IF(dvp.tipo = 'cobro', dvp.monto, -dvp.monto)) AS total
+    FROM devoluciones_ventas_pagos dvp JOIN devoluciones_ventas dv ON dv.id = dvp.devolucion_id
+    WHERE dv.sesion_caja_id = ? GROUP BY dvp.medio`, [sesion.id]);
   const porMedio = Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)]));
+  const ajustesPorMedio = Object.fromEntries(ajustes.map((ajuste) => [ajuste.medio, Number(ajuste.total)]));
   const ventas = Object.values(porMedio).reduce((suma, importe) => suma + importe, 0);
-  return { ...sesion, pagos: porMedio, total_ventas: ventas,
-    efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0) };
+  return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio, total_ventas: ventas,
+    efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0)
+      + (ajustesPorMedio.efectivo || 0) };
 }
 
 export async function cerrarCaja(usuarioId, montoContado) {
@@ -36,7 +42,11 @@ export async function cerrarCaja(usuarioId, montoContado) {
     const [[pagos]] = await conexion.query(`SELECT COALESCE(SUM(vp.monto), 0) AS efectivo
       FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
       WHERE v.sesion_caja_id = ? AND v.estado = 'completada' AND vp.medio = 'efectivo'`, [sesion.id]);
-    const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo);
+    const [[ajustes]] = await conexion.query(`SELECT COALESCE(SUM(
+      IF(dvp.tipo = 'cobro', dvp.monto, -dvp.monto)), 0) AS efectivo
+      FROM devoluciones_ventas_pagos dvp JOIN devoluciones_ventas dv ON dv.id = dvp.devolucion_id
+      WHERE dv.sesion_caja_id = ? AND dvp.medio = 'efectivo'`, [sesion.id]);
+    const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo) + Number(ajustes.efectivo);
     const diferencia = montoContado - esperado;
     await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
       diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,
@@ -117,14 +127,22 @@ export async function obtenerVenta(id, usuarioId = null) {
     JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
     WHERE v.id = ? ${restriccion}`, parametros);
   if (!ventas[0]) return null;
-  const [[detalles], [pagos]] = await Promise.all([
-    baseDatos.query(`SELECT p.nombre, pcb.codigo_barra, vd.cantidad, vd.precio_unitario, vd.subtotal
+  const [[detalles], [pagos], [devoluciones]] = await Promise.all([
+    baseDatos.query(`SELECT vd.producto_id, p.nombre, p.es_pesable, pcb.codigo_barra,
+      vd.cantidad, vd.precio_unitario, vd.subtotal,
+      COALESCE((SELECT SUM(dvd.cantidad) FROM devoluciones_ventas_detalles dvd
+        JOIN devoluciones_ventas dv ON dv.id = dvd.devolucion_id
+        WHERE dv.venta_id = vd.venta_id AND dvd.producto_id = vd.producto_id
+          AND dvd.tipo = 'devuelto'), 0) AS cantidad_devuelta
       FROM ventas_detalles vd JOIN productos p ON p.id = vd.producto_id
       LEFT JOIN productos_codigos_barra pcb ON pcb.producto_id = p.id AND pcb.es_principal = TRUE
       WHERE vd.venta_id = ? ORDER BY vd.id`, [id]),
     baseDatos.query('SELECT medio, monto FROM ventas_pagos WHERE venta_id = ? ORDER BY id', [id]),
+    baseDatos.query(`SELECT dv.id, dv.fecha_creacion, dv.motivo, dv.total_devuelto,
+      dv.total_reemplazo, dv.diferencia, u.nombre_usuario FROM devoluciones_ventas dv
+      JOIN usuarios u ON u.id = dv.usuario_id WHERE dv.venta_id = ? ORDER BY dv.id`, [id]),
   ]);
-  return { ...ventas[0], detalles, pagos };
+  return { ...ventas[0], detalles, pagos, devoluciones };
 }
 
 export async function anularVenta(id, usuarioId, motivo) {
@@ -153,6 +171,76 @@ export async function anularVenta(id, usuarioId, motivo) {
     await conexion.query(`UPDATE ventas SET estado = 'anulada', anulada_por_usuario_id = ?,
       motivo_anulacion = ?, fecha_anulacion = CURRENT_TIMESTAMP(3) WHERE id = ?`, [usuarioId, motivo, id]);
     await conexion.commit(); return { id, productos_reintegrados: detalles.length, movimiento_id: movimiento.insertId };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
+export async function crearDevolucion(ventaId, usuarioId, datos) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [[venta]] = await conexion.query("SELECT estado FROM ventas WHERE id = ? FOR UPDATE", [ventaId]);
+    if (!venta || venta.estado !== 'completada') { const error = new Error('La venta no admite devoluciones'); error.codigoPublico = 'VENTA_INVALIDA'; throw error; }
+    const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
+    if (!sesion) { const error = new Error('Debés tener una caja abierta para realizar el cambio'); error.codigoPublico = 'SIN_CAJA'; throw error; }
+    const [[ubicacion]] = await conexion.query("SELECT id FROM ubicaciones_stock WHERE codigo = 'LOCAL_PRINCIPAL'");
+    const devueltos = []; let totalDevuelto = 0;
+    for (const item of datos.devueltos) {
+      const [[vendido]] = await conexion.query(`SELECT vd.cantidad, vd.precio_unitario, p.nombre,
+        COALESCE((SELECT SUM(dvd.cantidad) FROM devoluciones_ventas_detalles dvd
+          JOIN devoluciones_ventas dv ON dv.id = dvd.devolucion_id
+          WHERE dv.venta_id = ? AND dvd.producto_id = ? AND dvd.tipo = 'devuelto'), 0) AS ya_devuelto
+        FROM ventas_detalles vd JOIN productos p ON p.id = vd.producto_id
+        WHERE vd.venta_id = ? AND vd.producto_id = ?`, [ventaId, item.producto_id, ventaId, item.producto_id]);
+      if (!vendido || Number(vendido.cantidad) - Number(vendido.ya_devuelto) < item.cantidad) {
+        const error = new Error(`La cantidad devuelta de ${vendido?.nombre || 'un producto'} supera la vendida`); error.codigoPublico = 'CANTIDAD_INVALIDA'; throw error;
+      }
+      const subtotal = item.cantidad * Number(vendido.precio_unitario); totalDevuelto += subtotal;
+      devueltos.push({ ...item, nombre: vendido.nombre, precio_unitario: Number(vendido.precio_unitario), subtotal });
+    }
+    const reemplazos = []; let totalReemplazo = 0;
+    for (const item of datos.reemplazos) {
+      const [[producto]] = await conexion.query(`SELECT p.nombre, p.precio_venta, p.es_pesable,
+        COALESCE(e.cantidad, 0) AS stock FROM productos p LEFT JOIN existencias e
+        ON e.producto_id = p.id AND e.ubicacion_id = ? WHERE p.id = ? AND p.esta_activo = TRUE FOR UPDATE`, [ubicacion.id, item.producto_id]);
+      if (!producto || Number(producto.stock) < item.cantidad) { const error = new Error(`Stock insuficiente para ${producto?.nombre || 'un producto'}`); error.codigoPublico = 'STOCK_INSUFICIENTE'; throw error; }
+      if (!producto.es_pesable && !Number.isInteger(item.cantidad)) { const error = new Error(`La cantidad de ${producto.nombre} debe ser entera`); error.codigoPublico = 'CANTIDAD_ENTERA'; throw error; }
+      const subtotal = item.cantidad * Number(producto.precio_venta); totalReemplazo += subtotal;
+      reemplazos.push({ ...item, ...producto, precio_unitario: Number(producto.precio_venta), subtotal });
+    }
+    const diferencia = totalReemplazo - totalDevuelto;
+    if (Math.abs(diferencia) > 0.009 && !datos.medio) { const error = new Error('Debe indicarse el medio para cobrar o reintegrar la diferencia'); error.codigoPublico = 'MEDIO_REQUERIDO'; throw error; }
+    const [devolucion] = await conexion.query(`INSERT INTO devoluciones_ventas
+      (venta_id, sesion_caja_id, usuario_id, motivo, total_devuelto, total_reemplazo, diferencia)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`, [ventaId, sesion.id, usuarioId, datos.motivo, totalDevuelto, totalReemplazo, diferencia]);
+    const cambiosStock = [];
+    for (const item of devueltos) {
+      await conexion.query(`INSERT INTO devoluciones_ventas_detalles
+        (devolucion_id, producto_id, tipo, cantidad, precio_unitario, subtotal, reintegra_stock)
+        VALUES (?, ?, 'devuelto', ?, ?, ?, ?)`, [devolucion.insertId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal, item.reintegra_stock]);
+      if (item.reintegra_stock) cambiosStock.push({ producto_id: item.producto_id, variacion: item.cantidad });
+    }
+    for (const item of reemplazos) {
+      await conexion.query(`INSERT INTO devoluciones_ventas_detalles
+        (devolucion_id, producto_id, tipo, cantidad, precio_unitario, subtotal, reintegra_stock)
+        VALUES (?, ?, 'reemplazo', ?, ?, ?, FALSE)`, [devolucion.insertId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal]);
+      cambiosStock.push({ producto_id: item.producto_id, variacion: -item.cantidad });
+    }
+    if (cambiosStock.length) {
+      const [movimiento] = await conexion.query(`INSERT INTO movimientos_stock
+        (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
+        VALUES (?, ?, 'cambio_devolucion', ?, 'devolucion_venta', ?)`, [ubicacion.id, usuarioId, datos.motivo, devolucion.insertId]);
+      for (const cambio of cambiosStock) {
+        const [[existencia]] = await conexion.query('SELECT cantidad FROM existencias WHERE producto_id = ? AND ubicacion_id = ? FOR UPDATE', [cambio.producto_id, ubicacion.id]);
+        const anterior = Number(existencia.cantidad); const nueva = anterior + cambio.variacion;
+        await conexion.query('UPDATE existencias SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', [nueva, cambio.producto_id, ubicacion.id]);
+        await conexion.query(`INSERT INTO movimientos_stock_detalles
+          (movimiento_stock_id, producto_id, cantidad_anterior, variacion, cantidad_nueva)
+          VALUES (?, ?, ?, ?, ?)`, [movimiento.insertId, cambio.producto_id, anterior, cambio.variacion, nueva]);
+      }
+    }
+    if (Math.abs(diferencia) > 0.009) await conexion.query(`INSERT INTO devoluciones_ventas_pagos
+      (devolucion_id, tipo, medio, monto) VALUES (?, ?, ?, ?)`, [devolucion.insertId, diferencia > 0 ? 'cobro' : 'reintegro', datos.medio, Math.abs(diferencia)]);
+    await conexion.commit(); return { id: devolucion.insertId, diferencia };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 

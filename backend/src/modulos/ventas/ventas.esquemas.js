@@ -21,3 +21,14 @@ export const esquemaConsultaVentas = z.object({
 
 export const esquemaIdVenta = z.coerce.number().int().positive();
 export const esquemaAnularVenta = z.object({ motivo: z.string().trim().min(5).max(255) });
+export const esquemaDevolucion = z.object({
+  motivo: z.string().trim().min(5).max(255),
+  devueltos: z.array(z.object({
+    producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive(),
+    reintegra_stock: z.boolean(),
+  })).min(1).max(100).refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto devuelto'),
+  reemplazos: z.array(z.object({
+    producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive(),
+  })).max(100).default([]).refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un reemplazo'),
+  medio: z.enum(['efectivo', 'debito', 'credito', 'transferencia']).optional(),
+});
