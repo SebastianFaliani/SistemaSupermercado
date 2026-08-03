@@ -17,6 +17,7 @@ async function solicitar(ruta, token, opciones = {}) {
 export function Catalogo({ token, permisos }) {
   const [categorias, setCategorias] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [totalProductos, setTotalProductos] = useState(0);
   const [referencias, setReferencias] = useState({ marcas: [], unidades_medida: [] });
   const [mensaje, setMensaje] = useState('');
   const [mostrarProducto, setMostrarProducto] = useState(false);
@@ -31,6 +32,7 @@ export function Catalogo({ token, permisos }) {
       ]);
       setCategorias(respuestaCategorias.datos);
       setProductos(respuestaProductos.datos);
+      setTotalProductos(respuestaProductos.total);
       setReferencias(respuestaReferencias);
     } catch (error) {
       setMensaje(error.message);
@@ -102,7 +104,7 @@ export function Catalogo({ token, permisos }) {
           <h2>Productos y categorías</h2>
         </div>
         <div className="acciones-encabezado">
-          <span className="contador">{productos.length} productos</span>
+          <span className="contador">{totalProductos} productos</span>
           {puedeGestionar && <button className="boton" onClick={() => setMostrarProducto((valor) => !valor)}>{mostrarProducto ? 'Cancelar' : 'Nuevo producto'}</button>}
         </div>
       </div>

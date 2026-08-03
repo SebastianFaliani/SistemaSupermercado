@@ -1,6 +1,8 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { comprobarBaseDatos } from './configuracion/base-datos.js';
 import { entorno } from './configuracion/entorno.js';
@@ -8,11 +10,16 @@ import { rutasAutenticacion } from './modulos/seguridad/autenticacion.rutas.js';
 import { rutasCatalogo } from './modulos/catalogo/catalogo.rutas.js';
 
 export const aplicacion = express();
+const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 aplicacion.disable('x-powered-by');
 aplicacion.use(helmet());
 aplicacion.use(cors({ origin: entorno.origenFrontend }));
 aplicacion.use(express.json({ limit: '1mb' }));
+aplicacion.use(
+  '/imagenes_productos',
+  express.static(resolve(carpetaProyecto, 'storage/imagenes_productos')),
+);
 aplicacion.use('/api/autenticacion', rutasAutenticacion);
 aplicacion.use('/api/catalogo', rutasCatalogo);
 
