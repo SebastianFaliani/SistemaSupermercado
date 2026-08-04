@@ -5,6 +5,16 @@ export const esquemaAbrirCaja = z.object({
   monto_inicial: z.coerce.number().min(0).max(9999999999999.99),
 });
 export const esquemaCerrarCaja = z.object({ monto_contado: z.coerce.number().min(0).max(9999999999999.99) });
+export const esquemaMovimientoCaja = z.object({
+  tipo: z.enum(['ingreso', 'egreso']),
+  monto: z.coerce.number().positive().max(9999999999999.99),
+  motivo: z.string().trim().min(5).max(255),
+});
+export const esquemaConsultaCajas = z.object({
+  fecha_desde: z.string().date().optional(), fecha_hasta: z.string().date().optional(),
+  pagina: z.coerce.number().int().positive().default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(25),
+});
 export const esquemaVenta = z.object({
   detalles: z.array(z.object({ producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive().max(999999999999.999) })).min(1).max(200)
     .refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto'),

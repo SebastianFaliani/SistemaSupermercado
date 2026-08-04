@@ -157,6 +157,7 @@ body.modal-abierto { overflow: hidden; }
 .detalle-estado { margin-top: 0; }
 .caja-actual { display: flex; align-items: flex-end; flex-direction: column; }
 .caja-actual small { color: var(--color-gris-500); }
+.acciones-caja { display: flex; gap: 5px; margin-top: 3px; }
 .rejilla-venta { display: grid; grid-template-columns: minmax(230px, 30%) 1fr; gap: 12px; }
 .buscador-venta { align-self: start; }
 .ayuda-buscador { display: block; margin-top: 4px; color: var(--color-gris-500); }

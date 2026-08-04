@@ -26,10 +26,45 @@ export async function resumenCaja(usuarioId) {
     WHERE dv.sesion_caja_id = ? GROUP BY dvp.medio`, [sesion.id]);
   const porMedio = Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)]));
   const ajustesPorMedio = Object.fromEntries(ajustes.map((ajuste) => [ajuste.medio, Number(ajuste.total)]));
+  const [[manuales]] = await baseDatos.query(`SELECT
+    COALESCE(SUM(IF(tipo = 'ingreso', monto, 0)), 0) AS ingresos,
+    COALESCE(SUM(IF(tipo = 'egreso', monto, 0)), 0) AS egresos
+    FROM movimientos_caja WHERE sesion_caja_id = ?`, [sesion.id]);
   const ventas = Object.values(porMedio).reduce((suma, importe) => suma + importe, 0);
-  return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio, total_ventas: ventas,
+  return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio,
+    ingresos: Number(manuales.ingresos), egresos: Number(manuales.egresos), total_ventas: ventas,
     efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0)
-      + (ajustesPorMedio.efectivo || 0) };
+      + (ajustesPorMedio.efectivo || 0) + Number(manuales.ingresos) - Number(manuales.egresos) };
+}
+
+export async function registrarMovimientoCaja(usuarioId, datos) {
+  const sesion = await obtenerSesion(usuarioId);
+  if (!sesion) { const error = new Error('Debés tener una caja abierta'); error.codigoPublico = 'SIN_CAJA'; throw error; }
+  const [resultado] = await baseDatos.query(`INSERT INTO movimientos_caja
+    (sesion_caja_id, usuario_id, tipo, monto, motivo) VALUES (?, ?, ?, ?, ?)`,
+  [sesion.id, usuarioId, datos.tipo, datos.monto, datos.motivo]);
+  return { id: resultado.insertId };
+}
+
+export async function listarSesionesCaja(consulta, usuarioId = null) {
+  const condiciones = []; const parametros = [];
+  if (usuarioId) { condiciones.push('sc.usuario_id = ?'); parametros.push(usuarioId); }
+  if (consulta.fecha_desde) { condiciones.push('sc.fecha_apertura >= ?'); parametros.push(`${consulta.fecha_desde} 00:00:00`); }
+  if (consulta.fecha_hasta) { condiciones.push('sc.fecha_apertura < DATE_ADD(?, INTERVAL 1 DAY)'); parametros.push(`${consulta.fecha_hasta} 00:00:00`); }
+  const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const desde = `FROM sesiones_caja sc JOIN cajas c ON c.id = sc.caja_id
+    JOIN usuarios u ON u.id = sc.usuario_id ${donde}`;
+  const offset = (consulta.pagina - 1) * consulta.limite;
+  const [[datos], [conteo]] = await Promise.all([
+    baseDatos.query(`SELECT sc.id, c.nombre AS caja, u.nombre_usuario, sc.estado,
+      sc.monto_inicial, sc.monto_contado_cierre, sc.diferencia_cierre,
+      sc.fecha_apertura, sc.fecha_cierre,
+      (SELECT COALESCE(SUM(v.total), 0) FROM ventas v
+       WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada') AS ventas
+      ${desde} ORDER BY sc.fecha_apertura DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
+    baseDatos.query(`SELECT COUNT(*) AS total ${desde}`, parametros),
+  ]);
+  return { datos, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
 }
 
 export async function cerrarCaja(usuarioId, montoContado) {
@@ -46,7 +81,11 @@ export async function cerrarCaja(usuarioId, montoContado) {
       IF(dvp.tipo = 'cobro', dvp.monto, -dvp.monto)), 0) AS efectivo
       FROM devoluciones_ventas_pagos dvp JOIN devoluciones_ventas dv ON dv.id = dvp.devolucion_id
       WHERE dv.sesion_caja_id = ? AND dvp.medio = 'efectivo'`, [sesion.id]);
-    const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo) + Number(ajustes.efectivo);
+    const [[manuales]] = await conexion.query(`SELECT COALESCE(SUM(
+      IF(tipo = 'ingreso', monto, -monto)), 0) AS total FROM movimientos_caja
+      WHERE sesion_caja_id = ?`, [sesion.id]);
+    const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo)
+      + Number(ajustes.efectivo) + Number(manuales.total);
     const diferencia = montoContado - esperado;
     await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
       diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,
