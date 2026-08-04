@@ -121,14 +121,23 @@ export async function referenciasVenta() {
   return productos;
 }
 
+export async function listarClientesVenta() {
+  const [filas] = await baseDatos.query(`SELECT c.id, c.nombre, c.tipo_documento, c.numero_documento,
+    c.credito_habilitado, c.limite_credito, c.dias_vencimiento,
+    COALESCE(SUM(CASE WHEN v.estado = 'completada' THEN v.saldo_pendiente ELSE 0 END), 0) AS saldo
+    FROM clientes c LEFT JOIN ventas v ON v.cliente_id = c.id
+    WHERE c.esta_activo = TRUE GROUP BY c.id ORDER BY c.nombre`);
+  return filas.map((cliente) => ({ ...cliente, saldo: Number(cliente.saldo), disponible: Math.max(0, Number(cliente.limite_credito) - Number(cliente.saldo)) }));
+}
+
 function condicionesVentas(consulta, usuarioId) {
   const condiciones = []; const parametros = [];
   if (usuarioId) { condiciones.push('v.usuario_id = ?'); parametros.push(usuarioId); }
   if (consulta.buscar) {
-    condiciones.push(`(v.id = ? OR u.nombre_usuario LIKE ? OR EXISTS (
+    condiciones.push(`(v.id = ? OR u.nombre_usuario LIKE ? OR cl.nombre LIKE ? OR EXISTS (
       SELECT 1 FROM ventas_detalles vd JOIN productos p ON p.id = vd.producto_id
       WHERE vd.venta_id = v.id AND p.nombre LIKE ?))`);
-    const patron = `%${consulta.buscar}%`; parametros.push(Number(consulta.buscar) || 0, patron, patron);
+    const patron = `%${consulta.buscar}%`; parametros.push(Number(consulta.buscar) || 0, patron, patron, patron);
   }
   if (consulta.fecha_desde) { condiciones.push('v.fecha_creacion >= ?'); parametros.push(`${consulta.fecha_desde} 00:00:00`); }
   if (consulta.fecha_hasta) { condiciones.push('v.fecha_creacion < DATE_ADD(?, INTERVAL 1 DAY)'); parametros.push(`${consulta.fecha_hasta} 00:00:00`); }
@@ -138,10 +147,12 @@ function condicionesVentas(consulta, usuarioId) {
 export async function listarVentas(consulta, usuarioId = null) {
   const { donde, parametros } = condicionesVentas(consulta, usuarioId);
   const desde = `FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
-    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id ${donde}`;
+    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
+    LEFT JOIN clientes cl ON cl.id = v.cliente_id ${donde}`;
   const offset = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [resumen], [pagos]] = await Promise.all([
-    baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, u.nombre_usuario,
+    baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, v.saldo_pendiente,
+      u.nombre_usuario, cl.nombre AS cliente,
       c.nombre AS caja, (SELECT COUNT(*) FROM ventas_detalles vd WHERE vd.venta_id = v.id) AS productos
       ${desde} ORDER BY v.fecha_creacion DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
     baseDatos.query(`SELECT COUNT(*) AS total,
@@ -149,7 +160,8 @@ export async function listarVentas(consulta, usuarioId = null) {
     baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
       FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
       JOIN usuarios u ON u.id = v.usuario_id JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id
-      JOIN cajas c ON c.id = sc.caja_id ${donde ? `${donde} AND` : 'WHERE'} v.estado = 'completada'
+      JOIN cajas c ON c.id = sc.caja_id LEFT JOIN clientes cl ON cl.id = v.cliente_id
+      ${donde ? `${donde} AND` : 'WHERE'} v.estado = 'completada'
       GROUP BY vp.medio`, parametros),
   ]);
   return { datos, total: resumen[0].total, facturacion: Number(resumen[0].facturacion),
@@ -161,9 +173,11 @@ export async function obtenerVenta(id, usuarioId = null) {
   const parametros = [id]; const restriccion = usuarioId ? 'AND v.usuario_id = ?' : '';
   if (usuarioId) parametros.push(usuarioId);
   const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total,
+    v.saldo_pendiente, v.fecha_vencimiento, v.cliente_id, cl.nombre AS cliente,
     v.fecha_anulacion, v.motivo_anulacion,
     u.nombre_usuario, c.nombre AS caja FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
     JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
+    LEFT JOIN clientes cl ON cl.id = v.cliente_id
     WHERE v.id = ? ${restriccion}`, parametros);
   if (!ventas[0]) return null;
   const [[detalles], [pagos], [devoluciones]] = await Promise.all([
@@ -188,7 +202,8 @@ export async function anularVenta(id, usuarioId, motivo) {
   const conexion = await baseDatos.getConnection();
   try {
     await conexion.beginTransaction();
-    const [[venta]] = await conexion.query(`SELECT v.estado, v.sesion_caja_id, sc.estado AS estado_caja
+    const [[venta]] = await conexion.query(`SELECT v.estado, v.sesion_caja_id, v.cliente_id,
+      v.saldo_pendiente, sc.estado AS estado_caja
       FROM ventas v JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id WHERE v.id = ? FOR UPDATE`, [id]);
     if (!venta) { const error = new Error('No se encontró la venta'); error.codigoPublico = 'NO_ENCONTRADA'; throw error; }
     if (venta.estado !== 'completada') { const error = new Error('La venta ya está anulada'); error.codigoPublico = 'ESTADO_INVALIDO'; throw error; }
@@ -208,7 +223,10 @@ export async function anularVenta(id, usuarioId, motivo) {
         VALUES (?, ?, ?, ?, ?)`, [movimiento.insertId, detalle.producto_id, anterior, detalle.cantidad, nueva]);
     }
     await conexion.query(`UPDATE ventas SET estado = 'anulada', anulada_por_usuario_id = ?,
-      motivo_anulacion = ?, fecha_anulacion = CURRENT_TIMESTAMP(3) WHERE id = ?`, [usuarioId, motivo, id]);
+      motivo_anulacion = ?, fecha_anulacion = CURRENT_TIMESTAMP(3), saldo_pendiente = 0 WHERE id = ?`, [usuarioId, motivo, id]);
+    if (venta.cliente_id && Number(venta.saldo_pendiente) > 0) await conexion.query(`INSERT INTO movimientos_cuenta_clientes
+      (cliente_id, usuario_id, tipo, haber, referencia_tipo, referencia_id, descripcion)
+      VALUES (?, ?, 'anulacion_venta', ?, 'venta', ?, ?)`, [venta.cliente_id, usuarioId, venta.saldo_pendiente, id, `Anulación de venta #${id}`]);
     await conexion.commit(); return { id, productos_reintegrados: detalles.length, movimiento_id: movimiento.insertId };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
@@ -301,8 +319,19 @@ export async function crearVenta(usuarioId, datos) {
       detalles.push({ ...item, ...producto, subtotal });
     }
     const totalPagos = datos.pagos.reduce((suma, pago) => suma + pago.monto, 0);
-    if (Math.abs(totalPagos - total) > 0.009) { const error = new Error('Los pagos deben coincidir con el total de la venta'); error.codigoPublico = 'PAGO_INVALIDO'; throw error; }
-    const [venta] = await conexion.query('INSERT INTO ventas (sesion_caja_id, usuario_id, total) VALUES (?, ?, ?)', [sesion.id, usuarioId, total]);
+    if (totalPagos - total > 0.009) { const error = new Error('Los pagos no pueden superar el total de la venta'); error.codigoPublico = 'PAGO_INVALIDO'; throw error; }
+    const saldoPendiente = total - totalPagos; let cliente = null;
+    if (datos.cliente_id) {
+      [[cliente]] = await conexion.query(`SELECT c.id, c.nombre, c.credito_habilitado, c.limite_credito, c.dias_vencimiento,
+        COALESCE(SUM(CASE WHEN v.estado = 'completada' THEN v.saldo_pendiente ELSE 0 END), 0) AS saldo
+        FROM clientes c LEFT JOIN ventas v ON v.cliente_id = c.id WHERE c.id = ? AND c.esta_activo = TRUE GROUP BY c.id FOR UPDATE`, [datos.cliente_id]);
+      if (!cliente) { const error = new Error('No se encontró un cliente activo'); error.codigoPublico = 'CLIENTE_INVALIDO'; throw error; }
+    }
+    if (saldoPendiente > 0.009 && !cliente) { const error = new Error('Seleccioná un cliente para dejar saldo pendiente'); error.codigoPublico = 'CLIENTE_REQUERIDO'; throw error; }
+    if (saldoPendiente > 0.009 && !cliente.credito_habilitado) { const error = new Error('El cliente no tiene habilitada la cuenta corriente'); error.codigoPublico = 'CREDITO_NO_HABILITADO'; throw error; }
+    if (saldoPendiente > 0.009 && Number(cliente.saldo) + saldoPendiente - Number(cliente.limite_credito) > 0.009) { const error = new Error(`El crédito supera el límite disponible de ${cliente.nombre}`); error.codigoPublico = 'LIMITE_CREDITO'; throw error; }
+    const fechaVencimiento = saldoPendiente > 0.009 ? new Date(Date.now() + Number(cliente.dias_vencimiento) * 86400000).toISOString().slice(0, 10) : null;
+    const [venta] = await conexion.query('INSERT INTO ventas (sesion_caja_id, usuario_id, cliente_id, total, saldo_pendiente, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?)', [sesion.id, usuarioId, cliente?.id || null, total, saldoPendiente, fechaVencimiento]);
     const [movimiento] = await conexion.query(`INSERT INTO movimientos_stock
       (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
       VALUES (?, ?, 'salida_venta', ?, 'venta', ?)`, [ubicacion.id, usuarioId, `Venta #${venta.insertId}`, venta.insertId]);
@@ -315,6 +344,9 @@ export async function crearVenta(usuarioId, datos) {
         VALUES (?, ?, ?, ?, ?)`, [movimiento.insertId, detalle.producto_id, anterior, -detalle.cantidad, nueva]);
     }
     for (const pago of datos.pagos) await conexion.query('INSERT INTO ventas_pagos (venta_id, medio, monto) VALUES (?, ?, ?)', [venta.insertId, pago.medio, pago.monto]);
-    await conexion.commit(); return { id: venta.insertId, total };
+    if (saldoPendiente > 0.009) await conexion.query(`INSERT INTO movimientos_cuenta_clientes
+      (cliente_id, usuario_id, tipo, debe, referencia_tipo, referencia_id, descripcion, fecha_vencimiento)
+      VALUES (?, ?, 'venta_credito', ?, 'venta', ?, ?, ?)`, [cliente.id, usuarioId, saldoPendiente, venta.insertId, `Venta #${venta.insertId}`, fechaVencimiento]);
+    await conexion.commit(); return { id: venta.insertId, total, saldo_pendiente: saldoPendiente, fecha_vencimiento: fechaVencimiento };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }

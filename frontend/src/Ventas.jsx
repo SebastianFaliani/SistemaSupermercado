@@ -1,76 +1,246 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
 
-async function pedir(ruta, token, opciones = {}) { const respuesta = await fetch(ruta, { ...opciones, headers: { Authorization: `Bearer ${token}`, ...(opciones.body ? { 'Content-Type': 'application/json' } : {}) } }); const datos = await respuesta.json(); if (!respuesta.ok) throw new Error(datos.mensaje || 'No se pudo completar la operación'); return datos; }
+async function pedir(ruta, token, opciones = {}) {
+  const respuesta = await fetch(ruta, {
+    ...opciones,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(opciones.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+  const datos = await respuesta.json();
+  if (!respuesta.ok)
+    throw new Error(datos.mensaje || 'No se pudo completar la operación');
+  return datos;
+}
 
 export function Ventas({ token, permisos }) {
-  const [sesion, setSesion] = useState(undefined); const [productos, setProductos] = useState([]);
+  const [sesion, setSesion] = useState(undefined);
+  const [productos, setProductos] = useState([]);
   const [cajasDisponibles, setCajasDisponibles] = useState([]);
-  const [buscar, setBuscar] = useState(''); const [carrito, setCarrito] = useState([]);
-  const [modalCaja, setModalCaja] = useState(false); const [modalCobro, setModalCobro] = useState(false);
-  const [pagosVenta, setPagosVenta] = useState({ efectivo: '', debito: '', credito: '', transferencia: '' }); const [recibido, setRecibido] = useState('');
-  const [procesando, setProcesando] = useState(false); const [mensaje, setMensaje] = useState('');
-  const [modalCierre, setModalCierre] = useState(false); const [resumenCierre, setResumenCierre] = useState(null);
+  const [buscar, setBuscar] = useState('');
+  const [carrito, setCarrito] = useState([]);
+  const [modalCaja, setModalCaja] = useState(false);
+  const [modalCobro, setModalCobro] = useState(false);
+  const [pagosVenta, setPagosVenta] = useState({
+    efectivo: '',
+    debito: '',
+    credito: '',
+    transferencia: '',
+  });
+  const [recibido, setRecibido] = useState('');
+  const [procesando, setProcesando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const [modalCierre, setModalCierre] = useState(false);
+  const [resumenCierre, setResumenCierre] = useState(null);
   const [montoContado, setMontoContado] = useState('');
   const [resultadoActivo, setResultadoActivo] = useState(-1);
-  const [vista, setVista] = useState('venta'); const [ventas, setVentas] = useState([]);
-  const [resumenVentas, setResumenVentas] = useState({ total: 0, facturacion: 0, pagos: {} });
-  const [paginaVentas, setPaginaVentas] = useState(1); const [textoVentas, setTextoVentas] = useState('');
-  const [buscarVentas, setBuscarVentas] = useState(''); const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState(''); const [ventaDetalle, setVentaDetalle] = useState(null);
-  const [ventaAAnular, setVentaAAnular] = useState(null); const [motivoAnulacion, setMotivoAnulacion] = useState('');
-  const [ventaCambio, setVentaCambio] = useState(null); const [devueltos, setDevueltos] = useState({});
-  const [reemplazos, setReemplazos] = useState([]); const [buscarReemplazo, setBuscarReemplazo] = useState('');
-  const [reemplazoActivo, setReemplazoActivo] = useState(-1); const [motivoCambio, setMotivoCambio] = useState('');
+  const [vista, setVista] = useState('venta');
+  const [ventas, setVentas] = useState([]);
+  const [resumenVentas, setResumenVentas] = useState({
+    total: 0,
+    facturacion: 0,
+    pagos: {},
+  });
+  const [paginaVentas, setPaginaVentas] = useState(1);
+  const [textoVentas, setTextoVentas] = useState('');
+  const [buscarVentas, setBuscarVentas] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [ventaDetalle, setVentaDetalle] = useState(null);
+  const [ventaAAnular, setVentaAAnular] = useState(null);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
+  const [ventaCambio, setVentaCambio] = useState(null);
+  const [devueltos, setDevueltos] = useState({});
+  const [reemplazos, setReemplazos] = useState([]);
+  const [buscarReemplazo, setBuscarReemplazo] = useState('');
+  const [reemplazoActivo, setReemplazoActivo] = useState(-1);
+  const [motivoCambio, setMotivoCambio] = useState('');
   const [medioDiferencia, setMedioDiferencia] = useState('efectivo');
-  const [modalMovimiento, setModalMovimiento] = useState(false); const [tipoMovimiento, setTipoMovimiento] = useState('ingreso');
-  const [modalHistorialCajas, setModalHistorialCajas] = useState(false); const [sesionesCaja, setSesionesCaja] = useState([]);
+  const [modalMovimiento, setModalMovimiento] = useState(false);
+  const [tipoMovimiento, setTipoMovimiento] = useState('ingreso');
+  const [modalHistorialCajas, setModalHistorialCajas] = useState(false);
+  const [sesionesCaja, setSesionesCaja] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [clienteId, setClienteId] = useState('');
 
-  const cargar = useCallback(async () => { try { const [caja, disponibles, referencias] = await Promise.all([pedir('/api/ventas/caja/actual', token), pedir('/api/ventas/caja/disponibles', token), pedir('/api/ventas/referencias', token)]); setSesion(caja.dato); setCajasDisponibles(disponibles.datos); setProductos(referencias.datos); if (!caja.dato) setModalCaja(true); } catch (error) { setMensaje(error.message); } }, [token]);
-  useEffect(() => { cargar(); }, [cargar]);
+  const cargar = useCallback(async () => {
+    try {
+      const [caja, disponibles, referencias, referenciaClientes] =
+        await Promise.all([
+          pedir('/api/ventas/caja/actual', token),
+          pedir('/api/ventas/caja/disponibles', token),
+          pedir('/api/ventas/referencias', token),
+          pedir('/api/ventas/clientes', token),
+        ]);
+      setSesion(caja.dato);
+      setCajasDisponibles(disponibles.datos);
+      setProductos(referencias.datos);
+      setClientes(referenciaClientes.datos);
+      if (!caja.dato) setModalCaja(true);
+    } catch (error) {
+      setMensaje(error.message);
+    }
+  }, [token]);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
   const cargarHistorial = useCallback(async () => {
     try {
-      const parametros = new URLSearchParams({ pagina: String(paginaVentas), limite: '25' });
+      const parametros = new URLSearchParams({
+        pagina: String(paginaVentas),
+        limite: '25',
+      });
       if (buscarVentas) parametros.set('buscar', buscarVentas);
       if (fechaDesde) parametros.set('fecha_desde', fechaDesde);
       if (fechaHasta) parametros.set('fecha_hasta', fechaHasta);
-      const respuesta = await pedir(`/api/ventas/historial?${parametros}`, token);
-      setVentas(respuesta.datos); setResumenVentas({ total: respuesta.total, facturacion: respuesta.facturacion, pagos: respuesta.pagos });
-    } catch (error) { setMensaje(error.message); }
+      const respuesta = await pedir(
+        `/api/ventas/historial?${parametros}`,
+        token,
+      );
+      setVentas(respuesta.datos);
+      setResumenVentas({
+        total: respuesta.total,
+        facturacion: respuesta.facturacion,
+        pagos: respuesta.pagos,
+      });
+    } catch (error) {
+      setMensaje(error.message);
+    }
   }, [token, paginaVentas, buscarVentas, fechaDesde, fechaHasta]);
-  useEffect(() => { if (vista === 'historial') cargarHistorial(); }, [vista, cargarHistorial]);
-  useEffect(() => { const temporizador = setTimeout(() => { setPaginaVentas(1); setBuscarVentas(textoVentas.trim()); }, 300); return () => clearTimeout(temporizador); }, [textoVentas]);
-  const resultados = useMemo(() => { const termino = buscar.trim().toLocaleLowerCase('es'); if (termino.length < 2) return []; return productos.filter((producto) => (`${producto.nombre} ${producto.codigo_barra}`).toLocaleLowerCase('es').includes(termino)).sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0)).slice(0, 12); }, [buscar, productos]);
   useEffect(() => {
-    if (resultadoActivo >= 0) document.getElementById(`resultado-venta-${resultados[resultadoActivo]?.id}`)?.scrollIntoView({ block: 'nearest' });
+    if (vista === 'historial') cargarHistorial();
+  }, [vista, cargarHistorial]);
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      setPaginaVentas(1);
+      setBuscarVentas(textoVentas.trim());
+    }, 300);
+    return () => clearTimeout(temporizador);
+  }, [textoVentas]);
+  const resultados = useMemo(() => {
+    const termino = buscar.trim().toLocaleLowerCase('es');
+    if (termino.length < 2) return [];
+    return productos
+      .filter((producto) =>
+        `${producto.nombre} ${producto.codigo_barra}`
+          .toLocaleLowerCase('es')
+          .includes(termino),
+      )
+      .sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0))
+      .slice(0, 12);
+  }, [buscar, productos]);
+  useEffect(() => {
+    if (resultadoActivo >= 0)
+      document
+        .getElementById(`resultado-venta-${resultados[resultadoActivo]?.id}`)
+        ?.scrollIntoView({ block: 'nearest' });
   }, [resultadoActivo, resultados]);
-  const total = carrito.reduce((suma, item) => suma + Number(item.cantidad) * Number(item.precio_venta), 0);
-  const totalPagado = Object.values(pagosVenta).reduce((suma, importe) => suma + Number(importe || 0), 0);
+  const total = carrito.reduce(
+    (suma, item) => suma + Number(item.cantidad) * Number(item.precio_venta),
+    0,
+  );
+  const totalPagado = Object.values(pagosVenta).reduce(
+    (suma, importe) => suma + Number(importe || 0),
+    0,
+  );
   const saldoPago = total - totalPagado;
-  const vuelto = Math.max(0, Number(recibido || 0) - Number(pagosVenta.efectivo || 0));
-  const resultadosReemplazo = useMemo(() => { const termino = buscarReemplazo.trim().toLocaleLowerCase('es'); if (termino.length < 2) return []; return productos.filter((producto) => (`${producto.nombre} ${producto.codigo_barra}`).toLocaleLowerCase('es').includes(termino)).sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0)).slice(0, 12); }, [buscarReemplazo, productos]);
-  const totalDevuelto = ventaCambio ? ventaCambio.detalles.reduce((suma, detalle) => suma + Number(devueltos[detalle.producto_id]?.cantidad || 0) * Number(detalle.precio_unitario), 0) : 0;
-  const totalReemplazo = reemplazos.reduce((suma, item) => suma + Number(item.cantidad) * Number(item.precio_venta), 0);
+  const clienteSeleccionado = clientes.find(
+    (cliente) => cliente.id === Number(clienteId),
+  );
+  const creditoValido =
+    saldoPago <= 0.009 ||
+    Boolean(
+      clienteSeleccionado?.credito_habilitado &&
+      saldoPago <= Number(clienteSeleccionado.disponible) + 0.009,
+    );
+  const vuelto = Math.max(
+    0,
+    Number(recibido || 0) - Number(pagosVenta.efectivo || 0),
+  );
+  const resultadosReemplazo = useMemo(() => {
+    const termino = buscarReemplazo.trim().toLocaleLowerCase('es');
+    if (termino.length < 2) return [];
+    return productos
+      .filter((producto) =>
+        `${producto.nombre} ${producto.codigo_barra}`
+          .toLocaleLowerCase('es')
+          .includes(termino),
+      )
+      .sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0))
+      .slice(0, 12);
+  }, [buscarReemplazo, productos]);
+  const totalDevuelto = ventaCambio
+    ? ventaCambio.detalles.reduce(
+        (suma, detalle) =>
+          suma +
+          Number(devueltos[detalle.producto_id]?.cantidad || 0) *
+            Number(detalle.precio_unitario),
+        0,
+      )
+    : 0;
+  const totalReemplazo = reemplazos.reduce(
+    (suma, item) => suma + Number(item.cantidad) * Number(item.precio_venta),
+    0,
+  );
   const diferenciaCambio = totalReemplazo - totalDevuelto;
 
-  function agregar(producto, conservarBusqueda = false) { setCarrito((actual) => { const existente = actual.find((item) => item.id === producto.id); if (existente) return actual.map((item) => item.id === producto.id ? { ...item, cantidad: Math.min(Number(item.stock), Number(item.cantidad) + 1) } : item); return [...actual, { ...producto, cantidad: 1 }]; }); if (!conservarBusqueda) { setBuscar(''); setResultadoActivo(-1); } }
+  function agregar(producto, conservarBusqueda = false) {
+    setCarrito((actual) => {
+      const existente = actual.find((item) => item.id === producto.id);
+      if (existente)
+        return actual.map((item) =>
+          item.id === producto.id
+            ? {
+                ...item,
+                cantidad: Math.min(
+                  Number(item.stock),
+                  Number(item.cantidad) + 1,
+                ),
+              }
+            : item,
+        );
+      return [...actual, { ...producto, cantidad: 1 }];
+    });
+    if (!conservarBusqueda) {
+      setBuscar('');
+      setResultadoActivo(-1);
+    }
+  }
   function agregarConEnter(evento) {
     if (evento.key === 'ArrowDown') {
       evento.preventDefault();
-      if (resultados.length) setResultadoActivo((actual) => actual >= resultados.length - 1 ? -1 : actual + 1);
+      if (resultados.length)
+        setResultadoActivo((actual) =>
+          actual >= resultados.length - 1 ? -1 : actual + 1,
+        );
       return;
     }
     if (evento.key === 'ArrowUp') {
       evento.preventDefault();
-      if (resultados.length) setResultadoActivo((actual) => actual === -1 ? resultados.length - 1 : actual === 0 ? -1 : actual - 1);
+      if (resultados.length)
+        setResultadoActivo((actual) =>
+          actual === -1
+            ? resultados.length - 1
+            : actual === 0
+              ? -1
+              : actual - 1,
+        );
       return;
     }
-    if (evento.key === 'Escape') { setResultadoActivo(-1); return; }
+    if (evento.key === 'Escape') {
+      setResultadoActivo(-1);
+      return;
+    }
     if (evento.key !== 'Enter') return;
     evento.preventDefault();
     const codigo = buscar.trim();
-    const coincidenciaExacta = resultados.find((item) => item.codigo_barra === codigo);
-    const producto = coincidenciaExacta || resultados[resultadoActivo] || resultados[0];
+    const coincidenciaExacta = resultados.find(
+      (item) => item.codigo_barra === codigo,
+    );
+    const producto =
+      coincidenciaExacta || resultados[resultadoActivo] || resultados[0];
     if (!producto) return;
     if (Number(producto.stock) <= 0) {
       setMensaje(`${producto.nombre} no tiene stock disponible.`);
@@ -79,31 +249,1500 @@ export function Ventas({ token, permisos }) {
     setMensaje('');
     agregar(producto, !coincidenciaExacta);
   }
-  function cambiarCantidad(id, cantidad) { setCarrito((actual) => actual.map((item) => item.id === id ? { ...item, cantidad } : item)); }
-  async function abrirCaja(evento) { evento.preventDefault(); const formulario = new FormData(evento.currentTarget); setProcesando(true); try { await pedir('/api/ventas/caja/abrir', token, { method: 'POST', body: JSON.stringify({ caja_id: Number(formulario.get('caja_id')), monto_inicial: Number(formulario.get('monto_inicial')) }) }); setModalCaja(false); setMensaje('Caja abierta correctamente.'); await cargar(); } catch (error) { setMensaje(error.message); await cargar(); } finally { setProcesando(false); } }
-  async function cobrar() { setProcesando(true); try { const pagos = Object.entries(pagosVenta).filter(([, importe]) => Number(importe) > 0).map(([medioPago, importe]) => ({ medio: medioPago, monto: Number(importe) })); const respuesta = await pedir('/api/ventas', token, { method: 'POST', body: JSON.stringify({ detalles: carrito.map((item) => ({ producto_id: item.id, cantidad: Number(item.cantidad) })), pagos }) }); const comprobante = await pedir(`/api/ventas/historial/${respuesta.dato.id}`, token); setModalCobro(false); setCarrito([]); setRecibido(''); setPagosVenta({ efectivo: '', debito: '', credito: '', transferencia: '' }); setMensaje(`Venta #${respuesta.dato.id} registrada correctamente.`); setVentaDetalle(comprobante.dato); await cargar(); } catch (error) { setMensaje(error.message); } finally { setProcesando(false); } }
-  function completarSaldo(medioPago) { const otros = Object.entries(pagosVenta).filter(([nombre]) => nombre !== medioPago).reduce((suma, [, importe]) => suma + Number(importe || 0), 0); const importe = Math.max(0, total - otros); setPagosVenta((actual) => ({ ...actual, [medioPago]: importe ? importe.toFixed(2) : '' })); if (medioPago === 'efectivo') setRecibido(importe ? importe.toFixed(2) : ''); }
-  async function abrirCierre() { try { const respuesta = await pedir('/api/ventas/caja/resumen', token); setResumenCierre(respuesta.dato); setMontoContado(String(respuesta.dato.efectivo_esperado)); setModalCierre(true); } catch (error) { setMensaje(error.message); } }
-  async function cerrarCaja() { setProcesando(true); try { const respuesta = await pedir('/api/ventas/caja/cerrar', token, { method: 'POST', body: JSON.stringify({ monto_contado: Number(montoContado) }) }); const disponibles = await pedir('/api/ventas/caja/disponibles', token); setCajasDisponibles(disponibles.datos); setSesion(null); setModalCierre(false); setResumenCierre(null); setMensaje(`Caja cerrada. Diferencia: $${Number(respuesta.dato.diferencia).toLocaleString('es-AR', { minimumFractionDigits: 2 })}.`); } catch (error) { setMensaje(error.message); } finally { setProcesando(false); } }
-  async function abrirVenta(id) { try { const respuesta = await pedir(`/api/ventas/historial/${id}`, token); setVentaDetalle(respuesta.dato); } catch (error) { setMensaje(error.message); } }
-  async function anular() { setProcesando(true); try { const respuesta = await pedir(`/api/ventas/${ventaAAnular.id}/anular`, token, { method: 'POST', body: JSON.stringify({ motivo: motivoAnulacion }) }); setVentaAAnular(null); setMotivoAnulacion(''); setMensaje(`Venta anulada. ${respuesta.dato.productos_reintegrados} productos volvieron al stock.`); await Promise.all([cargar(), cargarHistorial()]); } catch (error) { setMensaje(error.message); setVentaAAnular(null); } finally { setProcesando(false); } }
-  function iniciarCambio(venta) { setVentaCambio(venta); setVentaDetalle(null); setDevueltos({}); setReemplazos([]); setBuscarReemplazo(''); setMotivoCambio(''); }
-  function agregarReemplazo(producto, conservar = true) { if (Number(producto.stock) <= 0) return; setReemplazos((actual) => { const existente = actual.find((item) => item.id === producto.id); return existente ? actual.map((item) => item.id === producto.id ? { ...item, cantidad: Math.min(Number(item.stock), Number(item.cantidad) + 1) } : item) : [...actual, { ...producto, cantidad: 1 }]; }); if (!conservar) { setBuscarReemplazo(''); setReemplazoActivo(-1); } }
-  function navegarReemplazos(evento) { if (evento.key === 'ArrowDown') { evento.preventDefault(); if (resultadosReemplazo.length) setReemplazoActivo((actual) => actual >= resultadosReemplazo.length - 1 ? -1 : actual + 1); return; } if (evento.key === 'ArrowUp') { evento.preventDefault(); if (resultadosReemplazo.length) setReemplazoActivo((actual) => actual === -1 ? resultadosReemplazo.length - 1 : actual === 0 ? -1 : actual - 1); return; } if (evento.key !== 'Enter') return; evento.preventDefault(); const exacto = resultadosReemplazo.find((item) => item.codigo_barra === buscarReemplazo.trim()); const producto = exacto || resultadosReemplazo[reemplazoActivo] || resultadosReemplazo[0]; if (producto) agregarReemplazo(producto, !exacto); }
-  async function confirmarCambio() { setProcesando(true); try { const respuesta = await pedir(`/api/ventas/${ventaCambio.id}/devoluciones`, token, { method: 'POST', body: JSON.stringify({ motivo: motivoCambio, devueltos: Object.entries(devueltos).filter(([, item]) => Number(item.cantidad) > 0).map(([productoId, item]) => ({ producto_id: Number(productoId), cantidad: Number(item.cantidad), reintegra_stock: item.reintegra_stock })), reemplazos: reemplazos.map((item) => ({ producto_id: item.id, cantidad: Number(item.cantidad) })), ...(Math.abs(diferenciaCambio) > 0.009 ? { medio: medioDiferencia } : {}) }) }); setVentaCambio(null); setMensaje(`Cambio/devolución #${respuesta.dato.id} registrado correctamente.`); await Promise.all([cargar(), cargarHistorial()]); } catch (error) { setMensaje(error.message); } finally { setProcesando(false); } }
-  async function guardarMovimiento(evento) { evento.preventDefault(); const formulario = new FormData(evento.currentTarget); setProcesando(true); try { await pedir('/api/ventas/caja/movimientos', token, { method: 'POST', body: JSON.stringify({ tipo: tipoMovimiento, monto: Number(formulario.get('monto')), motivo: formulario.get('motivo') }) }); setModalMovimiento(false); setMensaje(`${tipoMovimiento === 'ingreso' ? 'Ingreso' : 'Egreso'} de caja registrado.`); } catch (error) { setMensaje(error.message); } finally { setProcesando(false); } }
-  async function abrirHistorialCajas() { try { const respuesta = await pedir('/api/ventas/caja/historial?pagina=1&limite=100', token); setSesionesCaja(respuesta.datos); setModalHistorialCajas(true); } catch (error) { setMensaje(error.message); } }
+  function cambiarCantidad(id, cantidad) {
+    setCarrito((actual) =>
+      actual.map((item) => (item.id === id ? { ...item, cantidad } : item)),
+    );
+  }
+  async function abrirCaja(evento) {
+    evento.preventDefault();
+    const formulario = new FormData(evento.currentTarget);
+    setProcesando(true);
+    try {
+      await pedir('/api/ventas/caja/abrir', token, {
+        method: 'POST',
+        body: JSON.stringify({
+          caja_id: Number(formulario.get('caja_id')),
+          monto_inicial: Number(formulario.get('monto_inicial')),
+        }),
+      });
+      setModalCaja(false);
+      setMensaje('Caja abierta correctamente.');
+      await cargar();
+    } catch (error) {
+      setMensaje(error.message);
+      await cargar();
+    } finally {
+      setProcesando(false);
+    }
+  }
+  async function cobrar() {
+    setProcesando(true);
+    try {
+      const pagos = Object.entries(pagosVenta)
+        .filter(([, importe]) => Number(importe) > 0)
+        .map(([medioPago, importe]) => ({
+          medio: medioPago,
+          monto: Number(importe),
+        }));
+      const respuesta = await pedir('/api/ventas', token, {
+        method: 'POST',
+        body: JSON.stringify({
+          cliente_id: clienteId ? Number(clienteId) : null,
+          detalles: carrito.map((item) => ({
+            producto_id: item.id,
+            cantidad: Number(item.cantidad),
+          })),
+          pagos,
+        }),
+      });
+      const comprobante = await pedir(
+        `/api/ventas/historial/${respuesta.dato.id}`,
+        token,
+      );
+      setModalCobro(false);
+      setCarrito([]);
+      setRecibido('');
+      setClienteId('');
+      setPagosVenta({
+        efectivo: '',
+        debito: '',
+        credito: '',
+        transferencia: '',
+      });
+      setMensaje(
+        `Venta #${respuesta.dato.id} registrada correctamente${Number(respuesta.dato.saldo_pendiente) > 0 ? ` con $${Number(respuesta.dato.saldo_pendiente).toLocaleString('es-AR')} en cuenta corriente` : ''}.`,
+      );
+      setVentaDetalle(comprobante.dato);
+      await cargar();
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProcesando(false);
+    }
+  }
+  function completarSaldo(medioPago) {
+    const otros = Object.entries(pagosVenta)
+      .filter(([nombre]) => nombre !== medioPago)
+      .reduce((suma, [, importe]) => suma + Number(importe || 0), 0);
+    const importe = Math.max(0, total - otros);
+    setPagosVenta((actual) => ({
+      ...actual,
+      [medioPago]: importe ? importe.toFixed(2) : '',
+    }));
+    if (medioPago === 'efectivo')
+      setRecibido(importe ? importe.toFixed(2) : '');
+  }
+  async function abrirCierre() {
+    try {
+      const respuesta = await pedir('/api/ventas/caja/resumen', token);
+      setResumenCierre(respuesta.dato);
+      setMontoContado(String(respuesta.dato.efectivo_esperado));
+      setModalCierre(true);
+    } catch (error) {
+      setMensaje(error.message);
+    }
+  }
+  async function cerrarCaja() {
+    setProcesando(true);
+    try {
+      const respuesta = await pedir('/api/ventas/caja/cerrar', token, {
+        method: 'POST',
+        body: JSON.stringify({ monto_contado: Number(montoContado) }),
+      });
+      const disponibles = await pedir('/api/ventas/caja/disponibles', token);
+      setCajasDisponibles(disponibles.datos);
+      setSesion(null);
+      setModalCierre(false);
+      setResumenCierre(null);
+      setMensaje(
+        `Caja cerrada. Diferencia: $${Number(respuesta.dato.diferencia).toLocaleString('es-AR', { minimumFractionDigits: 2 })}.`,
+      );
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProcesando(false);
+    }
+  }
+  async function abrirVenta(id) {
+    try {
+      const respuesta = await pedir(`/api/ventas/historial/${id}`, token);
+      setVentaDetalle(respuesta.dato);
+    } catch (error) {
+      setMensaje(error.message);
+    }
+  }
+  async function anular() {
+    setProcesando(true);
+    try {
+      const respuesta = await pedir(
+        `/api/ventas/${ventaAAnular.id}/anular`,
+        token,
+        { method: 'POST', body: JSON.stringify({ motivo: motivoAnulacion }) },
+      );
+      setVentaAAnular(null);
+      setMotivoAnulacion('');
+      setMensaje(
+        `Venta anulada. ${respuesta.dato.productos_reintegrados} productos volvieron al stock.`,
+      );
+      await Promise.all([cargar(), cargarHistorial()]);
+    } catch (error) {
+      setMensaje(error.message);
+      setVentaAAnular(null);
+    } finally {
+      setProcesando(false);
+    }
+  }
+  function iniciarCambio(venta) {
+    setVentaCambio(venta);
+    setVentaDetalle(null);
+    setDevueltos({});
+    setReemplazos([]);
+    setBuscarReemplazo('');
+    setMotivoCambio('');
+  }
+  function agregarReemplazo(producto, conservar = true) {
+    if (Number(producto.stock) <= 0) return;
+    setReemplazos((actual) => {
+      const existente = actual.find((item) => item.id === producto.id);
+      return existente
+        ? actual.map((item) =>
+            item.id === producto.id
+              ? {
+                  ...item,
+                  cantidad: Math.min(
+                    Number(item.stock),
+                    Number(item.cantidad) + 1,
+                  ),
+                }
+              : item,
+          )
+        : [...actual, { ...producto, cantidad: 1 }];
+    });
+    if (!conservar) {
+      setBuscarReemplazo('');
+      setReemplazoActivo(-1);
+    }
+  }
+  function navegarReemplazos(evento) {
+    if (evento.key === 'ArrowDown') {
+      evento.preventDefault();
+      if (resultadosReemplazo.length)
+        setReemplazoActivo((actual) =>
+          actual >= resultadosReemplazo.length - 1 ? -1 : actual + 1,
+        );
+      return;
+    }
+    if (evento.key === 'ArrowUp') {
+      evento.preventDefault();
+      if (resultadosReemplazo.length)
+        setReemplazoActivo((actual) =>
+          actual === -1
+            ? resultadosReemplazo.length - 1
+            : actual === 0
+              ? -1
+              : actual - 1,
+        );
+      return;
+    }
+    if (evento.key !== 'Enter') return;
+    evento.preventDefault();
+    const exacto = resultadosReemplazo.find(
+      (item) => item.codigo_barra === buscarReemplazo.trim(),
+    );
+    const producto =
+      exacto || resultadosReemplazo[reemplazoActivo] || resultadosReemplazo[0];
+    if (producto) agregarReemplazo(producto, !exacto);
+  }
+  async function confirmarCambio() {
+    setProcesando(true);
+    try {
+      const respuesta = await pedir(
+        `/api/ventas/${ventaCambio.id}/devoluciones`,
+        token,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            motivo: motivoCambio,
+            devueltos: Object.entries(devueltos)
+              .filter(([, item]) => Number(item.cantidad) > 0)
+              .map(([productoId, item]) => ({
+                producto_id: Number(productoId),
+                cantidad: Number(item.cantidad),
+                reintegra_stock: item.reintegra_stock,
+              })),
+            reemplazos: reemplazos.map((item) => ({
+              producto_id: item.id,
+              cantidad: Number(item.cantidad),
+            })),
+            ...(Math.abs(diferenciaCambio) > 0.009
+              ? { medio: medioDiferencia }
+              : {}),
+          }),
+        },
+      );
+      setVentaCambio(null);
+      setMensaje(
+        `Cambio/devolución #${respuesta.dato.id} registrado correctamente.`,
+      );
+      await Promise.all([cargar(), cargarHistorial()]);
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProcesando(false);
+    }
+  }
+  async function guardarMovimiento(evento) {
+    evento.preventDefault();
+    const formulario = new FormData(evento.currentTarget);
+    setProcesando(true);
+    try {
+      await pedir('/api/ventas/caja/movimientos', token, {
+        method: 'POST',
+        body: JSON.stringify({
+          tipo: tipoMovimiento,
+          monto: Number(formulario.get('monto')),
+          motivo: formulario.get('motivo'),
+        }),
+      });
+      setModalMovimiento(false);
+      setMensaje(
+        `${tipoMovimiento === 'ingreso' ? 'Ingreso' : 'Egreso'} de caja registrado.`,
+      );
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProcesando(false);
+    }
+  }
+  async function abrirHistorialCajas() {
+    try {
+      const respuesta = await pedir(
+        '/api/ventas/caja/historial?pagina=1&limite=100',
+        token,
+      );
+      setSesionesCaja(respuesta.datos);
+      setModalHistorialCajas(true);
+    } catch (error) {
+      setMensaje(error.message);
+    }
+  }
 
-  return <section className="modulo modulo-ventas"><div className="modulo__encabezado"><div><p className="etiqueta">PUNTO DE VENTA</p><h2>{vista === 'venta' ? 'Nueva venta' : 'Historial de ventas'}</h2></div><div className="caja-actual">{sesion ? <><span>{sesion.caja}</span><small>Abierta {new Date(sesion.fecha_apertura).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</small><div className="acciones-caja">{permisos.includes('caja.operar') && <button className="boton-tabla" onClick={() => setModalMovimiento(true)}>Movimiento</button>}{permisos.includes('caja.cerrar') && <button className="boton-tabla" onClick={abrirCierre}>Cerrar caja</button>}</div></> : <button className="boton" onClick={() => setModalCaja(true)}>Abrir caja</button>}</div></div><div className="selector-vista"><button className={vista === 'venta' ? 'activo' : ''} onClick={() => setVista('venta')}>Nueva venta</button><button className={vista === 'historial' ? 'activo' : ''} onClick={() => setVista('historial')}>Historial</button>{permisos.includes('caja.operar') && <button onClick={abrirHistorialCajas}>Historial de cajas</button>}</div>{mensaje && <p className="mensaje">{mensaje}</p>}
-    {vista === 'venta' ? <div className="rejilla-venta"><article className="panel buscador-venta"><h3>Agregar productos</h3><input role="combobox" aria-expanded={resultados.length > 0} aria-controls="resultados-busqueda-venta" aria-activedescendant={resultadoActivo >= 0 ? `resultado-venta-${resultados[resultadoActivo]?.id}` : undefined} value={buscar} onChange={(evento) => { setBuscar(evento.target.value); setResultadoActivo(-1); }} onKeyDown={agregarConEnter} placeholder="Escaneá o buscá por nombre o código" autoFocus /><small className="ayuda-buscador">↑/↓ para elegir · Enter para agregar</small>{resultados.length > 0 && <div id="resultados-busqueda-venta" role="listbox" className="resultados-venta">{resultados.map((producto, indice) => <button id={`resultado-venta-${producto.id}`} role="option" aria-selected={resultadoActivo === indice} type="button" key={producto.id} className={resultadoActivo === indice ? 'resultado-activo' : ''} disabled={Number(producto.stock) <= 0} onMouseEnter={() => setResultadoActivo(indice)} onClick={() => agregar(producto, true)}><span>{producto.nombre}</span><small>{producto.codigo_barra} · {Number(producto.stock) > 0 ? `Stock ${Number(producto.stock).toLocaleString('es-AR')}` : 'Sin stock'}</small><strong>${Number(producto.precio_venta).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></button>)}</div>}{buscar.trim().length >= 2 && !resultados.length && <p className="vacio">No se encontraron productos con ese nombre o código.</p>}</article>
-      <article className="panel panel-carrito"><div className="panel__encabezado"><h3>Productos</h3><span>{carrito.length} artículos</span></div>{carrito.length ? <div className="tabla-contenedor tabla-carrito"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th><th></th></tr></thead><tbody>{carrito.map((item) => <tr key={item.id}><td>{item.nombre}<small className="dato-secundario">Stock: {Number(item.stock).toLocaleString('es-AR')}</small></td><td><input type="number" min={item.es_pesable ? '0.001' : '1'} max={item.stock} step={item.es_pesable ? '0.001' : '1'} value={item.cantidad} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => cambiarCantidad(item.id, evento.target.value)} /></td><td>${Number(item.precio_venta).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td>${(Number(item.cantidad) * Number(item.precio_venta)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td><button className="boton-tabla" onClick={() => setCarrito((actual) => actual.filter((otro) => otro.id !== item.id))}>Quitar</button></td></tr>)}</tbody></table></div> : <p className="vacio">Todavía no agregaste productos.</p>}<div className="pie-venta"><span>Total</span><strong>${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><button className="boton" disabled={!sesion || !carrito.length} onClick={() => { setPagosVenta({ efectivo: total.toFixed(2), debito: '', credito: '', transferencia: '' }); setRecibido(total.toFixed(2)); setModalCobro(true); }}>Cobrar</button></div></article></div> : <div className="historial-ventas"><div className="barra-filtros"><input value={textoVentas} onChange={(evento) => setTextoVentas(evento.target.value)} placeholder="Buscar por número, cajero o producto" /><input type="date" aria-label="Fecha desde" value={fechaDesde} onChange={(evento) => { setFechaDesde(evento.target.value); setPaginaVentas(1); }} /><input type="date" aria-label="Fecha hasta" value={fechaHasta} onChange={(evento) => { setFechaHasta(evento.target.value); setPaginaVentas(1); }} /></div><div className="tarjetas-resumen"><div><span>Ventas</span><strong>{resumenVentas.total}</strong></div><div><span>Facturación</span><strong>${resumenVentas.facturacion.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div><div><span>Efectivo</span><strong>${Number(resumenVentas.pagos.efectivo || 0).toLocaleString('es-AR')}</strong></div><div><span>Otros medios</span><strong>${(['debito', 'credito', 'transferencia'].reduce((suma, medioPago) => suma + Number(resumenVentas.pagos[medioPago] || 0), 0)).toLocaleString('es-AR')}</strong></div></div><article className="panel"><div className="panel__encabezado"><h3>Operaciones</h3><span>Página {paginaVentas} de {Math.max(1, Math.ceil(resumenVentas.total / 25))}</span></div>{ventas.length ? <div className="tabla-contenedor"><table><thead><tr><th>Venta</th><th>Fecha</th><th>Caja</th><th>Cajero</th><th>Productos</th><th>Total</th><th></th></tr></thead><tbody>{ventas.map((venta) => <tr key={venta.id}><td>#{venta.id}</td><td>{new Date(venta.fecha_creacion).toLocaleString('es-AR')}</td><td>{venta.caja}</td><td>{venta.nombre_usuario}</td><td>{venta.productos}</td><td>${Number(venta.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td><button className="boton-tabla" onClick={() => abrirVenta(venta.id)}>Ver</button></td></tr>)}</tbody></table></div> : <p className="vacio">No hay ventas para los filtros seleccionados.</p>}<div className="paginacion"><button disabled={paginaVentas === 1} onClick={() => setPaginaVentas((valor) => valor - 1)}>Anterior</button><button disabled={paginaVentas >= Math.ceil(resumenVentas.total / 25)} onClick={() => setPaginaVentas((valor) => valor + 1)}>Siguiente</button></div></article></div>}
-    <Modal abierto={modalCaja} titulo="Abrir caja" alCerrar={() => { if (sesion) setModalCaja(false); }}><form className="formulario-modal" onSubmit={abrirCaja}><p>Seleccioná una caja libre e ingresá el efectivo disponible al comenzar el turno.</p>{cajasDisponibles.length ? <><div><label htmlFor="caja_id">Caja</label><select id="caja_id" name="caja_id" required defaultValue=""><option value="" disabled>Seleccionar caja disponible</option>{cajasDisponibles.map((caja) => <option key={caja.id} value={caja.id}>{caja.nombre}</option>)}</select></div><div><label htmlFor="monto_inicial">Monto inicial</label><input id="monto_inicial" name="monto_inicial" type="number" min="0" step="0.01" defaultValue="0" onFocus={(evento) => evento.currentTarget.select()} required /></div></> : <p className="mensaje-error">No hay cajas disponibles. Debe cerrarse una sesión antes de abrir otra.</p>}<div className="modal__acciones"><button className="boton" disabled={procesando || !cajasDisponibles.length}>{procesando ? 'Abriendo…' : 'Abrir caja'}</button></div></form></Modal>
-    <Modal abierto={modalCobro} titulo="Confirmar cobro" alCerrar={() => { if (!procesando) setModalCobro(false); }}><div className="formulario-modal"><p className="importe-cobro">Total a cobrar <strong>${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></p><div className="medios-pago">{[['efectivo', 'Efectivo'], ['debito', 'Débito'], ['credito', 'Crédito'], ['transferencia', 'Transferencia']].map(([clave, etiqueta]) => <div key={clave}><label htmlFor={`pago_${clave}`}>{etiqueta}</label><div className="importe-medio"><input id={`pago_${clave}`} type="number" min="0" step="0.01" value={pagosVenta[clave]} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => { setPagosVenta((actual) => ({ ...actual, [clave]: evento.target.value })); if (clave === 'efectivo') setRecibido(evento.target.value); }} /><button type="button" className="boton-tabla" onClick={() => completarSaldo(clave)}>Saldo</button></div></div>)}</div><div className={`saldo-pago ${Math.abs(saldoPago) < 0.009 ? 'saldo-pago--completo' : ''}`}><span>{saldoPago > 0.009 ? 'Falta asignar' : saldoPago < -0.009 ? 'Importe excedido' : 'Pago completo'}</span><strong>${Math.abs(saldoPago).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>{Number(pagosVenta.efectivo) > 0 && <><div><label htmlFor="importe_recibido">Efectivo recibido</label><input id="importe_recibido" type="number" min={Number(pagosVenta.efectivo)} step="0.01" value={recibido} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => setRecibido(evento.target.value)} /></div><p>Vuelto: <strong>${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></p></>}<div className="modal__acciones"><button className="boton boton--secundario" disabled={procesando} onClick={() => setModalCobro(false)}>Cancelar</button><button className="boton" disabled={procesando || Math.abs(saldoPago) >= 0.009 || (Number(pagosVenta.efectivo) > 0 && Number(recibido) < Number(pagosVenta.efectivo))} onClick={cobrar}>{procesando ? 'Registrando…' : 'Confirmar venta'}</button></div></div></Modal>
-    <Modal abierto={modalCierre} titulo="Cerrar caja" alCerrar={() => { if (!procesando) setModalCierre(false); }}>{resumenCierre && <div className="formulario-modal"><div className="resumen-caja"><span>Monto inicial</span><strong>${Number(resumenCierre.monto_inicial).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Ventas en efectivo</span><strong>${Number(resumenCierre.pagos.efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Ingresos manuales</span><strong>${Number(resumenCierre.ingresos).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Egresos manuales</span><strong>-${Number(resumenCierre.egresos).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Débito</span><strong>${Number(resumenCierre.pagos.debito || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Crédito</span><strong>${Number(resumenCierre.pagos.credito || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span>Transferencias</span><strong>${Number(resumenCierre.pagos.transferencia || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong><span className="resumen-caja__total">Efectivo esperado</span><strong className="resumen-caja__total">${Number(resumenCierre.efectivo_esperado).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div><div><label htmlFor="monto_contado">Efectivo contado</label><input id="monto_contado" type="number" min="0" step="0.01" value={montoContado} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => setMontoContado(evento.target.value)} /></div><p>Diferencia: <strong>${(Number(montoContado || 0) - Number(resumenCierre.efectivo_esperado)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></p><div className="modal__acciones"><button className="boton boton--secundario" disabled={procesando} onClick={() => setModalCierre(false)}>Cancelar</button><button className="boton" disabled={procesando || montoContado === ''} onClick={cerrarCaja}>{procesando ? 'Cerrando…' : 'Confirmar cierre'}</button></div></div>}</Modal>
-    <Modal abierto={modalMovimiento} titulo="Movimiento de caja" alCerrar={() => { if (!procesando) setModalMovimiento(false); }}><form className="formulario-modal" onSubmit={guardarMovimiento}><div><label htmlFor="tipo_movimiento">Tipo</label><select id="tipo_movimiento" value={tipoMovimiento} onChange={(evento) => setTipoMovimiento(evento.target.value)}><option value="ingreso">Ingreso de efectivo</option><option value="egreso">Egreso de efectivo</option></select></div><div><label htmlFor="monto_movimiento">Monto</label><input id="monto_movimiento" name="monto" type="number" min="0.01" step="0.01" onFocus={(evento) => evento.currentTarget.select()} required /></div><div><label htmlFor="motivo_movimiento">Motivo</label><textarea id="motivo_movimiento" name="motivo" minLength="5" maxLength="255" rows="3" required /></div><div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setModalMovimiento(false)}>Cancelar</button><button className="boton" disabled={procesando}>{procesando ? 'Registrando…' : 'Registrar movimiento'}</button></div></form></Modal>
-    <Modal abierto={modalHistorialCajas} titulo="Historial de cajas" ancho="grande" alCerrar={() => setModalHistorialCajas(false)}><div className="tabla-contenedor"><table><thead><tr><th>Caja</th><th>Usuario</th><th>Apertura</th><th>Cierre</th><th>Inicial</th><th>Ventas</th><th>Diferencia</th><th>Estado</th></tr></thead><tbody>{sesionesCaja.map((item) => <tr key={item.id}><td>{item.caja}</td><td>{item.nombre_usuario}</td><td>{new Date(item.fecha_apertura).toLocaleString('es-AR')}</td><td>{item.fecha_cierre ? new Date(item.fecha_cierre).toLocaleString('es-AR') : '—'}</td><td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td><td>${Number(item.ventas).toLocaleString('es-AR')}</td><td>{item.diferencia_cierre == null ? '—' : `$${Number(item.diferencia_cierre).toLocaleString('es-AR')}`}</td><td><span className={item.estado === 'abierta' ? 'estado-activo' : 'estado-inactivo'}>{item.estado}</span></td></tr>)}</tbody></table></div><div className="modal__acciones"><button className="boton boton--secundario" onClick={() => setModalHistorialCajas(false)}>Cerrar</button></div></Modal>
-    <Modal abierto={Boolean(ventaDetalle)} titulo={ventaDetalle ? `Venta #${ventaDetalle.id}` : 'Detalle de venta'} ancho="grande" alCerrar={() => setVentaDetalle(null)}>{ventaDetalle && <div className="comprobante-venta"><div className="encabezado-ticket"><img src="/marca/logo-horizontal-claro.png" alt="La 91 Supermercado" /><p>Comprobante interno no fiscal</p><strong>Venta #{ventaDetalle.id}</strong></div><div className="detalle-venta-cabecera"><span>{new Date(ventaDetalle.fecha_creacion).toLocaleString('es-AR')}</span><span>{ventaDetalle.caja}</span><span>Cajero: {ventaDetalle.nombre_usuario}</span><span className={ventaDetalle.estado === 'completada' ? 'estado-activo' : 'estado-inactivo'}>{ventaDetalle.estado}</span></div>{ventaDetalle.estado === 'anulada' && <p className="mensaje-error">Anulada: {ventaDetalle.motivo_anulacion}</p>}<div className="tabla-contenedor tabla-items-compra"><table><thead><tr><th>Producto</th><th>Código</th><th>Cantidad</th><th>Devuelto</th><th>Precio</th><th>Subtotal</th></tr></thead><tbody>{ventaDetalle.detalles.map((detalle, indice) => <tr key={`${detalle.codigo_barra}-${indice}`}><td>{detalle.nombre}</td><td>{detalle.codigo_barra}</td><td>{Number(detalle.cantidad).toLocaleString('es-AR')}</td><td>{Number(detalle.cantidad_devuelta).toLocaleString('es-AR')}</td><td>${Number(detalle.precio_unitario).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td><td>${Number(detalle.subtotal).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td></tr>)}</tbody></table></div>{ventaDetalle.devoluciones.length > 0 && <div className="devoluciones-previas"><h3>Cambios y devoluciones</h3>{ventaDetalle.devoluciones.map((devolucion) => <p key={devolucion.id}>#{devolucion.id} · {new Date(devolucion.fecha_creacion).toLocaleString('es-AR')} · {devolucion.motivo} · Diferencia ${Number(devolucion.diferencia).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>)}</div>}<div className="detalle-venta-pie"><div>{ventaDetalle.pagos.map((pago) => <span key={pago.medio}>{pago.medio}: ${Number(pago.monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>)}</div><strong>Total: ${Number(ventaDetalle.total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div><p className="pie-ticket">Gracias por su compra · LA 91 Supermercado</p><div className="modal__acciones"><button className="boton boton--secundario" onClick={() => setVentaDetalle(null)}>Cerrar</button><button className="boton boton--secundario" onClick={() => window.print()}>Imprimir ticket</button>{ventaDetalle.estado === 'completada' && permisos.includes('ventas.anular') && <><button className="boton boton--secundario" onClick={() => iniciarCambio(ventaDetalle)}>Cambio / devolución</button><button className="boton" onClick={() => { setVentaAAnular(ventaDetalle); setVentaDetalle(null); }}>Anular venta</button></>}</div></div>}</Modal>
-    <Modal abierto={Boolean(ventaAAnular)} titulo="Anular venta" alCerrar={() => { if (!procesando) setVentaAAnular(null); }}>{ventaAAnular && <div className="formulario-modal"><p>La venta <strong>#{ventaAAnular.id}</strong> dejará de contabilizarse y sus productos volverán al stock.</p><div><label htmlFor="motivo_anulacion">Motivo de la anulación</label><textarea id="motivo_anulacion" value={motivoAnulacion} onChange={(evento) => setMotivoAnulacion(evento.target.value)} minLength="5" maxLength="255" rows="3" required /></div><div className="modal__acciones"><button className="boton boton--secundario" disabled={procesando} onClick={() => setVentaAAnular(null)}>Cancelar</button><button className="boton" disabled={procesando || motivoAnulacion.trim().length < 5} onClick={anular}>{procesando ? 'Anulando…' : 'Confirmar anulación'}</button></div></div>}</Modal>
-    <Modal abierto={Boolean(ventaCambio)} titulo={ventaCambio ? `Cambio / devolución de venta #${ventaCambio.id}` : 'Cambio / devolución'} ancho="grande" alCerrar={() => { if (!procesando) setVentaCambio(null); }}>{ventaCambio && <div className="formulario-modal formulario-cambio"><h3>Productos que devuelve</h3><div className="tabla-contenedor tabla-items-compra"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th><th>Vuelve al stock</th></tr></thead><tbody>{ventaCambio.detalles.map((detalle) => { const disponible = Number(detalle.cantidad) - Number(detalle.cantidad_devuelta); return <tr key={detalle.producto_id}><td>{detalle.nombre}</td><td>{disponible.toLocaleString('es-AR')}</td><td><input type="number" min="0" max={disponible} step={detalle.es_pesable ? '0.001' : '1'} value={devueltos[detalle.producto_id]?.cantidad ?? 0} onFocus={(evento) => evento.currentTarget.select()} onChange={(evento) => setDevueltos((actual) => ({ ...actual, [detalle.producto_id]: { cantidad: evento.target.value, reintegra_stock: actual[detalle.producto_id]?.reintegra_stock ?? true } }))} /></td><td><input type="checkbox" checked={devueltos[detalle.producto_id]?.reintegra_stock ?? true} onChange={(evento) => setDevueltos((actual) => ({ ...actual, [detalle.producto_id]: { cantidad: actual[detalle.producto_id]?.cantidad ?? 0, reintegra_stock: evento.target.checked } }))} /></td></tr>; })}</tbody></table></div><h3>Productos de reemplazo</h3><div className="buscador-productos-compra"><input value={buscarReemplazo} onChange={(evento) => { setBuscarReemplazo(evento.target.value); setReemplazoActivo(-1); }} onKeyDown={navegarReemplazos} placeholder="Buscar reemplazo por nombre o código" />{resultadosReemplazo.length > 0 && <div className="resultados-productos">{resultadosReemplazo.map((producto, indice) => <button type="button" key={producto.id} className={reemplazoActivo === indice ? 'resultado-activo' : ''} disabled={Number(producto.stock) <= 0} onMouseEnter={() => setReemplazoActivo(indice)} onClick={() => agregarReemplazo(producto)}><span>{producto.nombre}</span><small>{producto.codigo_barra} · Stock {Number(producto.stock).toLocaleString('es-AR')} · ${Number(producto.precio_venta).toLocaleString('es-AR')}</small></button>)}</div>}</div>{reemplazos.length > 0 && <div className="tabla-contenedor tabla-items-compra"><table><thead><tr><th>Reemplazo</th><th>Cantidad</th><th>Precio</th><th></th></tr></thead><tbody>{reemplazos.map((item) => <tr key={item.id}><td>{item.nombre}</td><td><input type="number" min={item.es_pesable ? '0.001' : '1'} max={item.stock} step={item.es_pesable ? '0.001' : '1'} value={item.cantidad} onChange={(evento) => setReemplazos((actual) => actual.map((otro) => otro.id === item.id ? { ...otro, cantidad: evento.target.value } : otro))} /></td><td>${Number(item.precio_venta).toLocaleString('es-AR')}</td><td><button className="boton-tabla" onClick={() => setReemplazos((actual) => actual.filter((otro) => otro.id !== item.id))}>Quitar</button></td></tr>)}</tbody></table></div>}<div className="resumen-cambio"><span>Crédito por devolución</span><strong>${totalDevuelto.toLocaleString('es-AR')}</strong><span>Productos nuevos</span><strong>${totalReemplazo.toLocaleString('es-AR')}</strong><span>Diferencia</span><strong>${diferenciaCambio.toLocaleString('es-AR')}</strong></div>{Math.abs(diferenciaCambio) > 0.009 && <div><label>Medio de {diferenciaCambio > 0 ? 'cobro' : 'reintegro'}</label><select value={medioDiferencia} onChange={(evento) => setMedioDiferencia(evento.target.value)}><option value="efectivo">Efectivo</option><option value="debito">Débito</option><option value="credito">Crédito</option><option value="transferencia">Transferencia</option></select></div>}<div><label>Motivo</label><textarea value={motivoCambio} onChange={(evento) => setMotivoCambio(evento.target.value)} minLength="5" maxLength="255" rows="2" /></div><div className="modal__acciones"><button className="boton boton--secundario" disabled={procesando} onClick={() => setVentaCambio(null)}>Cancelar</button><button className="boton" disabled={procesando || motivoCambio.trim().length < 5 || totalDevuelto <= 0} onClick={confirmarCambio}>{procesando ? 'Registrando…' : diferenciaCambio > 0 ? 'Cobrar diferencia' : diferenciaCambio < 0 ? 'Reintegrar diferencia' : 'Confirmar cambio'}</button></div></div>}</Modal>
-  </section>;
+  return (
+    <section className="modulo modulo-ventas">
+      <div className="modulo__encabezado">
+        <div>
+          <p className="etiqueta">PUNTO DE VENTA</p>
+          <h2>{vista === 'venta' ? 'Nueva venta' : 'Historial de ventas'}</h2>
+        </div>
+        <div className="caja-actual">
+          {sesion ? (
+            <>
+              <span>{sesion.caja}</span>
+              <small>
+                Abierta{' '}
+                {new Date(sesion.fecha_apertura).toLocaleTimeString('es-AR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </small>
+              <div className="acciones-caja">
+                {permisos.includes('caja.operar') && (
+                  <button
+                    className="boton-tabla"
+                    onClick={() => setModalMovimiento(true)}
+                  >
+                    Movimiento
+                  </button>
+                )}
+                {permisos.includes('caja.cerrar') && (
+                  <button className="boton-tabla" onClick={abrirCierre}>
+                    Cerrar caja
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <button className="boton" onClick={() => setModalCaja(true)}>
+              Abrir caja
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="selector-vista">
+        <button
+          className={vista === 'venta' ? 'activo' : ''}
+          onClick={() => setVista('venta')}
+        >
+          Nueva venta
+        </button>
+        <button
+          className={vista === 'historial' ? 'activo' : ''}
+          onClick={() => setVista('historial')}
+        >
+          Historial
+        </button>
+        {permisos.includes('caja.operar') && (
+          <button onClick={abrirHistorialCajas}>Historial de cajas</button>
+        )}
+      </div>
+      {mensaje && <p className="mensaje">{mensaje}</p>}
+      {vista === 'venta' ? (
+        <div className="rejilla-venta">
+          <article className="panel buscador-venta">
+            <h3>Agregar productos</h3>
+            <input
+              role="combobox"
+              aria-expanded={resultados.length > 0}
+              aria-controls="resultados-busqueda-venta"
+              aria-activedescendant={
+                resultadoActivo >= 0
+                  ? `resultado-venta-${resultados[resultadoActivo]?.id}`
+                  : undefined
+              }
+              value={buscar}
+              onChange={(evento) => {
+                setBuscar(evento.target.value);
+                setResultadoActivo(-1);
+              }}
+              onKeyDown={agregarConEnter}
+              placeholder="Escaneá o buscá por nombre o código"
+              autoFocus
+            />
+            <small className="ayuda-buscador">
+              ↑/↓ para elegir · Enter para agregar
+            </small>
+            {resultados.length > 0 && (
+              <div
+                id="resultados-busqueda-venta"
+                role="listbox"
+                className="resultados-venta"
+              >
+                {resultados.map((producto, indice) => (
+                  <button
+                    id={`resultado-venta-${producto.id}`}
+                    role="option"
+                    aria-selected={resultadoActivo === indice}
+                    type="button"
+                    key={producto.id}
+                    className={
+                      resultadoActivo === indice ? 'resultado-activo' : ''
+                    }
+                    disabled={Number(producto.stock) <= 0}
+                    onMouseEnter={() => setResultadoActivo(indice)}
+                    onClick={() => agregar(producto, true)}
+                  >
+                    <span>{producto.nombre}</span>
+                    <small>
+                      {producto.codigo_barra} ·{' '}
+                      {Number(producto.stock) > 0
+                        ? `Stock ${Number(producto.stock).toLocaleString('es-AR')}`
+                        : 'Sin stock'}
+                    </small>
+                    <strong>
+                      $
+                      {Number(producto.precio_venta).toLocaleString('es-AR', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </strong>
+                  </button>
+                ))}
+              </div>
+            )}
+            {buscar.trim().length >= 2 && !resultados.length && (
+              <p className="vacio">
+                No se encontraron productos con ese nombre o código.
+              </p>
+            )}
+          </article>
+          <article className="panel panel-carrito">
+            <div className="panel__encabezado">
+              <h3>Productos</h3>
+              <span>{carrito.length} artículos</span>
+            </div>
+            {carrito.length ? (
+              <div className="tabla-contenedor tabla-carrito">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cantidad</th>
+                      <th>Precio</th>
+                      <th>Subtotal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {carrito.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          {item.nombre}
+                          <small className="dato-secundario">
+                            Stock: {Number(item.stock).toLocaleString('es-AR')}
+                          </small>
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min={item.es_pesable ? '0.001' : '1'}
+                            max={item.stock}
+                            step={item.es_pesable ? '0.001' : '1'}
+                            value={item.cantidad}
+                            onFocus={(evento) => evento.currentTarget.select()}
+                            onChange={(evento) =>
+                              cambiarCantidad(item.id, evento.target.value)
+                            }
+                          />
+                        </td>
+                        <td>
+                          $
+                          {Number(item.precio_venta).toLocaleString('es-AR', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          $
+                          {(
+                            Number(item.cantidad) * Number(item.precio_venta)
+                          ).toLocaleString('es-AR', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          <button
+                            className="boton-tabla"
+                            onClick={() =>
+                              setCarrito((actual) =>
+                                actual.filter((otro) => otro.id !== item.id),
+                              )
+                            }
+                          >
+                            Quitar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="vacio">Todavía no agregaste productos.</p>
+            )}
+            <div className="pie-venta">
+              <span>Total</span>
+              <strong>
+                ${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </strong>
+              <button
+                className="boton"
+                disabled={!sesion || !carrito.length}
+                onClick={() => {
+                  setPagosVenta({
+                    efectivo: total.toFixed(2),
+                    debito: '',
+                    credito: '',
+                    transferencia: '',
+                  });
+                  setRecibido(total.toFixed(2));
+                  setModalCobro(true);
+                }}
+              >
+                Cobrar
+              </button>
+            </div>
+          </article>
+        </div>
+      ) : (
+        <div className="historial-ventas">
+          <div className="barra-filtros">
+            <input
+              value={textoVentas}
+              onChange={(evento) => setTextoVentas(evento.target.value)}
+              placeholder="Buscar por número, cajero o producto"
+            />
+            <input
+              type="date"
+              aria-label="Fecha desde"
+              value={fechaDesde}
+              onChange={(evento) => {
+                setFechaDesde(evento.target.value);
+                setPaginaVentas(1);
+              }}
+            />
+            <input
+              type="date"
+              aria-label="Fecha hasta"
+              value={fechaHasta}
+              onChange={(evento) => {
+                setFechaHasta(evento.target.value);
+                setPaginaVentas(1);
+              }}
+            />
+          </div>
+          <div className="tarjetas-resumen">
+            <div>
+              <span>Ventas</span>
+              <strong>{resumenVentas.total}</strong>
+            </div>
+            <div>
+              <span>Facturación</span>
+              <strong>
+                $
+                {resumenVentas.facturacion.toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                })}
+              </strong>
+            </div>
+            <div>
+              <span>Efectivo</span>
+              <strong>
+                $
+                {Number(resumenVentas.pagos.efectivo || 0).toLocaleString(
+                  'es-AR',
+                )}
+              </strong>
+            </div>
+            <div>
+              <span>Otros medios</span>
+              <strong>
+                $
+                {['debito', 'credito', 'transferencia']
+                  .reduce(
+                    (suma, medioPago) =>
+                      suma + Number(resumenVentas.pagos[medioPago] || 0),
+                    0,
+                  )
+                  .toLocaleString('es-AR')}
+              </strong>
+            </div>
+          </div>
+          <article className="panel">
+            <div className="panel__encabezado">
+              <h3>Operaciones</h3>
+              <span>
+                Página {paginaVentas} de{' '}
+                {Math.max(1, Math.ceil(resumenVentas.total / 25))}
+              </span>
+            </div>
+            {ventas.length ? (
+              <div className="tabla-contenedor">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Venta</th>
+                      <th>Fecha</th>
+                      <th>Caja</th>
+                      <th>Cajero</th>
+                      <th>Productos</th>
+                      <th>Total</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventas.map((venta) => (
+                      <tr key={venta.id}>
+                        <td>#{venta.id}</td>
+                        <td>
+                          {new Date(venta.fecha_creacion).toLocaleString(
+                            'es-AR',
+                          )}
+                        </td>
+                        <td>{venta.caja}</td>
+                        <td>{venta.nombre_usuario}</td>
+                        <td>{venta.productos}</td>
+                        <td>
+                          $
+                          {Number(venta.total).toLocaleString('es-AR', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          <button
+                            className="boton-tabla"
+                            onClick={() => abrirVenta(venta.id)}
+                          >
+                            Ver
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="vacio">
+                No hay ventas para los filtros seleccionados.
+              </p>
+            )}
+            <div className="paginacion">
+              <button
+                disabled={paginaVentas === 1}
+                onClick={() => setPaginaVentas((valor) => valor - 1)}
+              >
+                Anterior
+              </button>
+              <button
+                disabled={paginaVentas >= Math.ceil(resumenVentas.total / 25)}
+                onClick={() => setPaginaVentas((valor) => valor + 1)}
+              >
+                Siguiente
+              </button>
+            </div>
+          </article>
+        </div>
+      )}
+      <Modal
+        abierto={modalCaja}
+        titulo="Abrir caja"
+        alCerrar={() => {
+          if (sesion) setModalCaja(false);
+        }}
+      >
+        <form className="formulario-modal" onSubmit={abrirCaja}>
+          <p>
+            Seleccioná una caja libre e ingresá el efectivo disponible al
+            comenzar el turno.
+          </p>
+          {cajasDisponibles.length ? (
+            <>
+              <div>
+                <label htmlFor="caja_id">Caja</label>
+                <select id="caja_id" name="caja_id" required defaultValue="">
+                  <option value="" disabled>
+                    Seleccionar caja disponible
+                  </option>
+                  {cajasDisponibles.map((caja) => (
+                    <option key={caja.id} value={caja.id}>
+                      {caja.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="monto_inicial">Monto inicial</label>
+                <input
+                  id="monto_inicial"
+                  name="monto_inicial"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue="0"
+                  onFocus={(evento) => evento.currentTarget.select()}
+                  required
+                />
+              </div>
+            </>
+          ) : (
+            <p className="mensaje-error">
+              No hay cajas disponibles. Debe cerrarse una sesión antes de abrir
+              otra.
+            </p>
+          )}
+          <div className="modal__acciones">
+            <button
+              className="boton"
+              disabled={procesando || !cajasDisponibles.length}
+            >
+              {procesando ? 'Abriendo…' : 'Abrir caja'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        abierto={modalCobro}
+        titulo="Confirmar cobro"
+        alCerrar={() => {
+          if (!procesando) setModalCobro(false);
+        }}
+      >
+        <div className="formulario-modal">
+          <p className="importe-cobro">
+            Total a cobrar{' '}
+            <strong>
+              ${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </strong>
+          </p>
+          <div>
+            <label htmlFor="cliente_venta">Cliente</label>
+            <select id="cliente_venta" value={clienteId} onChange={(evento) => setClienteId(evento.target.value)}>
+              <option value="">Consumidor final</option>
+              {clientes.map((cliente) => <option key={cliente.id} value={cliente.id}>{cliente.nombre}{cliente.numero_documento ? ` · ${cliente.numero_documento}` : ''}</option>)}
+            </select>
+          </div>
+          {clienteSeleccionado && <div className="resumen-credito-cliente"><span>Saldo actual</span><strong>${Number(clienteSeleccionado.saldo).toLocaleString('es-AR')}</strong><span>Crédito disponible</span><strong>{clienteSeleccionado.credito_habilitado ? `$${Number(clienteSeleccionado.disponible).toLocaleString('es-AR')}` : 'No habilitado'}</strong></div>}
+          <div className="medios-pago">
+            {[
+              ['efectivo', 'Efectivo'],
+              ['debito', 'Débito'],
+              ['credito', 'Tarjeta de crédito'],
+              ['transferencia', 'Transferencia'],
+            ].map(([clave, etiqueta]) => (
+              <div key={clave}>
+                <label htmlFor={`pago_${clave}`}>{etiqueta}</label>
+                <div className="importe-medio">
+                  <input
+                    id={`pago_${clave}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={pagosVenta[clave]}
+                    onFocus={(evento) => evento.currentTarget.select()}
+                    onChange={(evento) => {
+                      setPagosVenta((actual) => ({
+                        ...actual,
+                        [clave]: evento.target.value,
+                      }));
+                      if (clave === 'efectivo')
+                        setRecibido(evento.target.value);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="boton-tabla"
+                    onClick={() => completarSaldo(clave)}
+                  >
+                    Saldo
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div
+            className={`saldo-pago ${Math.abs(saldoPago) < 0.009 ? 'saldo-pago--completo' : ''}`}
+          >
+            <span>
+              {saldoPago > 0.009
+                ? 'A cuenta corriente'
+                : saldoPago < -0.009
+                  ? 'Importe excedido'
+                  : 'Pago completo'}
+            </span>
+            <strong>
+              $
+              {Math.abs(saldoPago).toLocaleString('es-AR', {
+                minimumFractionDigits: 2,
+              })}
+            </strong>
+          </div>
+          {saldoPago > 0.009 && !creditoValido && <p className="mensaje-error">Seleccioná un cliente con crédito habilitado y límite disponible suficiente.</p>}
+          {Number(pagosVenta.efectivo) > 0 && (
+            <>
+              <div>
+                <label htmlFor="importe_recibido">Efectivo recibido</label>
+                <input
+                  id="importe_recibido"
+                  type="number"
+                  min={Number(pagosVenta.efectivo)}
+                  step="0.01"
+                  value={recibido}
+                  onFocus={(evento) => evento.currentTarget.select()}
+                  onChange={(evento) => setRecibido(evento.target.value)}
+                />
+              </div>
+              <p>
+                Vuelto:{' '}
+                <strong>
+                  $
+                  {vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </strong>
+              </p>
+            </>
+          )}
+          <div className="modal__acciones">
+            <button
+              className="boton boton--secundario"
+              disabled={procesando}
+              onClick={() => setModalCobro(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              className="boton"
+              disabled={
+                procesando ||
+                saldoPago < -0.009 ||
+                !creditoValido ||
+                (Number(pagosVenta.efectivo) > 0 &&
+                  Number(recibido) < Number(pagosVenta.efectivo))
+              }
+              onClick={cobrar}
+            >
+              {procesando
+                ? 'Registrando…'
+                : saldoPago > 0.009
+                  ? 'Confirmar venta a crédito'
+                  : 'Confirmar venta'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        abierto={modalCierre}
+        titulo="Cerrar caja"
+        alCerrar={() => {
+          if (!procesando) setModalCierre(false);
+        }}
+      >
+        {resumenCierre && (
+          <div className="formulario-modal">
+            <div className="resumen-caja">
+              <span>Monto inicial</span>
+              <strong>
+                $
+                {Number(resumenCierre.monto_inicial).toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                })}
+              </strong>
+              <span>Ventas en efectivo</span>
+              <strong>
+                $
+                {Number(resumenCierre.pagos.efectivo || 0).toLocaleString(
+                  'es-AR',
+                  { minimumFractionDigits: 2 },
+                )}
+              </strong>
+              <span>Ingresos manuales</span>
+              <strong>
+                $
+                {Number(resumenCierre.ingresos).toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                })}
+              </strong>
+              <span>Egresos manuales</span>
+              <strong>
+                -$
+                {Number(resumenCierre.egresos).toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                })}
+              </strong>
+              <span>Débito</span>
+              <strong>
+                $
+                {Number(resumenCierre.pagos.debito || 0).toLocaleString(
+                  'es-AR',
+                  { minimumFractionDigits: 2 },
+                )}
+              </strong>
+              <span>Crédito</span>
+              <strong>
+                $
+                {Number(resumenCierre.pagos.credito || 0).toLocaleString(
+                  'es-AR',
+                  { minimumFractionDigits: 2 },
+                )}
+              </strong>
+              <span>Transferencias</span>
+              <strong>
+                $
+                {Number(resumenCierre.pagos.transferencia || 0).toLocaleString(
+                  'es-AR',
+                  { minimumFractionDigits: 2 },
+                )}
+              </strong>
+              <span className="resumen-caja__total">Efectivo esperado</span>
+              <strong className="resumen-caja__total">
+                $
+                {Number(resumenCierre.efectivo_esperado).toLocaleString(
+                  'es-AR',
+                  { minimumFractionDigits: 2 },
+                )}
+              </strong>
+            </div>
+            <div>
+              <label htmlFor="monto_contado">Efectivo contado</label>
+              <input
+                id="monto_contado"
+                type="number"
+                min="0"
+                step="0.01"
+                value={montoContado}
+                onFocus={(evento) => evento.currentTarget.select()}
+                onChange={(evento) => setMontoContado(evento.target.value)}
+              />
+            </div>
+            <p>
+              Diferencia:{' '}
+              <strong>
+                $
+                {(
+                  Number(montoContado || 0) -
+                  Number(resumenCierre.efectivo_esperado)
+                ).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </strong>
+            </p>
+            <div className="modal__acciones">
+              <button
+                className="boton boton--secundario"
+                disabled={procesando}
+                onClick={() => setModalCierre(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="boton"
+                disabled={procesando || montoContado === ''}
+                onClick={cerrarCaja}
+              >
+                {procesando ? 'Cerrando…' : 'Confirmar cierre'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal
+        abierto={modalMovimiento}
+        titulo="Movimiento de caja"
+        alCerrar={() => {
+          if (!procesando) setModalMovimiento(false);
+        }}
+      >
+        <form className="formulario-modal" onSubmit={guardarMovimiento}>
+          <div>
+            <label htmlFor="tipo_movimiento">Tipo</label>
+            <select
+              id="tipo_movimiento"
+              value={tipoMovimiento}
+              onChange={(evento) => setTipoMovimiento(evento.target.value)}
+            >
+              <option value="ingreso">Ingreso de efectivo</option>
+              <option value="egreso">Egreso de efectivo</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="monto_movimiento">Monto</label>
+            <input
+              id="monto_movimiento"
+              name="monto"
+              type="number"
+              min="0.01"
+              step="0.01"
+              onFocus={(evento) => evento.currentTarget.select()}
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="motivo_movimiento">Motivo</label>
+            <textarea
+              id="motivo_movimiento"
+              name="motivo"
+              minLength="5"
+              maxLength="255"
+              rows="3"
+              required
+            />
+          </div>
+          <div className="modal__acciones">
+            <button
+              type="button"
+              className="boton boton--secundario"
+              onClick={() => setModalMovimiento(false)}
+            >
+              Cancelar
+            </button>
+            <button className="boton" disabled={procesando}>
+              {procesando ? 'Registrando…' : 'Registrar movimiento'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      <Modal
+        abierto={modalHistorialCajas}
+        titulo="Historial de cajas"
+        ancho="grande"
+        alCerrar={() => setModalHistorialCajas(false)}
+      >
+        <div className="tabla-contenedor">
+          <table>
+            <thead>
+              <tr>
+                <th>Caja</th>
+                <th>Usuario</th>
+                <th>Apertura</th>
+                <th>Cierre</th>
+                <th>Inicial</th>
+                <th>Ventas</th>
+                <th>Diferencia</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sesionesCaja.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.caja}</td>
+                  <td>{item.nombre_usuario}</td>
+                  <td>
+                    {new Date(item.fecha_apertura).toLocaleString('es-AR')}
+                  </td>
+                  <td>
+                    {item.fecha_cierre
+                      ? new Date(item.fecha_cierre).toLocaleString('es-AR')
+                      : '—'}
+                  </td>
+                  <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
+                  <td>
+                    {item.diferencia_cierre == null
+                      ? '—'
+                      : `$${Number(item.diferencia_cierre).toLocaleString('es-AR')}`}
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        item.estado === 'abierta'
+                          ? 'estado-activo'
+                          : 'estado-inactivo'
+                      }
+                    >
+                      {item.estado}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="modal__acciones">
+          <button
+            className="boton boton--secundario"
+            onClick={() => setModalHistorialCajas(false)}
+          >
+            Cerrar
+          </button>
+        </div>
+      </Modal>
+      <Modal
+        abierto={Boolean(ventaDetalle)}
+        titulo={ventaDetalle ? `Venta #${ventaDetalle.id}` : 'Detalle de venta'}
+        ancho="grande"
+        alCerrar={() => setVentaDetalle(null)}
+      >
+        {ventaDetalle && (
+          <div className="comprobante-venta">
+            <div className="encabezado-ticket">
+              <img
+                src="/marca/logo-horizontal-claro.png"
+                alt="La 91 Supermercado"
+              />
+              <p>Comprobante interno no fiscal</p>
+              <strong>Venta #{ventaDetalle.id}</strong>
+            </div>
+            <div className="detalle-venta-cabecera">
+              <span>
+                {new Date(ventaDetalle.fecha_creacion).toLocaleString('es-AR')}
+              </span>
+              <span>{ventaDetalle.caja}</span>
+              <span>Cajero: {ventaDetalle.nombre_usuario}</span>
+              <span
+                className={
+                  ventaDetalle.estado === 'completada'
+                    ? 'estado-activo'
+                    : 'estado-inactivo'
+                }
+              >
+                {ventaDetalle.estado}
+              </span>
+            </div>
+            {ventaDetalle.estado === 'anulada' && (
+              <p className="mensaje-error">
+                Anulada: {ventaDetalle.motivo_anulacion}
+              </p>
+            )}
+            <div className="tabla-contenedor tabla-items-compra">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Código</th>
+                    <th>Cantidad</th>
+                    <th>Devuelto</th>
+                    <th>Precio</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ventaDetalle.detalles.map((detalle, indice) => (
+                    <tr key={`${detalle.codigo_barra}-${indice}`}>
+                      <td>{detalle.nombre}</td>
+                      <td>{detalle.codigo_barra}</td>
+                      <td>
+                        {Number(detalle.cantidad).toLocaleString('es-AR')}
+                      </td>
+                      <td>
+                        {Number(detalle.cantidad_devuelta).toLocaleString(
+                          'es-AR',
+                        )}
+                      </td>
+                      <td>
+                        $
+                        {Number(detalle.precio_unitario).toLocaleString(
+                          'es-AR',
+                          { minimumFractionDigits: 2 },
+                        )}
+                      </td>
+                      <td>
+                        $
+                        {Number(detalle.subtotal).toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {ventaDetalle.devoluciones.length > 0 && (
+              <div className="devoluciones-previas">
+                <h3>Cambios y devoluciones</h3>
+                {ventaDetalle.devoluciones.map((devolucion) => (
+                  <p key={devolucion.id}>
+                    #{devolucion.id} ·{' '}
+                    {new Date(devolucion.fecha_creacion).toLocaleString(
+                      'es-AR',
+                    )}{' '}
+                    · {devolucion.motivo} · Diferencia $
+                    {Number(devolucion.diferencia).toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </p>
+                ))}
+              </div>
+            )}
+            <div className="detalle-venta-pie">
+              <div>
+                {ventaDetalle.pagos.map((pago) => (
+                  <span key={pago.medio}>
+                    {pago.medio}: $
+                    {Number(pago.monto).toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </span>
+                ))}
+              </div>
+              <strong>
+                Total: $
+                {Number(ventaDetalle.total).toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                })}
+              </strong>
+            </div>
+            <p className="pie-ticket">
+              Gracias por su compra · LA 91 Supermercado
+            </p>
+            <div className="modal__acciones">
+              <button
+                className="boton boton--secundario"
+                onClick={() => setVentaDetalle(null)}
+              >
+                Cerrar
+              </button>
+              <button
+                className="boton boton--secundario"
+                onClick={() => window.print()}
+              >
+                Imprimir ticket
+              </button>
+              {ventaDetalle.estado === 'completada' &&
+                permisos.includes('ventas.anular') && (
+                  <>
+                    <button
+                      className="boton boton--secundario"
+                      onClick={() => iniciarCambio(ventaDetalle)}
+                    >
+                      Cambio / devolución
+                    </button>
+                    <button
+                      className="boton"
+                      onClick={() => {
+                        setVentaAAnular(ventaDetalle);
+                        setVentaDetalle(null);
+                      }}
+                    >
+                      Anular venta
+                    </button>
+                  </>
+                )}
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal
+        abierto={Boolean(ventaAAnular)}
+        titulo="Anular venta"
+        alCerrar={() => {
+          if (!procesando) setVentaAAnular(null);
+        }}
+      >
+        {ventaAAnular && (
+          <div className="formulario-modal">
+            <p>
+              La venta <strong>#{ventaAAnular.id}</strong> dejará de
+              contabilizarse y sus productos volverán al stock.
+            </p>
+            <div>
+              <label htmlFor="motivo_anulacion">Motivo de la anulación</label>
+              <textarea
+                id="motivo_anulacion"
+                value={motivoAnulacion}
+                onChange={(evento) => setMotivoAnulacion(evento.target.value)}
+                minLength="5"
+                maxLength="255"
+                rows="3"
+                required
+              />
+            </div>
+            <div className="modal__acciones">
+              <button
+                className="boton boton--secundario"
+                disabled={procesando}
+                onClick={() => setVentaAAnular(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="boton"
+                disabled={procesando || motivoAnulacion.trim().length < 5}
+                onClick={anular}
+              >
+                {procesando ? 'Anulando…' : 'Confirmar anulación'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal
+        abierto={Boolean(ventaCambio)}
+        titulo={
+          ventaCambio
+            ? `Cambio / devolución de venta #${ventaCambio.id}`
+            : 'Cambio / devolución'
+        }
+        ancho="grande"
+        alCerrar={() => {
+          if (!procesando) setVentaCambio(null);
+        }}
+      >
+        {ventaCambio && (
+          <div className="formulario-modal formulario-cambio">
+            <h3>Productos que devuelve</h3>
+            <div className="tabla-contenedor tabla-items-compra">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Disponible</th>
+                    <th>Cantidad</th>
+                    <th>Vuelve al stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ventaCambio.detalles.map((detalle) => {
+                    const disponible =
+                      Number(detalle.cantidad) -
+                      Number(detalle.cantidad_devuelta);
+                    return (
+                      <tr key={detalle.producto_id}>
+                        <td>{detalle.nombre}</td>
+                        <td>{disponible.toLocaleString('es-AR')}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            max={disponible}
+                            step={detalle.es_pesable ? '0.001' : '1'}
+                            value={
+                              devueltos[detalle.producto_id]?.cantidad ?? 0
+                            }
+                            onFocus={(evento) => evento.currentTarget.select()}
+                            onChange={(evento) =>
+                              setDevueltos((actual) => ({
+                                ...actual,
+                                [detalle.producto_id]: {
+                                  cantidad: evento.target.value,
+                                  reintegra_stock:
+                                    actual[detalle.producto_id]
+                                      ?.reintegra_stock ?? true,
+                                },
+                              }))
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={
+                              devueltos[detalle.producto_id]?.reintegra_stock ??
+                              true
+                            }
+                            onChange={(evento) =>
+                              setDevueltos((actual) => ({
+                                ...actual,
+                                [detalle.producto_id]: {
+                                  cantidad:
+                                    actual[detalle.producto_id]?.cantidad ?? 0,
+                                  reintegra_stock: evento.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <h3>Productos de reemplazo</h3>
+            <div className="buscador-productos-compra">
+              <input
+                value={buscarReemplazo}
+                onChange={(evento) => {
+                  setBuscarReemplazo(evento.target.value);
+                  setReemplazoActivo(-1);
+                }}
+                onKeyDown={navegarReemplazos}
+                placeholder="Buscar reemplazo por nombre o código"
+              />
+              {resultadosReemplazo.length > 0 && (
+                <div className="resultados-productos">
+                  {resultadosReemplazo.map((producto, indice) => (
+                    <button
+                      type="button"
+                      key={producto.id}
+                      className={
+                        reemplazoActivo === indice ? 'resultado-activo' : ''
+                      }
+                      disabled={Number(producto.stock) <= 0}
+                      onMouseEnter={() => setReemplazoActivo(indice)}
+                      onClick={() => agregarReemplazo(producto)}
+                    >
+                      <span>{producto.nombre}</span>
+                      <small>
+                        {producto.codigo_barra} · Stock{' '}
+                        {Number(producto.stock).toLocaleString('es-AR')} · $
+                        {Number(producto.precio_venta).toLocaleString('es-AR')}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {reemplazos.length > 0 && (
+              <div className="tabla-contenedor tabla-items-compra">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Reemplazo</th>
+                      <th>Cantidad</th>
+                      <th>Precio</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reemplazos.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.nombre}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min={item.es_pesable ? '0.001' : '1'}
+                            max={item.stock}
+                            step={item.es_pesable ? '0.001' : '1'}
+                            value={item.cantidad}
+                            onChange={(evento) =>
+                              setReemplazos((actual) =>
+                                actual.map((otro) =>
+                                  otro.id === item.id
+                                    ? { ...otro, cantidad: evento.target.value }
+                                    : otro,
+                                ),
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          ${Number(item.precio_venta).toLocaleString('es-AR')}
+                        </td>
+                        <td>
+                          <button
+                            className="boton-tabla"
+                            onClick={() =>
+                              setReemplazos((actual) =>
+                                actual.filter((otro) => otro.id !== item.id),
+                              )
+                            }
+                          >
+                            Quitar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="resumen-cambio">
+              <span>Crédito por devolución</span>
+              <strong>${totalDevuelto.toLocaleString('es-AR')}</strong>
+              <span>Productos nuevos</span>
+              <strong>${totalReemplazo.toLocaleString('es-AR')}</strong>
+              <span>Diferencia</span>
+              <strong>${diferenciaCambio.toLocaleString('es-AR')}</strong>
+            </div>
+            {Math.abs(diferenciaCambio) > 0.009 && (
+              <div>
+                <label>
+                  Medio de {diferenciaCambio > 0 ? 'cobro' : 'reintegro'}
+                </label>
+                <select
+                  value={medioDiferencia}
+                  onChange={(evento) => setMedioDiferencia(evento.target.value)}
+                >
+                  <option value="efectivo">Efectivo</option>
+                  <option value="debito">Débito</option>
+                  <option value="credito">Crédito</option>
+                  <option value="transferencia">Transferencia</option>
+                </select>
+              </div>
+            )}
+            <div>
+              <label>Motivo</label>
+              <textarea
+                value={motivoCambio}
+                onChange={(evento) => setMotivoCambio(evento.target.value)}
+                minLength="5"
+                maxLength="255"
+                rows="2"
+              />
+            </div>
+            <div className="modal__acciones">
+              <button
+                className="boton boton--secundario"
+                disabled={procesando}
+                onClick={() => setVentaCambio(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="boton"
+                disabled={
+                  procesando ||
+                  motivoCambio.trim().length < 5 ||
+                  totalDevuelto <= 0
+                }
+                onClick={confirmarCambio}
+              >
+                {procesando
+                  ? 'Registrando…'
+                  : diferenciaCambio > 0
+                    ? 'Cobrar diferencia'
+                    : diferenciaCambio < 0
+                      ? 'Reintegrar diferencia'
+                      : 'Confirmar cambio'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </section>
+  );
 }

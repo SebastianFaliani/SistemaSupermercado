@@ -232,4 +232,6 @@ body.modal-abierto { overflow: hidden; }
 .fila-reporte { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-gris-200); text-transform: capitalize; }
 .fila-reporte strong { font-weight: 400; }
 .panel-reporte-diario { margin-top: 12px; }
+.resumen-credito-cliente { display: grid; gap: 4px 12px; margin: 8px 0; padding: 8px; border-radius: 7px; background: var(--color-gris-50); grid-template-columns: 1fr auto; }
+.resumen-credito-cliente strong { font-weight: 400; }
 @media (max-width: 800px) { .tarjetas-reporte { grid-template-columns: repeat(2, 1fr); } .rejilla-reportes { grid-template-columns: 1fr; } }
