@@ -35,14 +35,16 @@ export async function resumenCaja(usuarioId) {
     FROM movimientos_caja WHERE sesion_caja_id = ?`, [sesion.id]);
   const [[salidas]] = await baseDatos.query(`SELECT
     (SELECT COALESCE(SUM(monto), 0) FROM pagos_proveedores WHERE sesion_caja_id = ? AND medio = 'efectivo') AS proveedores,
-    (SELECT COALESCE(SUM(monto), 0) FROM pagos_gastos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS gastos`, [sesion.id, sesion.id]);
+    (SELECT COALESCE(SUM(monto), 0) FROM pagos_gastos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS gastos,
+    (SELECT COALESCE(SUM(monto), 0) FROM pagos_sueldos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS sueldos,
+    (SELECT COALESCE(SUM(monto), 0) FROM adelantos_empleados WHERE sesion_caja_id = ? AND medio = 'efectivo') AS adelantos`, [sesion.id, sesion.id, sesion.id, sesion.id]);
   const ventas = Object.values(porMedio).reduce((suma, importe) => suma + importe, 0);
   return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio, cobranzas: cobranzasPorMedio,
     ingresos: Number(manuales.ingresos), egresos: Number(manuales.egresos),
-    pagos_proveedores_efectivo: Number(salidas.proveedores), pagos_gastos_efectivo: Number(salidas.gastos), total_ventas: ventas,
+    pagos_proveedores_efectivo: Number(salidas.proveedores), pagos_gastos_efectivo: Number(salidas.gastos), pagos_sueldos_efectivo: Number(salidas.sueldos), adelantos_empleados_efectivo: Number(salidas.adelantos), total_ventas: ventas,
     efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0) + (cobranzasPorMedio.efectivo || 0)
       + (ajustesPorMedio.efectivo || 0) + Number(manuales.ingresos) - Number(manuales.egresos)
-      - Number(salidas.proveedores) - Number(salidas.gastos) };
+      - Number(salidas.proveedores) - Number(salidas.gastos) - Number(salidas.sueldos) - Number(salidas.adelantos) };
 }
 
 export async function registrarMovimientoCaja(usuarioId, datos) {
@@ -74,7 +76,9 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
       (SELECT COALESCE(SUM(pp.monto), 0) FROM pagos_proveedores pp
        WHERE pp.sesion_caja_id = sc.id AND pp.medio = 'efectivo') AS pagos_proveedores,
       (SELECT COALESCE(SUM(pg.monto), 0) FROM pagos_gastos pg
-       WHERE pg.sesion_caja_id = sc.id AND pg.medio = 'efectivo') AS pagos_gastos
+       WHERE pg.sesion_caja_id = sc.id AND pg.medio = 'efectivo') AS pagos_gastos,
+      (SELECT COALESCE(SUM(ps.monto), 0) FROM pagos_sueldos ps WHERE ps.sesion_caja_id = sc.id AND ps.medio = 'efectivo') AS pagos_sueldos,
+      (SELECT COALESCE(SUM(ae.monto), 0) FROM adelantos_empleados ae WHERE ae.sesion_caja_id = sc.id AND ae.medio = 'efectivo') AS adelantos_empleados
       ${desde} ORDER BY sc.fecha_apertura DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
     baseDatos.query(`SELECT COUNT(*) AS total ${desde}`, parametros),
   ]);
@@ -102,10 +106,12 @@ export async function cerrarCaja(usuarioId, montoContado) {
       FROM cobranzas_clientes WHERE sesion_caja_id = ? AND medio = 'efectivo'`, [sesion.id]);
     const [[salidas]] = await conexion.query(`SELECT
       (SELECT COALESCE(SUM(monto), 0) FROM pagos_proveedores WHERE sesion_caja_id = ? AND medio = 'efectivo') AS proveedores,
-      (SELECT COALESCE(SUM(monto), 0) FROM pagos_gastos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS gastos`, [sesion.id, sesion.id]);
+      (SELECT COALESCE(SUM(monto), 0) FROM pagos_gastos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS gastos,
+      (SELECT COALESCE(SUM(monto), 0) FROM pagos_sueldos WHERE sesion_caja_id = ? AND medio = 'efectivo') AS sueldos,
+      (SELECT COALESCE(SUM(monto), 0) FROM adelantos_empleados WHERE sesion_caja_id = ? AND medio = 'efectivo') AS adelantos`, [sesion.id, sesion.id, sesion.id, sesion.id]);
     const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo)
       + Number(ajustes.efectivo) + Number(cobranzas.efectivo) + Number(manuales.total)
-      - Number(salidas.proveedores) - Number(salidas.gastos);
+      - Number(salidas.proveedores) - Number(salidas.gastos) - Number(salidas.sueldos) - Number(salidas.adelantos);
     const diferencia = montoContado - esperado;
     await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
       diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,

@@ -75,6 +75,7 @@ export function Tablero({ token, permisos, alNavegar }) {
       {permisos.includes('cuentas_clientes.ver') && <article className={datos.cuentas_clientes.vencido ? 'tarjeta-alerta' : ''}><span>Cuentas por cobrar</span><strong>{moneda(datos.cuentas_clientes.saldo)}</strong><small>Vencido {moneda(datos.cuentas_clientes.vencido)}</small><button onClick={() => alNavegar('clientes')}>Ver clientes</button></article>}
       {permisos.includes('cuentas_proveedores.ver') && <article className={datos.cuentas_proveedores.vencido ? 'tarjeta-alerta' : ''}><span>Cuentas por pagar</span><strong>{moneda(datos.cuentas_proveedores.saldo)}</strong><small>Vencido {moneda(datos.cuentas_proveedores.vencido)}</small><button onClick={() => alNavegar('proveedores')}>Ver proveedores</button></article>}
       {permisos.includes('gastos.ver') && <article className={datos.gastos.vencido ? 'tarjeta-alerta' : ''}><span>Gastos pendientes</span><strong>{moneda(datos.gastos.saldo)}</strong><small>Vencido {moneda(datos.gastos.vencido)} · {datos.gastos.proximos} próximos</small><button onClick={() => alNavegar('gastos')}>Ver gastos</button></article>}
+      {permisos.includes('empleados.ver') && <article><span>Sueldos pendientes</span><strong>{moneda(datos.sueldos.saldo)}</strong><small>{datos.sueldos.liquidaciones} liquidaciones</small><button onClick={() => alNavegar('empleados')}>Ver empleados</button></article>}
       </div>
       <div className="rejilla-tablero">
         <article className="panel">

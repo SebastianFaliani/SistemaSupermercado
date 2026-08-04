@@ -1123,6 +1123,8 @@ export function Ventas({ token, permisos }) {
               <strong>-${Number(resumenCierre.pagos_proveedores_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
               <span>Gastos y servicios</span>
               <strong>-${Number(resumenCierre.pagos_gastos_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+              <span>Sueldos</span><strong>-${Number(resumenCierre.pagos_sueldos_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+              <span>Adelantos al personal</span><strong>-${Number(resumenCierre.adelantos_empleados_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
               <span>Débito</span>
               <strong>
                 $
@@ -1291,7 +1293,7 @@ export function Ventas({ token, permisos }) {
                   <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
                   <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
                   <td>${Number(item.cobranzas).toLocaleString('es-AR')}</td>
-                  <td>-${(Number(item.pagos_proveedores) + Number(item.pagos_gastos)).toLocaleString('es-AR')}</td>
+                  <td>-${(Number(item.pagos_proveedores) + Number(item.pagos_gastos) + Number(item.pagos_sueldos) + Number(item.adelantos_empleados)).toLocaleString('es-AR')}</td>
                   <td>
                     {item.diferencia_cierre == null
                       ? '—'

@@ -92,6 +92,8 @@ export function Reportes({ token }) {
         <div><span>Gastos pagados</span><strong>{moneda(datos.resumen.gastos_pagados)}</strong></div>
         <div><span>Gastos pendientes</span><strong>{moneda(datos.resumen.gastos_pendientes)}</strong></div>
         <div><span>Gastos vencidos</span><strong>{moneda(datos.resumen.gastos_vencidos)}</strong></div>
+        <div><span>Sueldos pagados</span><strong>{moneda(datos.resumen.sueldos_pagados)}</strong></div>
+        <div><span>Sueldos pendientes</span><strong>{moneda(datos.resumen.sueldos_pendientes)}</strong></div>
           </div>
           <div className="rejilla-reportes">
             <article className="panel">
