@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const esquemaConsultaProveedores = z.object({
   buscar: z.string().trim().max(180).optional(),
   estado: z.enum(['todos', 'activos', 'inactivos']).default('activos'),
+  cuenta: z.enum(['todas', 'deuda', 'vencida']).default('todas'),
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
 });

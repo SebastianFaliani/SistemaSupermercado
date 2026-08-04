@@ -17,11 +17,16 @@ export async function listarProveedores(consulta) {
     condiciones.push('esta_activo = ?');
     parametros.push(consulta.estado === 'activos');
   }
+  if (consulta.cuenta === 'deuda') condiciones.push("EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.saldo_pendiente > 0 AND fp.estado <> 'anulada')");
+  if (consulta.cuenta === 'vencida') condiciones.push("EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.saldo_pendiente > 0 AND fp.fecha_vencimiento < CURRENT_DATE() AND fp.estado <> 'anulada')");
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
   const desplazamiento = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [conteo]] = await Promise.all([
     baseDatos.query(
-      `SELECT id, ${campos.join(', ')}, esta_activo FROM proveedores ${donde}
+      `SELECT id, ${campos.join(', ')}, esta_activo,
+       (SELECT COALESCE(SUM(fp.saldo_pendiente), 0) FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.estado <> 'anulada') AS saldo,
+       (SELECT COALESCE(SUM(fp.saldo_pendiente), 0) FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.estado <> 'anulada' AND fp.fecha_vencimiento < CURRENT_DATE()) AS vencido
+       FROM proveedores ${donde}
        ORDER BY COALESCE(nombre_fantasia, razon_social), razon_social LIMIT ? OFFSET ?`,
       [...parametros, consulta.limite, desplazamiento],
     ),
