@@ -15,6 +15,7 @@ import { rutasCompras } from './modulos/compras/compras.rutas.js';
 import { rutasVentas } from './modulos/ventas/ventas.rutas.js';
 import { rutasTablero } from './modulos/tablero/tablero.rutas.js';
 import { rutasReportes } from './modulos/reportes/reportes.rutas.js';
+import { rutasClientes } from './modulos/clientes/clientes.rutas.js';
 
 export const aplicacion = express();
 const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -36,6 +37,7 @@ aplicacion.use('/api/compras', rutasCompras);
 aplicacion.use('/api/ventas', rutasVentas);
 aplicacion.use('/api/tablero', rutasTablero);
 aplicacion.use('/api/reportes', rutasReportes);
+aplicacion.use('/api/clientes', rutasClientes);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {

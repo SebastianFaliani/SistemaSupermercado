@@ -7,6 +7,7 @@ import { Compras } from './Compras.jsx';
 import { Ventas } from './Ventas.jsx';
 import { Tablero } from './Tablero.jsx';
 import { Reportes } from './Reportes.jsx';
+import { Clientes } from './Clientes.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -94,6 +95,7 @@ export function Aplicacion() {
           {usuario.permisos.includes('usuarios.ver') && <button className={moduloActivo === 'usuarios' ? 'activo' : ''} onClick={() => setModuloActivo('usuarios')}>Usuarios</button>}
           {usuario.permisos.includes('compras.ver') && <button className={moduloActivo === 'proveedores' ? 'activo' : ''} onClick={() => setModuloActivo('proveedores')}>Proveedores</button>}
           {usuario.permisos.includes('compras.ver') && <button className={moduloActivo === 'compras' ? 'activo' : ''} onClick={() => setModuloActivo('compras')}>Compras</button>}
+          {usuario.permisos.includes('clientes.ver') && <button className={moduloActivo === 'clientes' ? 'activo' : ''} onClick={() => setModuloActivo('clientes')}>Clientes</button>}
           {usuario.permisos.includes('ventas.crear') && <button className={moduloActivo === 'ventas' ? 'activo' : ''} onClick={() => setModuloActivo('ventas')}>Punto de venta</button>}
           {usuario.permisos.includes('reportes.ver') && <button className={moduloActivo === 'reportes' ? 'activo' : ''} onClick={() => setModuloActivo('reportes')}>Reportes</button>}
         </nav>
@@ -112,6 +114,7 @@ export function Aplicacion() {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}
           {moduloActivo === 'compras' && createElement(Compras, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
+          {moduloActivo === 'clientes' && createElement(Clientes, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
           {moduloActivo === 'ventas' && createElement(Ventas, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
           {moduloActivo === 'reportes' && createElement(Reportes, { token: sessionStorage.getItem(CLAVE_TOKEN) })}
         </main>
