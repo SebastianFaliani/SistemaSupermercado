@@ -51,3 +51,80 @@ export async function editarProveedor(id, datos) {
   }
   return { id };
 }
+
+export async function obtenerCuentaProveedor(id) {
+  const [[proveedor]] = await baseDatos.query(`SELECT p.id, p.razon_social, p.nombre_fantasia, p.cuit,
+    COALESCE(SUM(fp.saldo_pendiente), 0) AS saldo,
+    COALESCE(SUM(CASE WHEN fp.saldo_pendiente > 0 AND fp.fecha_vencimiento < CURRENT_DATE() THEN fp.saldo_pendiente ELSE 0 END), 0) AS vencido
+    FROM proveedores p LEFT JOIN facturas_proveedores fp ON fp.proveedor_id = p.id AND fp.estado <> 'anulada'
+    WHERE p.id = ? GROUP BY p.id`, [id]);
+  if (!proveedor) return null;
+  const [[facturas], [pagos], [ordenes]] = await Promise.all([
+    baseDatos.query(`SELECT id, orden_compra_id, tipo_comprobante, numero_comprobante, fecha_emision,
+      fecha_vencimiento, total, saldo_pendiente, estado, observaciones
+      FROM facturas_proveedores WHERE proveedor_id = ? ORDER BY fecha_vencimiento DESC, id DESC LIMIT 200`, [id]),
+    baseDatos.query(`SELECT pp.id, pp.medio, pp.monto, pp.referencia, pp.observaciones, pp.fecha_creacion,
+      u.nombre_usuario FROM pagos_proveedores pp JOIN usuarios u ON u.id = pp.usuario_id
+      WHERE pp.proveedor_id = ? ORDER BY pp.fecha_creacion DESC LIMIT 200`, [id]),
+    baseDatos.query(`SELECT oc.id, oc.total, oc.fecha_recepcion FROM ordenes_compra oc
+      WHERE oc.proveedor_id = ? AND oc.estado = 'recibida' ORDER BY oc.id DESC LIMIT 100`, [id]),
+  ]);
+  return { ...proveedor, saldo: Number(proveedor.saldo), vencido: Number(proveedor.vencido), facturas, pagos, ordenes };
+}
+
+export async function crearFacturaProveedor(proveedorId, usuarioId, datos) {
+  if (datos.orden_compra_id) {
+    const [[orden]] = await baseDatos.query("SELECT id FROM ordenes_compra WHERE id = ? AND proveedor_id = ? AND estado IN ('parcial', 'recibida')", [datos.orden_compra_id, proveedorId]);
+    if (!orden) { const error = new Error('La orden no pertenece al proveedor o todavía no fue recibida'); error.codigoPublico = 'ORDEN_INVALIDA'; throw error; }
+  }
+  const [resultado] = await baseDatos.query(`INSERT INTO facturas_proveedores
+    (proveedor_id, orden_compra_id, usuario_id, tipo_comprobante, numero_comprobante,
+     fecha_emision, fecha_vencimiento, total, saldo_pendiente, observaciones)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [proveedorId, datos.orden_compra_id || null, usuarioId,
+    datos.tipo_comprobante, datos.numero_comprobante, datos.fecha_emision, datos.fecha_vencimiento,
+    datos.total, datos.total, datos.observaciones || null]);
+  return { id: resultado.insertId };
+}
+
+export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
+  const conexion = await baseDatos.getConnection();
+  try {
+    await conexion.beginTransaction();
+    let sesionId = null;
+    if (datos.medio === 'efectivo') {
+      const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
+      if (!sesion) { const error = new Error('Debés tener una caja abierta para pagar en efectivo'); error.codigoPublico = 'SIN_CAJA'; throw error; }
+      sesionId = sesion.id;
+    }
+    const [facturas] = await conexion.query("SELECT id, saldo_pendiente FROM facturas_proveedores WHERE proveedor_id = ? AND estado IN ('pendiente', 'parcial') AND saldo_pendiente > 0 ORDER BY fecha_vencimiento, id FOR UPDATE", [proveedorId]);
+    const saldo = facturas.reduce((suma, factura) => suma + Number(factura.saldo_pendiente), 0);
+    if (!saldo) { const error = new Error('El proveedor no tiene deuda pendiente'); error.codigoPublico = 'SIN_DEUDA'; throw error; }
+    if (datos.monto - saldo > 0.009) { const error = new Error('El pago no puede superar la deuda del proveedor'); error.codigoPublico = 'MONTO_INVALIDO'; throw error; }
+    const [pago] = await conexion.query(`INSERT INTO pagos_proveedores
+      (proveedor_id, sesion_caja_id, usuario_id, medio, monto, referencia, observaciones)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`, [proveedorId, sesionId, usuarioId, datos.medio, datos.monto, datos.referencia || null, datos.observaciones || null]);
+    let restante = Number(datos.monto);
+    for (const factura of facturas) {
+      if (restante <= 0.009) break;
+      const aplicado = Math.min(restante, Number(factura.saldo_pendiente));
+      await conexion.query('INSERT INTO pagos_proveedores_aplicaciones (pago_proveedor_id, factura_proveedor_id, monto) VALUES (?, ?, ?)', [pago.insertId, factura.id, aplicado]);
+      await conexion.query(`UPDATE facturas_proveedores SET saldo_pendiente = saldo_pendiente - ?,
+        estado = CASE WHEN saldo_pendiente - ? <= 0.009 THEN 'pagada' ELSE 'parcial' END WHERE id = ?`, [aplicado, aplicado, factura.id]);
+      restante -= aplicado;
+    }
+    await conexion.commit(); return { id: pago.insertId, saldo_anterior: saldo, saldo_nuevo: saldo - datos.monto };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
+export async function obtenerPagoProveedor(id) {
+  const [[pago]] = await baseDatos.query(`SELECT pp.id, pp.medio, pp.monto, pp.referencia,
+    pp.observaciones, pp.fecha_creacion, COALESCE(p.nombre_fantasia, p.razon_social) AS proveedor,
+    p.cuit, u.nombre_usuario, c.nombre AS caja FROM pagos_proveedores pp
+    JOIN proveedores p ON p.id = pp.proveedor_id JOIN usuarios u ON u.id = pp.usuario_id
+    LEFT JOIN sesiones_caja sc ON sc.id = pp.sesion_caja_id LEFT JOIN cajas c ON c.id = sc.caja_id WHERE pp.id = ?`, [id]);
+  if (!pago) return null;
+  const [aplicaciones] = await baseDatos.query(`SELECT ppa.factura_proveedor_id, ppa.monto,
+    fp.numero_comprobante FROM pagos_proveedores_aplicaciones ppa JOIN facturas_proveedores fp
+    ON fp.id = ppa.factura_proveedor_id WHERE ppa.pago_proveedor_id = ? ORDER BY ppa.id`, [id]);
+  return { ...pago, aplicaciones };
+}
