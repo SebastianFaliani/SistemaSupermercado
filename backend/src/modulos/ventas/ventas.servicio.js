@@ -238,7 +238,7 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
     }
     const reemplazos = []; let totalReemplazo = 0;
     for (const item of datos.reemplazos) {
-      const [[producto]] = await conexion.query(`SELECT p.nombre, p.precio_venta, p.es_pesable,
+      const [[producto]] = await conexion.query(`SELECT p.nombre, p.precio_venta, p.precio_costo, p.es_pesable,
         COALESCE(e.cantidad, 0) AS stock FROM productos p LEFT JOIN existencias e
         ON e.producto_id = p.id AND e.ubicacion_id = ? WHERE p.id = ? AND p.esta_activo = TRUE FOR UPDATE`, [ubicacion.id, item.producto_id]);
       if (!producto || Number(producto.stock) < item.cantidad) { const error = new Error(`Stock insuficiente para ${producto?.nombre || 'un producto'}`); error.codigoPublico = 'STOCK_INSUFICIENTE'; throw error; }
@@ -308,7 +308,7 @@ export async function crearVenta(usuarioId, datos) {
       VALUES (?, ?, 'salida_venta', ?, 'venta', ?)`, [ubicacion.id, usuarioId, `Venta #${venta.insertId}`, venta.insertId]);
     for (const detalle of detalles) {
       const anterior = Number(detalle.stock); const nueva = anterior - detalle.cantidad;
-      await conexion.query('INSERT INTO ventas_detalles (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)', [venta.insertId, detalle.producto_id, detalle.cantidad, detalle.precio_venta, detalle.subtotal]);
+      await conexion.query('INSERT INTO ventas_detalles (venta_id, producto_id, cantidad, precio_unitario, costo_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?)', [venta.insertId, detalle.producto_id, detalle.cantidad, detalle.precio_venta, detalle.precio_costo, detalle.subtotal]);
       await conexion.query('UPDATE existencias SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', [nueva, detalle.producto_id, ubicacion.id]);
       await conexion.query(`INSERT INTO movimientos_stock_detalles
         (movimiento_stock_id, producto_id, cantidad_anterior, variacion, cantidad_nueva)

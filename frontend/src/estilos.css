@@ -226,3 +226,10 @@ body.modal-abierto { overflow: hidden; }
 .accesos-rapidos { display: flex; gap: 11px; flex-direction: column; }
 .accesos-rapidos button { width: 100%; padding: 8px; border-radius: 6px; background: var(--color-acento-100); text-align: left; }
 @media (max-width: 950px) { .tarjetas-tablero { grid-template-columns: repeat(2, 1fr); } .rejilla-tablero { grid-template-columns: 1fr; } }
+.tarjetas-reporte { grid-template-columns: repeat(5, 1fr); }
+.rejilla-reportes { display: grid; gap: 12px; grid-template-columns: 3fr 2fr; }
+.subtitulo-reporte { margin-top: 20px !important; }
+.fila-reporte { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-gris-200); text-transform: capitalize; }
+.fila-reporte strong { font-weight: 400; }
+.panel-reporte-diario { margin-top: 12px; }
+@media (max-width: 800px) { .tarjetas-reporte { grid-template-columns: repeat(2, 1fr); } .rejilla-reportes { grid-template-columns: 1fr; } }
