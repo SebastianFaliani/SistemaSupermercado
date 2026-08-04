@@ -26,14 +26,17 @@ export async function resumenCaja(usuarioId) {
     WHERE dv.sesion_caja_id = ? GROUP BY dvp.medio`, [sesion.id]);
   const porMedio = Object.fromEntries(pagos.map((pago) => [pago.medio, Number(pago.total)]));
   const ajustesPorMedio = Object.fromEntries(ajustes.map((ajuste) => [ajuste.medio, Number(ajuste.total)]));
+  const [cobranzas] = await baseDatos.query(`SELECT medio, COALESCE(SUM(monto), 0) AS total
+    FROM cobranzas_clientes WHERE sesion_caja_id = ? GROUP BY medio`, [sesion.id]);
+  const cobranzasPorMedio = Object.fromEntries(cobranzas.map((cobranza) => [cobranza.medio, Number(cobranza.total)]));
   const [[manuales]] = await baseDatos.query(`SELECT
     COALESCE(SUM(IF(tipo = 'ingreso', monto, 0)), 0) AS ingresos,
     COALESCE(SUM(IF(tipo = 'egreso', monto, 0)), 0) AS egresos
     FROM movimientos_caja WHERE sesion_caja_id = ?`, [sesion.id]);
   const ventas = Object.values(porMedio).reduce((suma, importe) => suma + importe, 0);
-  return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio,
+  return { ...sesion, pagos: porMedio, ajustes: ajustesPorMedio, cobranzas: cobranzasPorMedio,
     ingresos: Number(manuales.ingresos), egresos: Number(manuales.egresos), total_ventas: ventas,
-    efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0)
+    efectivo_esperado: Number(sesion.monto_inicial) + (porMedio.efectivo || 0) + (cobranzasPorMedio.efectivo || 0)
       + (ajustesPorMedio.efectivo || 0) + Number(manuales.ingresos) - Number(manuales.egresos) };
 }
 
@@ -60,7 +63,9 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
       sc.monto_inicial, sc.monto_contado_cierre, sc.diferencia_cierre,
       sc.fecha_apertura, sc.fecha_cierre,
       (SELECT COALESCE(SUM(v.total), 0) FROM ventas v
-       WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada') AS ventas
+       WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada') AS ventas,
+      (SELECT COALESCE(SUM(cc.monto), 0) FROM cobranzas_clientes cc
+       WHERE cc.sesion_caja_id = sc.id) AS cobranzas
       ${desde} ORDER BY sc.fecha_apertura DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
     baseDatos.query(`SELECT COUNT(*) AS total ${desde}`, parametros),
   ]);
@@ -84,8 +89,10 @@ export async function cerrarCaja(usuarioId, montoContado) {
     const [[manuales]] = await conexion.query(`SELECT COALESCE(SUM(
       IF(tipo = 'ingreso', monto, -monto)), 0) AS total FROM movimientos_caja
       WHERE sesion_caja_id = ?`, [sesion.id]);
+    const [[cobranzas]] = await conexion.query(`SELECT COALESCE(SUM(monto), 0) AS efectivo
+      FROM cobranzas_clientes WHERE sesion_caja_id = ? AND medio = 'efectivo'`, [sesion.id]);
     const esperado = Number(sesion.monto_inicial) + Number(pagos.efectivo)
-      + Number(ajustes.efectivo) + Number(manuales.total);
+      + Number(ajustes.efectivo) + Number(cobranzas.efectivo) + Number(manuales.total);
     const diferencia = montoContado - esperado;
     await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
       diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,
@@ -235,7 +242,7 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
   const conexion = await baseDatos.getConnection();
   try {
     await conexion.beginTransaction();
-    const [[venta]] = await conexion.query("SELECT estado FROM ventas WHERE id = ? FOR UPDATE", [ventaId]);
+    const [[venta]] = await conexion.query("SELECT estado, cliente_id, saldo_pendiente FROM ventas WHERE id = ? FOR UPDATE", [ventaId]);
     if (!venta || venta.estado !== 'completada') { const error = new Error('La venta no admite devoluciones'); error.codigoPublico = 'VENTA_INVALIDA'; throw error; }
     const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
     if (!sesion) { const error = new Error('Debés tener una caja abierta para realizar el cambio'); error.codigoPublico = 'SIN_CAJA'; throw error; }
@@ -265,10 +272,12 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
       reemplazos.push({ ...item, ...producto, precio_unitario: Number(producto.precio_venta), subtotal });
     }
     const diferencia = totalReemplazo - totalDevuelto;
-    if (Math.abs(diferencia) > 0.009 && !datos.medio) { const error = new Error('Debe indicarse el medio para cobrar o reintegrar la diferencia'); error.codigoPublico = 'MEDIO_REQUERIDO'; throw error; }
+    const creditoCuenta = diferencia < -0.009 && venta.cliente_id ? Math.min(-diferencia, Number(venta.saldo_pendiente)) : 0;
+    const diferenciaCaja = diferencia + creditoCuenta;
+    if (Math.abs(diferenciaCaja) > 0.009 && !datos.medio) { const error = new Error('Debe indicarse el medio para cobrar o reintegrar la diferencia'); error.codigoPublico = 'MEDIO_REQUERIDO'; throw error; }
     const [devolucion] = await conexion.query(`INSERT INTO devoluciones_ventas
-      (venta_id, sesion_caja_id, usuario_id, motivo, total_devuelto, total_reemplazo, diferencia)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`, [ventaId, sesion.id, usuarioId, datos.motivo, totalDevuelto, totalReemplazo, diferencia]);
+      (venta_id, sesion_caja_id, usuario_id, motivo, total_devuelto, total_reemplazo, diferencia, credito_cuenta)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [ventaId, sesion.id, usuarioId, datos.motivo, totalDevuelto, totalReemplazo, diferencia, creditoCuenta]);
     const cambiosStock = [];
     for (const item of devueltos) {
       await conexion.query(`INSERT INTO devoluciones_ventas_detalles
@@ -295,9 +304,14 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
           VALUES (?, ?, ?, ?, ?)`, [movimiento.insertId, cambio.producto_id, anterior, cambio.variacion, nueva]);
       }
     }
-    if (Math.abs(diferencia) > 0.009) await conexion.query(`INSERT INTO devoluciones_ventas_pagos
-      (devolucion_id, tipo, medio, monto) VALUES (?, ?, ?, ?)`, [devolucion.insertId, diferencia > 0 ? 'cobro' : 'reintegro', datos.medio, Math.abs(diferencia)]);
-    await conexion.commit(); return { id: devolucion.insertId, diferencia };
+    if (creditoCuenta > 0) {
+      await conexion.query('UPDATE ventas SET saldo_pendiente = saldo_pendiente - ? WHERE id = ?', [creditoCuenta, ventaId]);
+      await conexion.query(`INSERT INTO movimientos_cuenta_clientes (cliente_id, usuario_id, tipo, haber, referencia_tipo, referencia_id, descripcion)
+        VALUES (?, ?, 'nota_credito', ?, 'devolucion_venta', ?, ?)`, [venta.cliente_id, usuarioId, creditoCuenta, devolucion.insertId, `Nota de crédito por devolución de venta #${ventaId}`]);
+    }
+    if (Math.abs(diferenciaCaja) > 0.009) await conexion.query(`INSERT INTO devoluciones_ventas_pagos
+      (devolucion_id, tipo, medio, monto) VALUES (?, ?, ?, ?)`, [devolucion.insertId, diferenciaCaja > 0 ? 'cobro' : 'reintegro', datos.medio, Math.abs(diferenciaCaja)]);
+    await conexion.commit(); return { id: devolucion.insertId, diferencia, credito_cuenta: creditoCuenta, diferencia_caja: diferenciaCaja };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 

@@ -6,8 +6,13 @@ export async function listarClientes(consulta) {
   const condiciones = []; const parametros = [];
   if (consulta.buscar) { const patron = `%${consulta.buscar}%`; condiciones.push('(nombre LIKE ? OR numero_documento LIKE ? OR telefono LIKE ? OR correo_electronico LIKE ?)'); parametros.push(patron, patron, patron, patron); }
   if (consulta.estado !== 'todos') { condiciones.push('esta_activo = ?'); parametros.push(consulta.estado === 'activos'); }
+  if (consulta.cuenta === 'deudores') condiciones.push("EXISTS (SELECT 1 FROM ventas v WHERE v.cliente_id = clientes.id AND v.estado = 'completada' AND v.saldo_pendiente > 0)");
+  if (consulta.cuenta === 'vencidas') condiciones.push("EXISTS (SELECT 1 FROM ventas v WHERE v.cliente_id = clientes.id AND v.estado = 'completada' AND v.saldo_pendiente > 0 AND v.fecha_vencimiento < CURRENT_DATE())");
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : ''; const desplazamiento = (consulta.pagina - 1) * consulta.limite;
-  const [[datos], [conteo]] = await Promise.all([baseDatos.query(`SELECT id, ${campos.join(', ')}, esta_activo, fecha_creacion FROM clientes ${donde} ORDER BY nombre LIMIT ? OFFSET ?`, [...parametros, consulta.limite, desplazamiento]), baseDatos.query(`SELECT COUNT(*) AS total FROM clientes ${donde}`, parametros)]);
+  const [[datos], [conteo]] = await Promise.all([baseDatos.query(`SELECT id, ${campos.join(', ')}, esta_activo, fecha_creacion,
+    (SELECT COALESCE(SUM(v.saldo_pendiente), 0) FROM ventas v WHERE v.cliente_id = clientes.id AND v.estado = 'completada') AS saldo,
+    (SELECT COALESCE(SUM(v.saldo_pendiente), 0) FROM ventas v WHERE v.cliente_id = clientes.id AND v.estado = 'completada' AND v.fecha_vencimiento < CURRENT_DATE()) AS vencido
+    FROM clientes ${donde} ORDER BY nombre LIMIT ? OFFSET ?`, [...parametros, consulta.limite, desplazamiento]), baseDatos.query(`SELECT COUNT(*) AS total FROM clientes ${donde}`, parametros)]);
   return { datos, total: Number(conteo[0].total), pagina: consulta.pagina, limite: consulta.limite };
 }
 export async function crearCliente(datos) { const [resultado] = await baseDatos.query(`INSERT INTO clientes (${campos.join(', ')}) VALUES (${campos.map(() => '?').join(', ')})`, campos.map((campo) => valor(datos, campo))); return { id: resultado.insertId }; }
@@ -39,8 +44,8 @@ export async function registrarCobranza(clienteId, usuarioId, datos) {
     await conexion.beginTransaction();
     const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
     if (!sesion) { const error = new Error('Debés tener una caja abierta para registrar la cobranza'); error.codigoPublico = 'SIN_CAJA'; throw error; }
-    const [[cliente]] = await conexion.query('SELECT id, nombre FROM clientes WHERE id = ? AND esta_activo = TRUE FOR UPDATE', [clienteId]);
-    if (!cliente) { const error = new Error('No se encontró un cliente activo'); error.codigoPublico = 'NO_ENCONTRADO'; throw error; }
+    const [[cliente]] = await conexion.query('SELECT id, nombre FROM clientes WHERE id = ? FOR UPDATE', [clienteId]);
+    if (!cliente) { const error = new Error('No se encontró el cliente'); error.codigoPublico = 'NO_ENCONTRADO'; throw error; }
     const [deudas] = await conexion.query("SELECT id, saldo_pendiente FROM ventas WHERE cliente_id = ? AND estado = 'completada' AND saldo_pendiente > 0 ORDER BY fecha_vencimiento, id FOR UPDATE", [clienteId]);
     const saldo = deudas.reduce((suma, venta) => suma + Number(venta.saldo_pendiente), 0);
     if (datos.monto - saldo > 0.009) { const error = new Error('La cobranza no puede superar la deuda del cliente'); error.codigoPublico = 'MONTO_INVALIDO'; throw error; }

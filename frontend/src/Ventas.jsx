@@ -482,9 +482,7 @@ export function Ventas({ token, permisos }) {
         },
       );
       setVentaCambio(null);
-      setMensaje(
-        `Cambio/devolución #${respuesta.dato.id} registrado correctamente.`,
-      );
+      setMensaje(`Cambio/devolución #${respuesta.dato.id} registrado correctamente${Number(respuesta.dato.credito_cuenta) > 0 ? `; ${Number(respuesta.dato.credito_cuenta).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} redujeron la cuenta corriente` : ''}.`);
       await Promise.all([cargar(), cargarHistorial()]);
     } catch (error) {
       setMensaje(error.message);
@@ -833,6 +831,7 @@ export function Ventas({ token, permisos }) {
                       <th>Fecha</th>
                       <th>Caja</th>
                       <th>Cajero</th>
+                      <th>Cliente</th>
                       <th>Productos</th>
                       <th>Total</th>
                       <th></th>
@@ -849,6 +848,7 @@ export function Ventas({ token, permisos }) {
                         </td>
                         <td>{venta.caja}</td>
                         <td>{venta.nombre_usuario}</td>
+                        <td>{venta.cliente || 'Consumidor final'}</td>
                         <td>{venta.productos}</td>
                         <td>
                           $
@@ -1101,6 +1101,10 @@ export function Ventas({ token, permisos }) {
                   { minimumFractionDigits: 2 },
                 )}
               </strong>
+              <span>Cobranzas en efectivo</span>
+              <strong>
+                ${Number(resumenCierre.cobranzas?.efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </strong>
               <span>Ingresos manuales</span>
               <strong>
                 $
@@ -1261,6 +1265,7 @@ export function Ventas({ token, permisos }) {
                 <th>Cierre</th>
                 <th>Inicial</th>
                 <th>Ventas</th>
+                <th>Cobranzas</th>
                 <th>Diferencia</th>
                 <th>Estado</th>
               </tr>
@@ -1280,6 +1285,7 @@ export function Ventas({ token, permisos }) {
                   </td>
                   <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
                   <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.cobranzas).toLocaleString('es-AR')}</td>
                   <td>
                     {item.diferencia_cierre == null
                       ? '—'
@@ -1332,6 +1338,7 @@ export function Ventas({ token, permisos }) {
               </span>
               <span>{ventaDetalle.caja}</span>
               <span>Cajero: {ventaDetalle.nombre_usuario}</span>
+              <span>Cliente: {ventaDetalle.cliente || 'Consumidor final'}</span>
               <span
                 className={
                   ventaDetalle.estado === 'completada'
@@ -1417,6 +1424,7 @@ export function Ventas({ token, permisos }) {
                     })}
                   </span>
                 ))}
+                {Number(ventaDetalle.saldo_pendiente) > 0 && <span>Cuenta corriente: {Number(ventaDetalle.saldo_pendiente).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} · vence {new Date(`${String(ventaDetalle.fecha_vencimiento).slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR')}</span>}
               </div>
               <strong>
                 Total: $
