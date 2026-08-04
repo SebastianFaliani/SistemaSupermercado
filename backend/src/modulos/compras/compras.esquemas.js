@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const esquemaConsultaCompras = z.object({
   buscar: z.string().trim().max(180).optional(),
-  estado: z.enum(['todos', 'borrador', 'enviada', 'recibida', 'cancelada']).default('todos'),
+  estado: z.enum(['todos', 'borrador', 'enviada', 'parcial', 'recibida', 'cancelada']).default('todos'),
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -23,3 +23,9 @@ export const esquemaCrearCompra = z.object({
 
 export const esquemaIdCompra = z.coerce.number().int().positive();
 export const esquemaEditarCompra = esquemaCrearCompra;
+export const esquemaRecibirCompra = z.object({
+  detalles: z.array(z.object({
+    producto_id: z.coerce.number().int().positive(),
+    cantidad: z.coerce.number().positive().max(999999999999.999),
+  })).min(1).max(100).refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto'),
+});
