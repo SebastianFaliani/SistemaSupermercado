@@ -216,3 +216,13 @@ body.modal-abierto { overflow: hidden; }
 }
 @media (max-width: 800px) { .rejilla-venta { grid-template-columns: 1fr; } }
 .total-compra { text-align: right; }
+.tarjetas-tablero { display: grid; gap: 9px; margin-bottom: 12px; grid-template-columns: repeat(5, 1fr); }
+.tarjetas-tablero article { display: flex; min-width: 0; padding: 12px; border: 1px solid var(--color-gris-200); border-radius: 9px; background: var(--color-blanco); flex-direction: column; }
+.tarjetas-tablero span, .tarjetas-tablero small { color: var(--color-gris-500); }
+.tarjetas-tablero strong { margin: 4px 0; color: var(--color-primario-900); font-size: 1.25rem; font-weight: 400; }
+.tarjetas-tablero button, .accesos-rapidos button { align-self: flex-start; padding: 0; border: 0; color: var(--color-primario-700); background: transparent; font: inherit; cursor: pointer; }
+.tarjetas-tablero .tarjeta-alerta { border-color: #d57b45; background: #fff7f2; }
+.rejilla-tablero { display: grid; gap: 12px; grid-template-columns: 3fr 1fr; }
+.accesos-rapidos { display: flex; gap: 11px; flex-direction: column; }
+.accesos-rapidos button { width: 100%; padding: 8px; border-radius: 6px; background: var(--color-acento-100); text-align: left; }
+@media (max-width: 950px) { .tarjetas-tablero { grid-template-columns: repeat(2, 1fr); } .rejilla-tablero { grid-template-columns: 1fr; } }

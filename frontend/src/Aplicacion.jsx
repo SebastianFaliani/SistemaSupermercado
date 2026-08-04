@@ -5,6 +5,7 @@ import { Usuarios } from './Usuarios.jsx';
 import { Proveedores } from './Proveedores.jsx';
 import { Compras } from './Compras.jsx';
 import { Ventas } from './Ventas.jsx';
+import { Tablero } from './Tablero.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -13,7 +14,7 @@ export function Aplicacion() {
   const [estado, setEstado] = useState('comprobando');
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [moduloActivo, setModuloActivo] = useState('catalogo');
+  const [moduloActivo, setModuloActivo] = useState('tablero');
 
   useEffect(() => {
     const token = sessionStorage.getItem(CLAVE_TOKEN);
@@ -86,6 +87,7 @@ export function Aplicacion() {
           </div>
         </header>
         <nav className="navegacion-principal" aria-label="Módulos principales">
+          <button className={moduloActivo === 'tablero' ? 'activo' : ''} onClick={() => setModuloActivo('tablero')}>Inicio</button>
           <button className={moduloActivo === 'catalogo' ? 'activo' : ''} onClick={() => setModuloActivo('catalogo')}>Catálogo</button>
           <button className={moduloActivo === 'inventario' ? 'activo' : ''} onClick={() => setModuloActivo('inventario')}>Inventario</button>
           {usuario.permisos.includes('usuarios.ver') && <button className={moduloActivo === 'usuarios' ? 'activo' : ''} onClick={() => setModuloActivo('usuarios')}>Usuarios</button>}
@@ -94,6 +96,7 @@ export function Aplicacion() {
           {usuario.permisos.includes('ventas.crear') && <button className={moduloActivo === 'ventas' ? 'activo' : ''} onClick={() => setModuloActivo('ventas')}>Punto de venta</button>}
         </nav>
         <main className="contenido-interno">
+          {moduloActivo === 'tablero' && createElement(Tablero, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos, alNavegar: setModuloActivo })}
           {moduloActivo === 'catalogo' && createElement(Catalogo, {
             token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos,
           })}

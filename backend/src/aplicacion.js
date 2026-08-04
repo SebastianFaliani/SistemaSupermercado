@@ -13,6 +13,7 @@ import { rutasUsuarios } from './modulos/usuarios/usuarios.rutas.js';
 import { rutasProveedores } from './modulos/proveedores/proveedores.rutas.js';
 import { rutasCompras } from './modulos/compras/compras.rutas.js';
 import { rutasVentas } from './modulos/ventas/ventas.rutas.js';
+import { rutasTablero } from './modulos/tablero/tablero.rutas.js';
 
 export const aplicacion = express();
 const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -32,6 +33,7 @@ aplicacion.use('/api/usuarios', rutasUsuarios);
 aplicacion.use('/api/proveedores', rutasProveedores);
 aplicacion.use('/api/compras', rutasCompras);
 aplicacion.use('/api/ventas', rutasVentas);
+aplicacion.use('/api/tablero', rutasTablero);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {
