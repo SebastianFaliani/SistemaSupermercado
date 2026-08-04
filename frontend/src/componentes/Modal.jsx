@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 
 export function Modal({ abierto, titulo, alCerrar, children, ancho = 'normal' }) {
+  const idTitulo = useId();
   useEffect(() => {
     if (!abierto) return undefined;
     const cerrarConEscape = (evento) => {
@@ -20,9 +21,9 @@ export function Modal({ abierto, titulo, alCerrar, children, ancho = 'normal' })
     <div className="modal-fondo" role="presentation" onMouseDown={(evento) => {
       if (evento.target === evento.currentTarget) alCerrar();
     }}>
-      <section className={`modal modal--${ancho}`} role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <section className={`modal modal--${ancho}`} role="dialog" aria-modal="true" aria-labelledby={idTitulo}>
         <header className="modal__encabezado">
-          <h2 id="modal-titulo">{titulo}</h2>
+          <h2 id={idTitulo}>{titulo}</h2>
           <button type="button" className="modal__cerrar" onClick={alCerrar} aria-label="Cerrar">×</button>
         </header>
         <div className="modal__contenido">{children}</div>
