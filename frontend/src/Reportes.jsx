@@ -87,6 +87,11 @@ export function Reportes({ token }) {
         <div><span>Crédito otorgado</span><strong>{moneda(datos.resumen.credito_otorgado)}</strong></div>
         <div><span>Cuentas por cobrar</span><strong>{moneda(datos.resumen.cuentas_por_cobrar)}</strong></div>
         <div><span>Deuda vencida</span><strong>{moneda(datos.resumen.deuda_vencida)}</strong></div>
+        <div><span>Cuentas por pagar</span><strong>{moneda(datos.resumen.cuentas_por_pagar)}</strong></div>
+        <div><span>Proveedores vencido</span><strong>{moneda(datos.resumen.proveedores_vencido)}</strong></div>
+        <div><span>Gastos pagados</span><strong>{moneda(datos.resumen.gastos_pagados)}</strong></div>
+        <div><span>Gastos pendientes</span><strong>{moneda(datos.resumen.gastos_pendientes)}</strong></div>
+        <div><span>Gastos vencidos</span><strong>{moneda(datos.resumen.gastos_vencidos)}</strong></div>
           </div>
           <div className="rejilla-reportes">
             <article className="panel">

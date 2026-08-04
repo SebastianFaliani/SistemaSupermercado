@@ -1119,6 +1119,10 @@ export function Ventas({ token, permisos }) {
                   minimumFractionDigits: 2,
                 })}
               </strong>
+              <span>Pagos a proveedores</span>
+              <strong>-${Number(resumenCierre.pagos_proveedores_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
+              <span>Gastos y servicios</span>
+              <strong>-${Number(resumenCierre.pagos_gastos_efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>
               <span>Débito</span>
               <strong>
                 $
@@ -1266,6 +1270,7 @@ export function Ventas({ token, permisos }) {
                 <th>Inicial</th>
                 <th>Ventas</th>
                 <th>Cobranzas</th>
+                <th>Egresos operativos</th>
                 <th>Diferencia</th>
                 <th>Estado</th>
               </tr>
@@ -1286,6 +1291,7 @@ export function Ventas({ token, permisos }) {
                   <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
                   <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
                   <td>${Number(item.cobranzas).toLocaleString('es-AR')}</td>
+                  <td>-${(Number(item.pagos_proveedores) + Number(item.pagos_gastos)).toLocaleString('es-AR')}</td>
                   <td>
                     {item.diferencia_cierre == null
                       ? '—'
