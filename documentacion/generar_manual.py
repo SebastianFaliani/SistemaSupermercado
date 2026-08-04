@@ -1,0 +1,248 @@
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.section import WD_SECTION
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.9.docx'
+LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
+CAPTURA = ROOT / 'documentacion' / 'capturas' / 'acceso.png'
+AZUL = '003B46'; VERDE = '07575B'; CELESTE = '66A5AD'; CLARO = 'C4DFE6'; GRIS = '52656A'
+
+doc = Document()
+sec = doc.sections[0]
+sec.page_width, sec.page_height = Inches(8.5), Inches(11)
+sec.top_margin = sec.bottom_margin = sec.left_margin = sec.right_margin = Inches(1)
+sec.header_distance = sec.footer_distance = Inches(.49)
+
+def font(run, size=11, color=AZUL, bold=False, italic=False):
+    run.font.name = 'Aptos'; run._element.get_or_add_rPr().rFonts.set(qn('w:ascii'), 'Aptos'); run._element.rPr.rFonts.set(qn('w:hAnsi'), 'Aptos')
+    run.font.size = Pt(size); run.font.color.rgb = RGBColor.from_string(color); run.bold = bold; run.italic = italic
+    return run
+
+styles = doc.styles
+normal = styles['Normal']; normal.font.name = 'Aptos'; normal.font.size = Pt(10.5); normal.font.color.rgb = RGBColor.from_string(AZUL)
+normal.paragraph_format.space_after = Pt(6); normal.paragraph_format.line_spacing = 1.15
+for name, size, before, after, color in [('Title',30,0,8,AZUL),('Subtitle',14,0,8,VERDE),('Heading 1',18,18,9,AZUL),('Heading 2',14,14,7,VERDE),('Heading 3',11.5,10,5,AZUL)]:
+    s=styles[name]; s.font.name='Aptos'; s.font.size=Pt(size); s.font.bold=name!='Subtitle'; s.font.color.rgb=RGBColor.from_string(color); s.paragraph_format.space_before=Pt(before); s.paragraph_format.space_after=Pt(after); s.paragraph_format.keep_with_next=True
+for name in ['List Bullet','List Number']:
+    s=styles[name]; s.font.name='Aptos'; s.font.size=Pt(10.5); s.paragraph_format.left_indent=Inches(.38); s.paragraph_format.first_line_indent=Inches(-.19); s.paragraph_format.space_after=Pt(4); s.paragraph_format.line_spacing=1.15
+
+def shade(cell, fill):
+    tcPr=cell._tc.get_or_add_tcPr(); shd=tcPr.find(qn('w:shd'))
+    if shd is None: shd=OxmlElement('w:shd'); tcPr.append(shd)
+    shd.set(qn('w:fill'),fill)
+
+def set_cell_margin(cell, top=90, start=120, bottom=90, end=120):
+    tc=cell._tc; tcPr=tc.get_or_add_tcPr(); tcMar=tcPr.first_child_found_in('w:tcMar')
+    if tcMar is None: tcMar=OxmlElement('w:tcMar'); tcPr.append(tcMar)
+    for m,v in [('top',top),('start',start),('bottom',bottom),('end',end)]:
+        node=tcMar.find(qn(f'w:{m}'))
+        if node is None: node=OxmlElement(f'w:{m}'); tcMar.append(node)
+        node.set(qn('w:w'),str(v)); node.set(qn('w:type'),'dxa')
+
+def table(headers, rows, widths=None):
+    t=doc.add_table(rows=1, cols=len(headers)); t.alignment=WD_TABLE_ALIGNMENT.CENTER; t.autofit=False; t.style='Table Grid'
+    for i,h in enumerate(headers):
+        c=t.rows[0].cells[i]; c.text=''; shade(c,AZUL); set_cell_margin(c); c.vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER; font(c.paragraphs[0].add_run(h),9.5,'FFFFFF',True)
+    trPr=t.rows[0]._tr.get_or_add_trPr(); tblHeader=OxmlElement('w:tblHeader'); tblHeader.set(qn('w:val'),'true'); trPr.append(tblHeader)
+    for row in rows:
+        cells=t.add_row().cells
+        for i,value in enumerate(row):
+            cells[i].text=''; set_cell_margin(cells[i]); cells[i].vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER; font(cells[i].paragraphs[0].add_run(str(value)),9.2,AZUL)
+    if widths:
+        for row in t.rows:
+            for i,w in enumerate(widths): row.cells[i].width=Inches(w)
+    doc.add_paragraph().paragraph_format.space_after=Pt(2)
+    return t
+
+def note(title, text, color=CLARO):
+    t=doc.add_table(rows=1,cols=1); t.autofit=False; t.alignment=WD_TABLE_ALIGNMENT.CENTER; t.columns[0].width=Inches(6.5)
+    c=t.cell(0,0); shade(c,color); set_cell_margin(c,150,180,150,180); p=c.paragraphs[0]; font(p.add_run(title+' '),10,AZUL,True); font(p.add_run(text),10,AZUL)
+    doc.add_paragraph().paragraph_format.space_after=Pt(1)
+
+def bullets(items):
+    for x in items: doc.add_paragraph(x,style='List Bullet')
+
+def steps(items):
+    for x in items: doc.add_paragraph(x,style='List Number')
+
+def page(): doc.add_page_break()
+
+def heading(title, level=1): doc.add_heading(title,level=level)
+
+def screenshot_placeholder(modulo):
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(5); p.paragraph_format.space_after=Pt(8)
+    r=p.add_run(f'CAPTURA PENDIENTE · {modulo.upper()} · se incorporará después de la prueba funcional'); font(r,9,GRIS,False,True)
+
+# Encabezado y pie
+h=sec.header.paragraphs[0]; h.alignment=WD_ALIGN_PARAGRAPH.LEFT; font(h.add_run('LA 91 SUPERMERCADO  |  MANUAL DE USUARIO'),8.5,VERDE,True)
+f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.9 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
+
+# Portada editorial
+doc.add_paragraph().paragraph_format.space_after=Pt(70)
+if LOGO.exists():
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; pic=p.add_run().add_picture(str(LOGO),width=Inches(4.9)); pic._inline.docPr.set('descr','Logotipo de La 91 Supermercado')
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('MANUAL DE USUARIO'),12,CELESTE,True)
+p=doc.add_paragraph(); p.style='Title'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
+p=doc.add_paragraph(); p.style='Subtitle'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Guía operativa para administración, supervisión y caja')
+doc.add_paragraph().paragraph_format.space_after=Pt(90)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.9'),11,VERDE,True)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('Agosto de 2026'),10,GRIS)
+note('Estado del documento.', 'Esta edición acompaña la prueba funcional. Las capturas internas y cualquier ajuste encontrado se incorporarán en la versión 1.0.', 'EAF4F6')
+
+page(); heading('Control del documento')
+table(['Campo','Detalle'],[
+ ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.9 – preliminar'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Después de la prueba funcional integral')],[1.65,4.85])
+heading('Cómo utilizar este manual',2)
+doc.add_paragraph('Cada capítulo describe el objetivo del módulo, el procedimiento habitual y los controles que deben respetarse. Los nombres de botones y opciones aparecen tal como se muestran en el sistema.')
+note('Regla general.', 'Nunca comparta su contraseña. No elimine ni corrija movimientos financieros por fuera del procedimiento autorizado. Ante una diferencia, registre lo ocurrido y comuníquelo al supervisor.')
+heading('Contenido')
+contents=['1. Acceso y navegación','2. Roles y responsabilidades','3. Inicio y tablero','4. Catálogo de productos','5. Inventario','6. Proveedores y compras','7. Clientes y cuentas corrientes','8. Punto de venta','9. Cambios y devoluciones','10. Caja','11. Gastos y servicios','12. Empleados y sueldos','13. Tesorería','14. Reportes','15. Cierre diario y controles','16. Problemas frecuentes','17. Lista de verificación para puesta en marcha']
+for item in contents: doc.add_paragraph(item,style='List Number')
+
+page(); heading('1. Acceso y navegación')
+heading('1.1 Iniciar sesión',2)
+steps(['Abra el navegador e ingrese a la dirección proporcionada por el responsable del sistema.','Escriba su nombre de usuario.','Ingrese su contraseña personal.','Seleccione Ingresar.','Compruebe que en la esquina superior figure su usuario.'])
+if CAPTURA.exists():
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; pic=p.add_run().add_picture(str(CAPTURA),width=Inches(5.8)); pic._inline.docPr.set('descr','Pantalla de acceso al Sistema de Gestión La 91 Supermercado')
+    p=doc.add_paragraph('Pantalla de acceso al sistema.'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.runs[0],8.5,GRIS,False,True)
+heading('1.2 Cerrar sesión',2)
+doc.add_paragraph('Al terminar, seleccione Cerrar sesión en la barra superior. No deje una sesión abierta en un equipo compartido.')
+heading('1.3 Navegación',2)
+doc.add_paragraph('El menú superior muestra únicamente los módulos habilitados para el usuario. Si una opción no aparece, consulte al administrador; no significa necesariamente que exista un error.')
+
+heading('2. Roles y responsabilidades')
+table(['Rol','Responsabilidad principal','Operaciones habituales'],[
+ ('Administrador','Configuración y control general','Usuarios, catálogo, finanzas, personal, reportes y correcciones autorizadas'),('Supervisor','Seguimiento operativo','Compras, inventario, cuentas, gastos, personal y reportes'),('Cajero','Atención y manejo de su caja','Ventas, cobranzas autorizadas, cambios y cierre de su propia caja')],[1.1,2.15,3.25])
+note('Separación de funciones.', 'Cada cajero debe utilizar su propio usuario y su propia caja. La caja física no debe abrirse simultáneamente desde dos sesiones.')
+
+page(); heading('3. Inicio y tablero')
+doc.add_paragraph('Inicio resume el estado operativo: ventas del día, inventario, compras, cajas abiertas, cuentas por cobrar y pagar, gastos y sueldos pendientes.')
+bullets(['Revise productos bajo mínimo antes de realizar pedidos.','Controle compras demoradas.','Observe vencimientos de clientes, proveedores y servicios.','Verifique cuántas cajas permanecen abiertas.','Use Actualizar para solicitar datos recientes.'])
+screenshot_placeholder('Inicio')
+
+heading('4. Catálogo de productos')
+heading('4.1 Buscar y filtrar',2)
+doc.add_paragraph('La búsqueda se actualiza mientras se escribe. También puede navegar mediante los iconos de categorías y filtrar por marca.')
+heading('4.2 Crear o editar un producto',2)
+steps(['Seleccione Nuevo producto o Editar.','Complete nombre, categoría, marca y códigos de barra.','Ingrese precio de costo.','Defina el porcentaje de margen o el precio de venta según corresponda.','Indique stock mínimo y demás controles enteros cuando se soliciten.','Guarde y verifique el resultado.'])
+note('Precios.', 'El precio mayorista importado se interpreta como precio de costo. El precio de venta puede calcularse aplicando un porcentaje sobre ese costo.')
+heading('4.3 Categorías y marcas',2)
+doc.add_paragraph('Las altas y modificaciones se realizan siempre en ventanas modales. Mantenga nombres claros y evite crear categorías o marcas duplicadas.')
+screenshot_placeholder('Catálogo')
+
+page(); heading('5. Inventario')
+doc.add_paragraph('Inventario muestra cantidad disponible, reservada y stock mínimo. Disponible representa lo utilizable; reservado corresponde a unidades comprometidas por operaciones que todavía no deben descontarse definitivamente.')
+heading('5.1 Filtros',2)
+bullets(['Búsqueda por nombre o código.','Categoría y marca.','Productos por debajo del mínimo.','Productos con o sin existencia.'])
+heading('5.2 Ajuste o conteo físico',2)
+steps(['Busque el producto.','Abra el control de existencia.','Ingrese la cantidad física contada.','Indique el motivo de la diferencia.','Confirme y compruebe el nuevo saldo.'])
+note('Control.', 'Todo ajuste debe tener una causa real: conteo, rotura, merma, corrección documentada o consumo interno. No utilice ajustes para ocultar errores de venta o compra.')
+screenshot_placeholder('Inventario')
+
+heading('6. Proveedores y compras')
+heading('6.1 Proveedores',2)
+doc.add_paragraph('Registre razón social, nombre comercial, CUIT, contacto y condiciones relevantes. La cuenta del proveedor muestra facturas, pagos, saldo y deuda vencida.')
+heading('6.2 Orden de compra',2)
+steps(['Seleccione Nueva orden.','Elija el proveedor.','Busque productos escribiendo nombre o código.','Use flechas y Enter para agregar artículos rápidamente.','Complete cantidades y costos.','Revise el total y guarde la orden.','Al recibir mercadería, confirme las cantidades realmente entregadas.'])
+heading('6.3 Facturas y pagos',2)
+steps(['Abra la cuenta del proveedor.','Registre la factura y su vencimiento; vincúlela a la compra si corresponde.','Registre pagos parciales o totales.','Seleccione el medio correcto.','Compruebe el saldo restante y el comprobante.'])
+note('Compras realizadas personalmente.', 'Aunque el dueño o empleado retire la mercadería, la compra debe registrarse al proveedor que emitió la factura o entregó los productos.')
+screenshot_placeholder('Compras y proveedores')
+
+page(); heading('7. Clientes y cuentas corrientes')
+heading('7.1 Crear un cliente',2)
+steps(['Ingrese a Clientes y seleccione Nuevo cliente.','Complete nombre y documento.','Si tendrá crédito, habilite la cuenta corriente.','Defina límite de crédito y días de vencimiento.','Guarde los cambios.'])
+heading('7.2 Venta a crédito y cobranzas',2)
+doc.add_paragraph('En una venta puede registrarse un pago inicial y dejar el resto en cuenta corriente. El sistema controla el límite disponible. Las cobranzas posteriores reducen el saldo del cliente.')
+steps(['Abra la cuenta del cliente.','Revise ventas pendientes y vencidas.','Seleccione Registrar cobranza.','Indique importe, medio y referencia.','Verifique el nuevo saldo.'])
+note('Crédito responsable.', 'No habilite crédito sin autorización. Antes de vender, revise saldo, límite disponible y vencimientos anteriores.')
+screenshot_placeholder('Clientes')
+
+heading('8. Punto de venta')
+heading('8.1 Antes de vender',2)
+doc.add_paragraph('El usuario debe tener una caja abierta. Al abrirla, seleccione una caja disponible e ingrese el efectivo inicial contado.')
+heading('8.2 Registrar una venta',2)
+steps(['Escriba o escanee el código de barras. Si existe una coincidencia exacta, el producto se agrega automáticamente.','Para buscar por nombre, escriba parte de la descripción.','Use Flecha abajo para recorrer resultados y Enter para agregar.','Mantenga la lista abierta para agregar varias unidades con Enter.','Revise cantidades, precios y stock.','Seleccione cliente cuando corresponda.','Complete uno o varios medios de pago.','Confirme la venta y entregue el comprobante disponible.'])
+note('Operación rápida.', 'Flecha arriba desde el primer resultado vuelve al campo de búsqueda. Al llegar al último resultado, la navegación continúa como un único control entre búsqueda y grilla.')
+screenshot_placeholder('Punto de venta')
+
+page(); heading('9. Cambios, devoluciones y anulaciones')
+doc.add_paragraph('Los cambios deben partir de una venta registrada. El sistema permite devolver un artículo, entregar otro y resolver diferencias a favor del cliente o del comercio.')
+steps(['Busque la venta en Historial.','Abra su detalle.','Seleccione la operación de cambio o devolución.','Indique el producto y la cantidad devuelta.','Agregue el producto de reemplazo si corresponde.','Registre el dinero devuelto o cobrado como diferencia.','Confirme mediante el modal y revise el movimiento de stock y caja.'])
+note('No eliminar.', 'Las ventas y movimientos financieros no deben borrarse. Utilice anulaciones, devoluciones o contramovimientos para conservar trazabilidad.')
+
+heading('10. Caja')
+heading('10.1 Apertura',2)
+steps(['Seleccione una caja que figure disponible.','Cuente el dinero físico inicial.','Ingrese el monto y confirme.'])
+heading('10.2 Movimientos y cierre',2)
+doc.add_paragraph('El resumen separa ventas, cobranzas, devoluciones, ingresos manuales y egresos por proveedores, gastos, sueldos y adelantos.')
+steps(['Revise el resumen de la sesión.','Cuente todo el efectivo físico.','Ingrese Efectivo contado.','Compare con Efectivo esperado.','Si existe diferencia, vuelva a contar y documente la causa.','Confirme el cierre.'])
+note('Diferencias.', 'Nunca modifique ventas o movimientos para forzar el cierre. La diferencia debe quedar registrada y ser revisada por el supervisor.')
+screenshot_placeholder('Cierre de caja')
+
+page(); heading('11. Gastos y servicios')
+heading('11.1 Registrar una obligación',2)
+steps(['Seleccione Nuevo gasto.','Indique concepto y categoría.','Asocie proveedor o beneficiario si existe.','Complete comprobante, total, emisión y vencimiento.','Si se repite, marque Recurrente y elija frecuencia.','Guarde.'])
+heading('11.2 Pagar y renovar',2)
+doc.add_paragraph('Los pagos pueden ser parciales. El saldo queda pendiente hasta completarse. Para un servicio recurrente, Generar próximo período crea una obligación nueva conservando sus datos básicos.')
+note('Efectivo.', 'Para pagar en efectivo debe existir una caja abierta para el usuario. Ese importe reduce automáticamente el efectivo esperado de la caja.')
+screenshot_placeholder('Gastos')
+
+heading('12. Empleados, sueldos y adelantos')
+heading('12.1 Legajo',2)
+doc.add_paragraph('Registre datos personales, cargo, modalidad diaria/semanal/quincenal/mensual, sueldo base por período y CBU o alias.')
+heading('12.2 Adelanto',2)
+steps(['Abra el empleado.','Seleccione Nuevo adelanto.','Ingrese fecha, importe y medio.','Si es efectivo, confirme que la caja esté abierta.','Guarde y revise que el adelanto figure pendiente.'])
+heading('12.3 Liquidación y pago',2)
+steps(['Seleccione Liquidar sueldo.','Defina período desde y hasta.','Revise sueldo base.','Agregue adicionales y descuentos.','Mantenga Aplicar adelantos si deben descontarse.','Cree la liquidación y revise el neto.','Registre uno o varios pagos hasta cancelar el saldo.'])
+note('Cálculo.', 'Neto = sueldo base + adicionales − descuentos − adelantos aplicados. Esta liquidación es un control administrativo y no reemplaza la documentación laboral o impositiva exigible.')
+screenshot_placeholder('Empleados')
+
+page(); heading('13. Tesorería')
+doc.add_paragraph('Tesorería controla fondos fuera de las cajas operativas: efectivo general, bancos, billeteras virtuales e inversiones.')
+heading('13.1 Cuentas',2)
+steps(['Seleccione Nueva cuenta.','Indique nombre y tipo.','Ingrese el saldo inicial real.','Guarde y compruebe el saldo.'])
+heading('13.2 Movimientos',2)
+doc.add_paragraph('Registre ingresos y egresos con categoría, concepto, importe, fecha y referencia. El libro permite filtrar por cuenta y tipo.')
+heading('13.3 Transferencias',2)
+steps(['Seleccione Transferir.','Indique cuenta de origen y destino.','Ingrese el importe.','Agregue concepto y referencia.','Confirme. El sistema registra ambas contrapartidas.'])
+note('Evitar duplicaciones.', 'Hasta completar la integración automática definitiva, verifique que un pago ya registrado en Proveedores, Gastos o Sueldos no vuelva a ingresarse manualmente como egreso sin una referencia clara.')
+screenshot_placeholder('Tesorería')
+
+heading('14. Reportes')
+doc.add_paragraph('Seleccione el período y revise ventas, operaciones, ticket promedio, costo, margen bruto, crédito otorgado, deudas, gastos y sueldos.')
+bullets(['Compare ventas con costo y margen.','Revise productos y categorías más vendidos.','Controle medios de pago.','Analice cuentas por cobrar y pagar.','Revise gastos y sueldos pagados y pendientes.'])
+note('Alcance.', 'Los reportes son herramientas de gestión. No sustituyen libros contables, declaraciones impositivas ni documentación fiscal oficial.')
+
+page(); heading('15. Cierre diario y controles')
+heading('15.1 Cajero',2)
+bullets(['Finalizar ventas pendientes.','Revisar devoluciones y diferencias.','Contar efectivo.','Cerrar su caja.','Cerrar sesión.'])
+heading('15.2 Supervisor o administrador',2)
+bullets(['Verificar que no queden cajas abiertas sin responsable.','Revisar diferencias de cierre.','Controlar ventas y cobranzas del día.','Revisar stock bajo mínimo.','Controlar vencimientos próximos.','Confirmar movimientos relevantes de Tesorería.','Verificar que la copia de seguridad se haya completado cuando esté configurada.'])
+table(['Control','Frecuencia','Responsable'],[
+ ('Cierre de cada caja','Diaria / por turno','Cajero y supervisor'),('Stock bajo mínimo','Diaria','Compras o supervisor'),('Cuentas vencidas','Diaria','Administración'),('Tesorería y bancos','Diaria','Administrador'),('Conteo físico selectivo','Semanal','Supervisor'),('Respaldo restaurable','Según política definida','Responsable técnico')],[2.7,1.4,2.4])
+
+heading('16. Problemas frecuentes')
+table(['Situación','Qué revisar'],[
+ ('No aparece un módulo','Permisos del usuario y necesidad de volver a iniciar sesión.'),('No encuentra un producto','Código, nombre, estado activo, precio de venta y existencia.'),('No permite pagar en efectivo','El usuario debe tener una caja abierta.'),('No permite abrir una caja','Puede estar ocupada por otra sesión.'),('El saldo no coincide','Revise pagos parciales, devoluciones, cobranzas y filtros.'),('La venta quedó a crédito','Revise cliente seleccionado, pagos cargados y saldo pendiente.'),('Hay diferencia al cerrar','Vuelva a contar y revise devoluciones, gastos, sueldos, adelantos y movimientos manuales.'),('El sistema muestra un error','Copie el mensaje, anote la operación y comuníquelo sin repetirla varias veces.')],[2.2,4.3])
+
+page(); heading('17. Lista de verificación para puesta en marcha')
+for x in ['Usuarios y roles revisados','Cajas físicas identificadas','Productos, precios y códigos verificados','Stock inicial controlado','Proveedores cargados','Clientes con crédito autorizados','Empleados y modalidades revisados','Cuentas de Tesorería conciliadas','Prueba de compra realizada','Prueba de venta y devolución realizada','Prueba de cuenta corriente y cobranza realizada','Prueba de gasto, sueldo y adelanto realizada','Cierre de caja comprobado','Reportes revisados','Procedimiento de respaldo y restauración probado']:
+    doc.add_paragraph('☐ '+x)
+note('Criterio de salida.', 'La versión 1.0 del manual se emitirá cuando esta lista haya sido ejecutada, se incorporen las capturas internas y se documenten las correcciones finales.')
+heading('Registro de incidencias de la prueba',2)
+table(['Fecha','Módulo','Situación observada','Prioridad','Resolución'],[('','','','',''),('','','','',''),('','','','',''),('','','','','')],[.8,1.05,2.75,.8,1.1])
+
+doc.core_properties.title='Manual de Usuario - Sistema de Gestión La 91 Supermercado'
+doc.core_properties.subject='Guía operativa preliminar versión 0.9'
+doc.core_properties.author='La 91 Supermercado'
+doc.core_properties.keywords='supermercado, manual, usuario, caja, inventario, tesorería'
+OUT.parent.mkdir(parents=True,exist_ok=True)
+doc.save(OUT)
+print(OUT)
