@@ -11,11 +11,11 @@ export async function obtenerReporte({ fecha_desde: desde, fecha_hasta: hasta })
     baseDatos.query(`SELECT vp.medio, SUM(vp.monto) AS total FROM ventas v JOIN ventas_pagos vp ON vp.venta_id = v.id WHERE ${rango} GROUP BY vp.medio ORDER BY total DESC`, parametros),
     baseDatos.query(`SELECT COALESCE(SUM(v.total - COALESCE(p.pagado, 0)), 0) AS otorgado FROM ventas v LEFT JOIN (SELECT venta_id, SUM(monto) AS pagado FROM ventas_pagos GROUP BY venta_id) p ON p.venta_id = v.id WHERE ${rango}`, parametros),
     baseDatos.query(`SELECT COALESCE(SUM(saldo_pendiente), 0) AS total, COALESCE(SUM(CASE WHEN fecha_vencimiento < CURRENT_DATE() THEN saldo_pendiente ELSE 0 END), 0) AS vencido FROM ventas WHERE estado = 'completada'`),
-    baseDatos.query(`SELECT COALESCE(SUM(saldo), 0) AS total, COALESCE(SUM(CASE WHEN fecha_vencimiento < CURRENT_DATE() THEN saldo ELSE 0 END), 0) AS vencido FROM facturas_proveedores WHERE estado IN ('pendiente', 'parcial')`),
+    baseDatos.query(`SELECT COALESCE(SUM(saldo_pendiente), 0) AS total, COALESCE(SUM(CASE WHEN fecha_vencimiento < CURRENT_DATE() THEN saldo_pendiente ELSE 0 END), 0) AS vencido FROM facturas_proveedores WHERE estado IN ('pendiente', 'parcial')`),
     baseDatos.query(`SELECT
       (SELECT COALESCE(SUM(pg.monto), 0) FROM pagos_gastos pg WHERE pg.fecha_creacion >= ? AND pg.fecha_creacion < DATE_ADD(?, INTERVAL 1 DAY)) AS pagado,
-      COALESCE(SUM(g.saldo), 0) AS pendiente,
-      COALESCE(SUM(CASE WHEN g.fecha_vencimiento < CURRENT_DATE() THEN g.saldo ELSE 0 END), 0) AS vencido
+      COALESCE(SUM(g.saldo_pendiente), 0) AS pendiente,
+      COALESCE(SUM(CASE WHEN g.fecha_vencimiento < CURRENT_DATE() THEN g.saldo_pendiente ELSE 0 END), 0) AS vencido
       FROM gastos g WHERE g.estado IN ('pendiente', 'parcial')`, parametros),
   ]);
   const ventas = Number(resumen[0].ventas); const costo = Number(resumen[0].costo);
