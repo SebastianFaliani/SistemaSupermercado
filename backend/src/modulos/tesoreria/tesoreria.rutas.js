@@ -1,0 +1,8 @@
+import { Router } from 'express';import { requerirAutenticacion } from '../seguridad/autenticacion.middleware.js';import { requerirPermiso } from '../seguridad/permisos.middleware.js';import { esquemaConsultaTesoreria,esquemaCuenta,esquemaMovimiento,esquemaTransferencia } from './tesoreria.esquemas.js';import { crearCuenta,crearMovimiento,listarCuentas,listarMovimientos,resumenTesoreria,transferir } from './tesoreria.servicio.js';
+export const rutasTesoreria=Router();rutasTesoreria.use(requerirAutenticacion);const val=(e,d,r)=>{const v=e.safeParse(d);if(!v.success){r.status(400).json({mensaje:'Datos inválidos'});return null;}return v.data;};
+rutasTesoreria.get('/cuentas',requerirPermiso('tesoreria.ver'),async(_q,r)=>r.json({datos:await listarCuentas()}));
+rutasTesoreria.post('/cuentas',requerirPermiso('tesoreria.gestionar'),async(q,r)=>{const v=val(esquemaCuenta,q.body,r);if(v)r.status(201).json({dato:await crearCuenta(v)});});
+rutasTesoreria.get('/resumen',requerirPermiso('tesoreria.ver'),async(_q,r)=>r.json({dato:await resumenTesoreria()}));
+rutasTesoreria.get('/movimientos',requerirPermiso('tesoreria.ver'),async(q,r)=>{const v=val(esquemaConsultaTesoreria,q.query,r);if(v)r.json(await listarMovimientos(v));});
+rutasTesoreria.post('/movimientos',requerirPermiso('tesoreria.gestionar'),async(q,r)=>{const v=val(esquemaMovimiento,q.body,r);if(v)r.status(201).json({dato:await crearMovimiento(v,q.usuario.id)});});
+rutasTesoreria.post('/transferencias',requerirPermiso('tesoreria.gestionar'),async(q,r)=>{const v=val(esquemaTransferencia,q.body,r);if(v)try{r.status(201).json({dato:await transferir(v,q.usuario.id)});}catch(e){if(e.codigoPublico)return r.status(409).json({mensaje:e.message});throw e;}});
