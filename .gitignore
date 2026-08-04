@@ -22,4 +22,4 @@ storage/imagenes_productos/*
 !storage/imagenes_productos/.gitkeep
 base_datos/respaldos/
 *.dump
-
+backups/

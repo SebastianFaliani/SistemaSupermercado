@@ -19,7 +19,8 @@
     "admin:crear": "npm run admin:crear --workspace backend --",
     "simulacion:cargar": "npm run simulacion:cargar --workspace backend",
     "catalogo:importar": "npm run catalogo:importar --workspace backend --",
-    "marcas:inferir": "npm run marcas:inferir --workspace backend --"
+    "marcas:inferir": "npm run marcas:inferir --workspace backend --",
+    "db:limpiar-operacion": "npm run db:limpiar-operacion --workspace backend"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

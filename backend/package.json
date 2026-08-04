@@ -13,7 +13,8 @@
     "admin:crear": "node scripts/crear-administrador.js",
     "simulacion:cargar": "node scripts/cargar-simulacion.js",
     "catalogo:importar": "node scripts/importar-catalogo.js",
-    "marcas:inferir": "node scripts/inferir-marcas.js"
+    "marcas:inferir": "node scripts/inferir-marcas.js",
+    "db:limpiar-operacion": "node scripts/limpiar-operacion.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
