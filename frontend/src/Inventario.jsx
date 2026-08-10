@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
 
 async function solicitar(ruta, token, opciones = {}) {
@@ -32,6 +32,7 @@ export function Inventario({ token, permisos }) {
   const [totalMovimientos, setTotalMovimientos] = useState(0);
   const [paginaMovimientos, setPaginaMovimientos] = useState(1);
   const [conteoRapido, setConteoRapido] = useState(null);
+  const buscadorRef = useRef(null);
   const limite = 25;
   const puedeAjustar = permisos.includes('stock.ajustar');
   const seleccionarContenido = (evento) => evento.currentTarget.select();
@@ -80,6 +81,19 @@ export function Inventario({ token, permisos }) {
     }, 300);
     return () => clearTimeout(temporizador);
   }, [textoBusqueda]);
+  useEffect(() => {
+    if (buscar.length >= 8 && /^\d+$/.test(buscar) && total === 0) {
+      buscadorRef.current?.focus();
+      buscadorRef.current?.select();
+    }
+  }, [buscar, total]);
+
+  function prepararSiguienteBusqueda() {
+    requestAnimationFrame(() => {
+      buscadorRef.current?.focus();
+      buscadorRef.current?.select();
+    });
+  }
 
   async function guardarAjuste(evento) {
     evento.preventDefault();
@@ -97,6 +111,7 @@ export function Inventario({ token, permisos }) {
       setProductoAjuste(null);
       setMensaje('Stock ajustado y movimiento registrado.');
       await cargar();
+      prepararSiguienteBusqueda();
     } catch (error) { setMensaje(error.message); }
   }
 
@@ -151,7 +166,7 @@ export function Inventario({ token, permisos }) {
 
       {vista === 'existencias' ? <>
         <div className="barra-filtros" role="search">
-          <input value={textoBusqueda} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por producto o código de barras" />
+          <input ref={buscadorRef} value={textoBusqueda} onFocus={seleccionarContenido} onKeyDown={(evento) => { if (evento.key === 'Enter') { evento.preventDefault(); evento.currentTarget.select(); } }} onChange={(evento) => setTextoBusqueda(evento.target.value)} placeholder="Buscar por producto o código de barras" />
           <select aria-label="Filtrar por marca" value={marcaId} onChange={(evento) => { setMarcaId(evento.target.value); setPagina(1); }}>
             <option value="">Todas las marcas</option>
             {marcas.map((marca) => <option key={marca.id} value={marca.id}>{marca.nombre}</option>)}
