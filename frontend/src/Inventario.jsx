@@ -222,7 +222,7 @@ export function Inventario({ token, permisos }) {
           <p><strong>{productoAjuste.nombre}</strong></p>
           <p>Stock actual: {Number(productoAjuste.cantidad).toLocaleString('es-AR')}</p>
           <div><label htmlFor="cantidad_nueva">Cantidad física contada</label><input id="cantidad_nueva" name="cantidad_nueva" type="number" min="0" step={productoAjuste.es_pesable ? '0.001' : '1'} defaultValue={productoAjuste.cantidad} onFocus={seleccionarContenido} required /></div>
-          <div><label htmlFor="motivo_ajuste">Motivo del ajuste</label><textarea id="motivo_ajuste" name="motivo" minLength="5" maxLength="255" rows="3" required /></div>
+          <div><label htmlFor="motivo_ajuste">Motivo del ajuste</label><textarea id="motivo_ajuste" name="motivo" minLength="5" maxLength="255" rows="3" defaultValue="Carga inicial de existencias" onFocus={seleccionarContenido} required /></div>
           <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={() => setProductoAjuste(null)}>Cancelar</button><button className="boton">Registrar ajuste</button></div>
         </form>}
       </Modal>
@@ -239,7 +239,7 @@ export function Inventario({ token, permisos }) {
               </tr>)}</tbody>
             </table>
           </div>
-          <div><label htmlFor="motivo_conteo">Motivo</label><input id="motivo_conteo" name="motivo" defaultValue="Carga inicial de existencias" minLength="5" maxLength="255" required /></div>
+          <div><label htmlFor="motivo_conteo">Motivo</label><input id="motivo_conteo" name="motivo" defaultValue="Carga inicial de existencias" minLength="5" maxLength="255" onFocus={seleccionarContenido} required /></div>
           <div className="modal__acciones"><span className="resumen-cambios">{cambiosConteo} {cambiosConteo === 1 ? 'cambio' : 'cambios'}</span><button type="button" className="boton boton--secundario" onClick={() => setConteoRapido(null)}>Cancelar</button><button className="boton" disabled={!cambiosConteo}>Registrar cantidades</button></div>
         </form>}
       </Modal>
