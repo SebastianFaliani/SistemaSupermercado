@@ -895,7 +895,7 @@ export function Ventas({ token, permisos }) {
         abierto={modalCaja}
         titulo="Abrir caja"
         alCerrar={() => {
-          if (sesion) setModalCaja(false);
+          if (!procesando) setModalCaja(false);
         }}
       >
         <form className="formulario-modal" onSubmit={abrirCaja}>
@@ -939,6 +939,9 @@ export function Ventas({ token, permisos }) {
             </p>
           )}
           <div className="modal__acciones">
+            <button type="button" className="boton boton--secundario" disabled={procesando} onClick={() => setModalCaja(false)}>
+              Cancelar
+            </button>
             <button
               className="boton"
               disabled={procesando || !cajasDisponibles.length}

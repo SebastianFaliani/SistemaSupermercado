@@ -11,6 +11,7 @@ import { Clientes } from './Clientes.jsx';
 import { Gastos } from './Gastos.jsx';
 import { Empleados } from './Empleados.jsx';
 import { Tesoreria } from './Tesoreria.jsx';
+import { CampoClave } from './componentes/CampoClave.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
 
@@ -141,7 +142,7 @@ export function Aplicacion() {
           <label htmlFor="nombre_usuario">Usuario</label>
           <input id="nombre_usuario" name="nombre_usuario" minLength="3" required autoComplete="username" />
           <label htmlFor="clave">Contraseña</label>
-          <input id="clave" name="clave" type="password" minLength="8" required autoComplete="current-password" />
+          <CampoClave id="clave" name="clave" minLength="8" required autoComplete="current-password" />
           {mensaje && <p className="mensaje-error" role="alert">{mensaje}</p>}
           <button className="boton" disabled={enviando}>
             {enviando ? 'Ingresando…' : 'Ingresar'}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
+import { CampoClave } from './componentes/CampoClave.jsx';
 
 async function solicitar(ruta, token, opciones = {}) {
   const respuesta = await fetch(ruta, {
@@ -24,7 +25,7 @@ function FormularioUsuario({ usuario, roles, alGuardar, alCancelar }) {
       <div className="campo"><label htmlFor="usuario_documento">Documento</label><input id="usuario_documento" name="numero_documento" defaultValue={usuario?.numero_documento ?? ''} maxLength="20" /></div>
       <div className="campo"><label htmlFor="usuario_telefono">Teléfono</label><input id="usuario_telefono" name="telefono" defaultValue={usuario?.telefono ?? ''} maxLength="30" /></div>
       <div className="campo campo--ancho"><label htmlFor="usuario_correo">Correo electrónico</label><input id="usuario_correo" name="correo_electronico" type="email" defaultValue={usuario?.correo_electronico ?? ''} maxLength="254" /></div>
-      <div className="campo campo--ancho"><label htmlFor="usuario_clave">{usuario ? 'Nueva contraseña (opcional)' : 'Contraseña inicial'}</label><input id="usuario_clave" name="clave" type="password" minLength="12" maxLength="128" required={!usuario} autoComplete="new-password" /><small>Mínimo 12 caracteres. Al ingresar deberá cambiarla.</small></div>
+      <div className="campo campo--ancho"><label htmlFor="usuario_clave">{usuario ? 'Nueva contraseña (opcional)' : 'Contraseña inicial'}</label><CampoClave id="usuario_clave" name="clave" minLength="12" maxLength="128" required={!usuario} autoComplete="new-password" /><small>Mínimo 12 caracteres. Al ingresar deberá cambiarla.</small></div>
       {usuario && <label className="filtro-verificacion campo--ancho"><input name="esta_activo" type="checkbox" defaultChecked={Boolean(usuario.esta_activo)} /> Usuario activo</label>}
     </div>
     <div className="modal__acciones"><button type="button" className="boton boton--secundario" onClick={alCancelar}>Cancelar</button><button className="boton">{usuario ? 'Guardar cambios' : 'Crear usuario'}</button></div>
