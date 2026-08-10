@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
+import { GestionCajas } from './componentes/GestionCajas.jsx';
 
 async function pedir(ruta, token, opciones = {}) {
   const respuesta = await fetch(ruta, {
@@ -64,6 +65,7 @@ export function Ventas({ token, permisos }) {
   const [sesionesCaja, setSesionesCaja] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState('');
+  const [modalGestionCajas, setModalGestionCajas] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -82,6 +84,10 @@ export function Ventas({ token, permisos }) {
     } catch (error) {
       setMensaje(error.message);
     }
+  }, [token]);
+  const actualizarCajasDisponibles = useCallback(async () => {
+    try { setCajasDisponibles((await pedir('/api/ventas/caja/disponibles', token)).datos); }
+    catch (error) { setMensaje(error.message); }
   }, [token]);
   useEffect(() => {
     cargar();
@@ -583,8 +589,12 @@ export function Ventas({ token, permisos }) {
         {permisos.includes('caja.operar') && (
           <button onClick={abrirHistorialCajas}>Historial de cajas</button>
         )}
+        {permisos.includes('caja.supervisar') && (
+          <button onClick={() => setModalGestionCajas(true)}>Administrar cajas</button>
+        )}
       </div>
       {mensaje && <p className="mensaje">{mensaje}</p>}
+      <GestionCajas abierto={modalGestionCajas} token={token} alCerrar={() => setModalGestionCajas(false)} alActualizar={actualizarCajasDisponibles} />
       {vista === 'venta' ? (
         <div className="rejilla-venta">
           <article className="panel buscador-venta">

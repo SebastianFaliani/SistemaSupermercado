@@ -14,6 +14,42 @@ export async function listarCajasDisponibles() {
   return filas;
 }
 
+export async function listarCajas() {
+  const [filas] = await baseDatos.query(`SELECT c.id, c.codigo, c.nombre, c.esta_activa,
+    sc.id AS sesion_abierta_id, u.nombre_usuario AS usuario_actual, sc.fecha_apertura
+    FROM cajas c LEFT JOIN sesiones_caja sc ON sc.caja_id = c.id AND sc.estado = 'abierta'
+    LEFT JOIN usuarios u ON u.id = sc.usuario_id ORDER BY c.nombre`);
+  return filas;
+}
+
+export async function crearCaja(datos) {
+  const [resultado] = await baseDatos.query(
+    'INSERT INTO cajas (codigo, nombre, esta_activa) VALUES (?, ?, ?)',
+    [datos.codigo.toUpperCase(), datos.nombre, datos.esta_activa],
+  );
+  return { id: resultado.insertId };
+}
+
+export async function editarCaja(id, datos) {
+  const [[abierta]] = await baseDatos.query(
+    "SELECT id FROM sesiones_caja WHERE caja_id = ? AND estado = 'abierta' LIMIT 1",
+    [id],
+  );
+  if (abierta && !datos.esta_activa) {
+    const error = new Error('No se puede desactivar una caja mientras está abierta');
+    error.codigoPublico = 'CAJA_EN_USO';
+    throw error;
+  }
+  const [resultado] = await baseDatos.query(
+    'UPDATE cajas SET codigo = ?, nombre = ?, esta_activa = ? WHERE id = ?',
+    [datos.codigo.toUpperCase(), datos.nombre, datos.esta_activa, id],
+  );
+  if (!resultado.affectedRows) {
+    const error = new Error('No se encontró la caja'); error.codigoPublico = 'NO_ENCONTRADA'; throw error;
+  }
+  return { id };
+}
+
 export async function resumenCaja(usuarioId) {
   const sesion = await obtenerSesion(usuarioId);
   if (!sesion) return null;

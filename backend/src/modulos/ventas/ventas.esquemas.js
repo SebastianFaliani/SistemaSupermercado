@@ -15,6 +15,12 @@ export const esquemaConsultaCajas = z.object({
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
 });
+export const esquemaIdCaja = z.coerce.number().int().positive();
+export const esquemaCaja = z.object({
+  codigo: z.string().trim().min(2).max(40).regex(/^[A-Z0-9_-]+$/i),
+  nombre: z.string().trim().min(2).max(100),
+  esta_activa: z.boolean().default(true),
+});
 export const esquemaVenta = z.object({
   cliente_id: z.coerce.number().int().positive().nullable().optional(),
   detalles: z.array(z.object({ producto_id: z.coerce.number().int().positive(), cantidad: z.coerce.number().positive().max(999999999999.999) })).min(1).max(200)
