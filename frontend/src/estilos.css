@@ -82,6 +82,7 @@
 .ecommerce-admin .tabla-contenedor th:last-child,
 .ecommerce-admin .tabla-contenedor td:last-child { padding-right: 13px; text-align: right; }
 .ecommerce-admin .boton-tabla { min-width: 64px; }
+.ecommerce-admin .boton--nueva-promocion { margin-bottom: 12px; }
 .ecommerce-admin .boton-tabla:hover:not(:disabled) {
   color: var(--color-blanco);
   background: var(--color-primario-700);
