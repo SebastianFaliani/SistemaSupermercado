@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.5.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.6.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -293,13 +293,42 @@ paso('Seleccione Rendir efectivo, elija Efectivo general como destino y confirme
 tabla(['Control', 'Resultado validado'], [('Fondo retirado al abrir', '- $50.000'), ('Efectivo esperado al cerrar', '$51.130'), ('Diferencia de caja', '$0'), ('Estado antes de entregar', 'Cerrada / Pendiente'), ('Estado después de entregar', 'Cerrada / Rendida'), ('Saldo final de Efectivo general', '$350.340'), ('Incremento neto del turno', '+ $1.130')], [3.5, 3.0])
 for texto in ['El cierre pendiente no aumenta Tesorería antes de la entrega física.', 'El historial permite filtrar por fecha, estado de caja y estado de rendición.', 'El historial muestra hasta 8 sesiones por página y dispone de paginación.', 'La rendición posterior registra un ingreso de $51.130 en Efectivo general.', 'La caja conserva la fecha, hora, importe y cuenta de destino de la rendición.']: check(texto)
 
-heading('19. Controles transversales validados')
-for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Historial de cajas filtrable y paginado, sin desplazamiento infinito.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
+pagina(); heading('19. Empleados, adelantos y liquidaciones')
+heading('19.1 Alta del empleado', 2)
+paso('Abra Empleados y cree a Juan Perez, DNI 30111222, cargo Repositor, modalidad Mensual y sueldo base de $600.000.')
+nota('Cargo y rol.', 'Cargo describe la tarea laboral del empleado. Rol corresponde a los permisos de acceso de un usuario. Un empleado puede existir sin tener usuario en el sistema.')
+heading('19.2 Adelanto integrado con Tesorería', 2)
+paso('Abra el detalle de Juan Perez y seleccione Nuevo adelanto.')
+paso('Registre $50.000 en efectivo con fecha 11-08-2026, origen Efectivo general y referencia ADELANTO-JP-001.')
+tabla(['Control', 'Resultado validado'], [('Estado del adelanto', 'Pendiente'), ('Importe', '$50.000'), ('Efectivo general antes', '$350.340'), ('Efectivo general después', '$300.340'), ('Movimiento de Tesorería', 'Egreso · sueldo')], [3.5, 3.0])
+for texto in ['El adelanto queda visible en el detalle del empleado.', 'El origen del dinero queda identificado.', 'Tesorería disminuye exactamente por el importe entregado.', 'La operación no afecta una caja abierta cuando el origen es Efectivo general.']: check(texto)
+heading('19.3 Liquidación mensual', 2)
+paso('Seleccione Liquidar sueldo y cargue el período 01-08-2026 al 31-08-2026.')
+paso('Mantenga sueldo base $600.000, adicionales $0, descuentos $0 y active Aplicar adelantos pendientes.')
+tabla(['Concepto', 'Importe'], [('Sueldo base', '$600.000'), ('Adelanto aplicado', '- $50.000'), ('Neto liquidado', '$550.000'), ('Saldo inicial de la liquidación', '$550.000')], [3.5, 3.0])
+for texto in ['La liquidación queda Pendiente.', 'El adelanto pasa de Pendiente a Aplicado.', 'La columna Adelantos vuelve a $0.', 'Tesorería informa $550.000 en Sueldos pendientes.', 'Crear una liquidación reconoce la deuda, pero no genera todavía un egreso.']: check(texto)
+nota('Control de duplicados.', 'El sistema impide crear otra liquidación para el mismo empleado cuando el período se superpone con una liquidación existente.')
+heading('19.4 Pago parcial y cancelación', 2)
+paso('Abra la Liquidación #1 y registre un pago de $200.000 por transferencia desde Banco de prueba, referencia SUELDO-JP-AGO-001.')
+tabla(['Control', 'Resultado parcial'], [('Banco antes', '$740.000'), ('Pago parcial', '- $200.000'), ('Banco después', '$540.000'), ('Saldo de sueldo', '$350.000'), ('Estado', 'Parcial')], [3.5, 3.0])
+paso('Registre el pago final de $350.000 desde Banco de prueba, referencia SUELDO-JP-AGO-002.')
+tabla(['Control', 'Resultado final'], [('Banco antes', '$540.000'), ('Pago final', '- $350.000'), ('Banco después', '$190.000'), ('Saldo de sueldo', '$0'), ('Estado', 'Pagada')], [3.5, 3.0])
+for texto in ['El estado Parcial o Pagada aparece en la tabla y dentro del detalle.', 'Al pagar, todos los modales reflejan el nuevo saldo y estado sin volver a abrirlos.', 'Los dos pagos aparecen con fecha, medio, cuenta e importe.', 'Tesorería registra egresos de sueldo por $550.000.', 'Adelanto más pagos totalizan los $600.000 del sueldo base.']: check(texto)
+heading('19.5 Constancias para firma', 2)
+paso('En el historial de adelantos, seleccione Imprimir constancia.')
+paso('En el detalle de la liquidación, seleccione Imprimir recibo.')
+for texto in ['La vista previa utiliza papel A4.', 'Incluye datos del comercio y del empleado.', 'Detalla importes, medio, origen, referencia y estado.', 'El recibo discrimina sueldo base, adicionales, descuentos, adelantos, pagos y saldo.', 'Incluye espacios para firma del empleado y del empleador.', 'Se indica emitir el comprobante por duplicado.']: check(texto)
+nota('Alcance documental.', 'Estos comprobantes funcionan como constancia interna de pago y recepción. Antes de utilizarlos como recibo laboral definitivo, el comercio debe validar con su profesional contable los requisitos legales y fiscales aplicables.')
+heading('19.6 Paginación del Libro de Tesorería', 2)
+doc.add_paragraph('El Libro de Tesorería muestra hasta 15 movimientos por página. Los botones Anterior y Siguiente recorren el historial sin producir desplazamiento infinito. Los totales de ingresos y egresos continúan calculándose sobre todos los movimientos que coinciden con los filtros.')
 
-heading('20. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.'), ('11-08-2026', 'Cierre pendiente y rendición posterior', 'Aprobado', 'Rendición $51.130; saldo final $350.340.')], [1.1, 2.1, 1.25, 2.05])
-heading('20.1 Próximos circuitos a incorporar', 2)
-for texto in ['Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.']: check(texto)
+heading('20. Controles transversales validados')
+for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Historial de cajas filtrable y paginado, sin desplazamiento infinito.', 'Libro de Tesorería paginado en el servidor y con totales globales filtrados.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
+
+heading('21. Registro incremental de pruebas')
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.'), ('11-08-2026', 'Cierre pendiente y rendición posterior', 'Aprobado', 'Rendición $51.130; saldo final $350.340.'), ('11-08-2026', 'Adelanto y liquidación de sueldo', 'Aprobado', 'Adelanto $50.000; neto $550.000.'), ('11-08-2026', 'Pago parcial y final de sueldo', 'Aprobado', 'Banco final $190.000; saldo $0.'), ('11-08-2026', 'Comprobantes laborales', 'Aprobado', 'Constancia y recibo A4 firmables.')], [1.1, 2.1, 1.25, 2.05])
+heading('21.1 Próximos circuitos a incorporar', 2)
+for texto in ['Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.', 'Respaldo, restauración y controles de puesta en marcha.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
 
 doc.core_properties.title = 'Guía de Prueba Funcional - Sistema de Gestión La 91 Supermercado'
