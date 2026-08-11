@@ -14,6 +14,23 @@ export async function listarCajasDisponibles() {
   return filas;
 }
 
+export async function listarCuentasEfectivo() {
+  const [filas] = await baseDatos.query(`SELECT ct.id, ct.nombre,
+    ct.saldo_inicial + COALESCE(SUM(CASE WHEN mt.tipo = 'ingreso' THEN mt.monto ELSE -mt.monto END), 0) AS saldo
+    FROM cuentas_tesoreria ct LEFT JOIN movimientos_tesoreria mt ON mt.cuenta_tesoreria_id = ct.id
+    WHERE ct.esta_activa = TRUE AND ct.tipo = 'efectivo' GROUP BY ct.id ORDER BY ct.nombre`);
+  return filas;
+}
+
+async function obtenerCuentaEfectivo(conexion, cuentaId) {
+  const [[cuenta]] = await conexion.query(`SELECT ct.id, ct.nombre,
+    ct.saldo_inicial + COALESCE((SELECT SUM(CASE WHEN mt.tipo = 'ingreso' THEN mt.monto ELSE -mt.monto END)
+      FROM movimientos_tesoreria mt WHERE mt.cuenta_tesoreria_id = ct.id), 0) AS saldo
+    FROM cuentas_tesoreria ct WHERE ct.id = ? AND ct.esta_activa = TRUE AND ct.tipo = 'efectivo' FOR UPDATE`, [cuentaId]);
+  if (!cuenta) { const error = new Error('La cuenta de efectivo seleccionada no está disponible'); error.codigoPublico = 'CUENTA_INVALIDA'; throw error; }
+  return cuenta;
+}
+
 export async function listarCajas() {
   const [filas] = await baseDatos.query(`SELECT c.id, c.codigo, c.nombre, c.esta_activa,
     sc.id AS sesion_abierta_id, u.nombre_usuario AS usuario_actual, sc.fecha_apertura
@@ -99,11 +116,16 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
   if (consulta.fecha_hasta) { condiciones.push('sc.fecha_apertura < DATE_ADD(?, INTERVAL 1 DAY)'); parametros.push(`${consulta.fecha_hasta} 00:00:00`); }
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
   const desde = `FROM sesiones_caja sc JOIN cajas c ON c.id = sc.caja_id
-    JOIN usuarios u ON u.id = sc.usuario_id ${donde}`;
+    JOIN usuarios u ON u.id = sc.usuario_id
+    LEFT JOIN cuentas_tesoreria coa ON coa.id = sc.cuenta_origen_apertura_id
+    LEFT JOIN cuentas_tesoreria cdr ON cdr.id = sc.cuenta_destino_rendicion_id ${donde}`;
   const offset = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [conteo]] = await Promise.all([
     baseDatos.query(`SELECT sc.id, c.nombre AS caja, u.nombre_usuario, sc.estado,
       sc.monto_inicial, sc.monto_contado_cierre, sc.diferencia_cierre,
+      sc.estado_rendicion, sc.monto_rendido, sc.fecha_rendicion,
+      sc.cuenta_origen_apertura_id, coa.nombre AS cuenta_origen_apertura,
+      sc.cuenta_destino_rendicion_id, cdr.nombre AS cuenta_destino_rendicion,
       sc.fecha_apertura, sc.fecha_cierre,
       (SELECT COALESCE(SUM(v.total), 0) FROM ventas v
        WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada') AS ventas,
@@ -151,7 +173,37 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
   return { datos: sesiones, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
 }
 
-export async function cerrarCaja(usuarioId, montoContado) {
+async function registrarRendicion(conexion, sesionId, usuarioId, cuentaDestinoId) {
+  const [[sesion]] = await conexion.query(`SELECT sc.*, c.nombre AS caja FROM sesiones_caja sc
+    JOIN cajas c ON c.id = sc.caja_id WHERE sc.id = ? FOR UPDATE`, [sesionId]);
+  if (!sesion || sesion.estado !== 'cerrada') { const error = new Error('La caja debe estar cerrada para rendirla'); error.codigoPublico = 'CAJA_NO_CERRADA'; throw error; }
+  if (sesion.estado_rendicion === 'rendida') { const error = new Error('La caja ya fue rendida'); error.codigoPublico = 'CAJA_YA_RENDIDA'; throw error; }
+  const cuenta = await obtenerCuentaEfectivo(conexion, cuentaDestinoId);
+  if (!sesion.cuenta_origen_apertura_id && Number(sesion.monto_inicial) > 0) {
+    if (Number(cuenta.saldo) + 0.009 < Number(sesion.monto_inicial)) { const error = new Error('La cuenta no tiene saldo suficiente para regularizar el fondo inicial histórico'); error.codigoPublico = 'SALDO_INSUFICIENTE'; throw error; }
+    await conexion.query(`INSERT INTO movimientos_tesoreria
+      (cuenta_tesoreria_id, usuario_id, tipo, categoria, concepto, monto, referencia, fecha, sesion_caja_apertura_id)
+      VALUES (?, ?, 'egreso', 'ajuste', ?, ?, ?, DATE(?), ?)`,
+    [cuenta.id, usuarioId, `Regularización del fondo inicial de ${sesion.caja}`, sesion.monto_inicial, `Apertura histórica de caja #${sesion.id}`, sesion.fecha_apertura, sesion.id]);
+    await conexion.query('UPDATE sesiones_caja SET cuenta_origen_apertura_id = ? WHERE id = ?', [cuenta.id, sesion.id]);
+  }
+  await conexion.query(`INSERT INTO movimientos_tesoreria
+    (cuenta_tesoreria_id, usuario_id, tipo, categoria, concepto, monto, referencia, fecha, sesion_caja_rendicion_id)
+    VALUES (?, ?, 'ingreso', 'ajuste', ?, ?, ?, CURRENT_DATE(), ?)`,
+  [cuenta.id, usuarioId, `Rendición de ${sesion.caja}`, sesion.monto_contado_cierre, `Cierre de caja #${sesion.id}`, sesion.id]);
+  await conexion.query(`UPDATE sesiones_caja SET estado_rendicion = 'rendida', cuenta_destino_rendicion_id = ?,
+    monto_rendido = monto_contado_cierre, fecha_rendicion = CURRENT_TIMESTAMP(3) WHERE id = ?`, [cuenta.id, sesion.id]);
+  return { id: sesion.id, monto_rendido: Number(sesion.monto_contado_cierre), cuenta: cuenta.nombre };
+}
+
+export async function rendirCaja(id, usuarioId, cuentaDestinoId) {
+  const conexion = await baseDatos.getConnection();
+  try { await conexion.beginTransaction(); const dato = await registrarRendicion(conexion, id, usuarioId, cuentaDestinoId); await conexion.commit(); return dato; }
+  catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
+}
+
+export async function cerrarCaja(usuarioId, datos) {
+  const montoContado = datos.monto_contado;
   const conexion = await baseDatos.getConnection();
   try {
     await conexion.beginTransaction();
@@ -182,24 +234,35 @@ export async function cerrarCaja(usuarioId, montoContado) {
     await conexion.query(`UPDATE sesiones_caja SET estado = 'cerrada', monto_contado_cierre = ?,
       diferencia_cierre = ?, fecha_cierre = CURRENT_TIMESTAMP(3) WHERE id = ?`,
     [montoContado, diferencia, sesion.id]);
+    let rendicion = null;
+    if (datos.cuenta_destino_id) rendicion = await registrarRendicion(conexion, sesion.id, usuarioId, datos.cuenta_destino_id);
     await conexion.commit(); return { id: sesion.id, efectivo_esperado: esperado,
-      monto_contado: montoContado, diferencia };
+      monto_contado: montoContado, diferencia, rendicion };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 
-export async function abrirCaja(usuarioId, cajaId, montoInicial) {
-  if (await obtenerSesion(usuarioId)) { const error = new Error('Ya tenés una caja abierta'); error.codigoPublico = 'CAJA_ABIERTA'; throw error; }
-  const [[caja]] = await baseDatos.query(`SELECT c.id FROM cajas c
-    LEFT JOIN sesiones_caja sc ON sc.caja_id = c.id AND sc.estado = 'abierta'
-    WHERE c.id = ? AND c.esta_activa = TRUE AND sc.id IS NULL`, [cajaId]);
-  if (!caja) { const error = new Error('La caja seleccionada ya no está disponible'); error.codigoPublico = 'CAJA_NO_DISPONIBLE'; throw error; }
+export async function abrirCaja(usuarioId, cajaId, montoInicial, cuentaOrigenId) {
+  const conexion = await baseDatos.getConnection();
   try {
-    const [resultado] = await baseDatos.query('INSERT INTO sesiones_caja (caja_id, usuario_id, monto_inicial) VALUES (?, ?, ?)', [caja.id, usuarioId, montoInicial]);
-    return { id: resultado.insertId };
-  } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') { const publico = new Error('La caja seleccionada acaba de ser ocupada'); publico.codigoPublico = 'CAJA_NO_DISPONIBLE'; throw publico; }
-    throw error;
-  }
+    await conexion.beginTransaction();
+    const [[abierta]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' LIMIT 1 FOR UPDATE", [usuarioId]);
+    if (abierta) { const error = new Error('Ya tenés una caja abierta'); error.codigoPublico = 'CAJA_ABIERTA'; throw error; }
+    const [[caja]] = await conexion.query(`SELECT c.id, c.nombre FROM cajas c LEFT JOIN sesiones_caja sc ON sc.caja_id = c.id AND sc.estado = 'abierta'
+      WHERE c.id = ? AND c.esta_activa = TRUE AND sc.id IS NULL FOR UPDATE`, [cajaId]);
+    if (!caja) { const error = new Error('La caja seleccionada ya no está disponible'); error.codigoPublico = 'CAJA_NO_DISPONIBLE'; throw error; }
+    let cuenta = null;
+    if (montoInicial > 0) {
+      cuenta = await obtenerCuentaEfectivo(conexion, cuentaOrigenId);
+      if (Number(cuenta.saldo) + 0.009 < montoInicial) { const error = new Error('La cuenta de origen no tiene saldo suficiente'); error.codigoPublico = 'SALDO_INSUFICIENTE'; throw error; }
+    }
+    const [resultado] = await conexion.query(`INSERT INTO sesiones_caja
+      (caja_id, usuario_id, monto_inicial, cuenta_origen_apertura_id) VALUES (?, ?, ?, ?)`, [caja.id, usuarioId, montoInicial, cuenta?.id || null]);
+    if (cuenta) await conexion.query(`INSERT INTO movimientos_tesoreria
+      (cuenta_tesoreria_id, usuario_id, tipo, categoria, concepto, monto, referencia, fecha, sesion_caja_apertura_id)
+      VALUES (?, ?, 'egreso', 'ajuste', ?, ?, ?, CURRENT_DATE(), ?)`,
+    [cuenta.id, usuarioId, `Fondo inicial de ${caja.nombre}`, montoInicial, `Apertura de caja #${resultado.insertId}`, resultado.insertId]);
+    await conexion.commit(); return { id: resultado.insertId };
+  } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 
 export async function referenciasVenta() {

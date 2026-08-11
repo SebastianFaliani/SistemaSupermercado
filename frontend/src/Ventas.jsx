@@ -22,6 +22,7 @@ export function Ventas({ token, permisos }) {
   const [resumenCajaActual, setResumenCajaActual] = useState(null);
   const [productos, setProductos] = useState([]);
   const [cajasDisponibles, setCajasDisponibles] = useState([]);
+  const [cuentasEfectivo, setCuentasEfectivo] = useState([]);
   const [buscar, setBuscar] = useState('');
   const [carrito, setCarrito] = useState([]);
   const [modalCaja, setModalCaja] = useState(false);
@@ -38,6 +39,8 @@ export function Ventas({ token, permisos }) {
   const [modalCierre, setModalCierre] = useState(false);
   const [resumenCierre, setResumenCierre] = useState(null);
   const [montoContado, setMontoContado] = useState('');
+  const [rendirAlCerrar, setRendirAlCerrar] = useState(true);
+  const [cuentaRendicion, setCuentaRendicion] = useState('');
   const [resultadoActivo, setResultadoActivo] = useState(-1);
   const [vista, setVista] = useState('venta');
   const [ventas, setVentas] = useState([]);
@@ -66,21 +69,24 @@ export function Ventas({ token, permisos }) {
   const [tipoMovimiento, setTipoMovimiento] = useState('ingreso');
   const [modalHistorialCajas, setModalHistorialCajas] = useState(false);
   const [sesionesCaja, setSesionesCaja] = useState([]);
+  const [sesionARendir, setSesionARendir] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState('');
   const [modalGestionCajas, setModalGestionCajas] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
-      const [caja, disponibles, referencias, referenciaClientes] =
+      const [caja, disponibles, cuentas, referencias, referenciaClientes] =
         await Promise.all([
           pedir('/api/ventas/caja/actual', token),
           pedir('/api/ventas/caja/disponibles', token),
+          pedir('/api/ventas/caja/cuentas-efectivo', token),
           pedir('/api/ventas/referencias', token),
           pedir('/api/ventas/clientes', token),
         ]);
       setSesion(caja.dato);
       setCajasDisponibles(disponibles.datos);
+      setCuentasEfectivo(cuentas.datos);
       setProductos(referencias.datos);
       setClientes(referenciaClientes.datos);
       if (caja.dato) setResumenCajaActual((await pedir('/api/ventas/caja/resumen', token)).dato);
@@ -281,6 +287,7 @@ export function Ventas({ token, permisos }) {
         body: JSON.stringify({
           caja_id: Number(formulario.get('caja_id')),
           monto_inicial: Number(formulario.get('monto_inicial')),
+          cuenta_origen_id: Number(formulario.get('cuenta_origen_id')),
         }),
       });
       setModalCaja(false);
@@ -356,6 +363,8 @@ export function Ventas({ token, permisos }) {
       const respuesta = await pedir('/api/ventas/caja/resumen', token);
       setResumenCierre(respuesta.dato);
       setMontoContado(String(respuesta.dato.efectivo_esperado));
+      setRendirAlCerrar(true);
+      setCuentaRendicion(cuentasEfectivo[0]?.id ? String(cuentasEfectivo[0].id) : '');
       setModalCierre(true);
     } catch (error) {
       setMensaje(error.message);
@@ -366,7 +375,10 @@ export function Ventas({ token, permisos }) {
     try {
       const respuesta = await pedir('/api/ventas/caja/cerrar', token, {
         method: 'POST',
-        body: JSON.stringify({ monto_contado: Number(montoContado) }),
+        body: JSON.stringify({
+          monto_contado: Number(montoContado),
+          cuenta_destino_id: rendirAlCerrar ? Number(cuentaRendicion) : null,
+        }),
       });
       const disponibles = await pedir('/api/ventas/caja/disponibles', token);
       setCajasDisponibles(disponibles.datos);
@@ -375,7 +387,7 @@ export function Ventas({ token, permisos }) {
       setModalCierre(false);
       setResumenCierre(null);
       setMensaje(
-        `Caja cerrada. Diferencia: $${Number(respuesta.dato.diferencia).toLocaleString('es-AR', { minimumFractionDigits: 2 })}.`,
+        `Caja cerrada. Diferencia: $${Number(respuesta.dato.diferencia).toLocaleString('es-AR', { minimumFractionDigits: 2 })}.${respuesta.dato.rendicion ? ` Efectivo rendido en ${respuesta.dato.rendicion.cuenta}.` : ' La rendición quedó pendiente.'}`,
       );
     } catch (error) {
       setMensaje(error.message);
@@ -544,6 +556,26 @@ export function Ventas({ token, permisos }) {
       setModalHistorialCajas(true);
     } catch (error) {
       setMensaje(error.message);
+    }
+  }
+
+  async function rendirSesion() {
+    setProcesando(true);
+    try {
+      const respuesta = await pedir(`/api/ventas/caja/${sesionARendir.id}/rendir`, token, {
+        method: 'POST',
+        body: JSON.stringify({ cuenta_destino_id: Number(cuentaRendicion) }),
+      });
+      setSesionARendir(null);
+      setMensaje(`Caja rendida correctamente en ${respuesta.dato.cuenta}.`);
+      const historial = await pedir('/api/ventas/caja/historial?pagina=1&limite=100', token);
+      setSesionesCaja(historial.datos);
+      const cuentas = await pedir('/api/ventas/caja/cuentas-efectivo', token);
+      setCuentasEfectivo(cuentas.datos);
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProcesando(false);
     }
   }
 
@@ -958,6 +990,18 @@ export function Ventas({ token, permisos }) {
                   required
                 />
               </div>
+              <div>
+                <label htmlFor="cuenta_origen_id">Origen del fondo inicial</label>
+                <select id="cuenta_origen_id" name="cuenta_origen_id" required defaultValue="">
+                  <option value="" disabled>Seleccionar cuenta de efectivo</option>
+                  {cuentasEfectivo.map((cuenta) => (
+                    <option key={cuenta.id} value={cuenta.id}>
+                      {cuenta.nombre} · disponible ${Number(cuenta.saldo).toLocaleString('es-AR')}
+                    </option>
+                  ))}
+                </select>
+                <small className="dato-secundario">El fondo se descontará automáticamente de Tesorería.</small>
+              </div>
             </>
           ) : (
             <p className="mensaje-error">
@@ -1212,6 +1256,24 @@ export function Ventas({ token, permisos }) {
                 ).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </strong>
             </p>
+            <label className="opcion-rendicion">
+              <input
+                type="checkbox"
+                checked={rendirAlCerrar}
+                onChange={(evento) => setRendirAlCerrar(evento.target.checked)}
+              />
+              Rendir ahora el efectivo contado a Tesorería
+            </label>
+            {rendirAlCerrar && (
+              <div>
+                <label htmlFor="cuenta_rendicion">Destino del efectivo</label>
+                <select id="cuenta_rendicion" value={cuentaRendicion} onChange={(evento) => setCuentaRendicion(evento.target.value)} required>
+                  <option value="" disabled>Seleccionar cuenta de efectivo</option>
+                  {cuentasEfectivo.map((cuenta) => <option key={cuenta.id} value={cuenta.id}>{cuenta.nombre}</option>)}
+                </select>
+              </div>
+            )}
+            {!rendirAlCerrar && <p className="dato-secundario">La caja quedará cerrada y pendiente de rendición. Un supervisor podrá rendirla desde el historial.</p>}
             <div className="modal__acciones">
               <button
                 className="boton boton--secundario"
@@ -1222,7 +1284,7 @@ export function Ventas({ token, permisos }) {
               </button>
               <button
                 className="boton"
-                disabled={procesando || montoContado === ''}
+                disabled={procesando || montoContado === '' || (rendirAlCerrar && !cuentaRendicion)}
                 onClick={cerrarCaja}
               >
                 {procesando ? 'Cerrando…' : 'Confirmar cierre'}
@@ -1341,6 +1403,22 @@ export function Ventas({ token, permisos }) {
                       <span>Diferencia</span>
                       <strong>{item.diferencia_cierre == null ? '—' : moneda(item.diferencia_cierre)}</strong>
                     </div>
+                    <div>
+                      <span>Rendición</span>
+                      <strong>{item.estado === 'abierta' ? '—' : item.estado_rendicion}</strong>
+                    </div>
+                    {item.estado_rendicion === 'rendida' && <small>{moneda(item.monto_rendido)} en {item.cuenta_destino_rendicion} · {formatearFechaHora(item.fecha_rendicion)}</small>}
+                    {item.estado === 'cerrada' && item.estado_rendicion === 'pendiente' && permisos.includes('caja.supervisar') && (
+                      <button
+                        className="boton-tabla cierre-caja__rendir"
+                        onClick={() => {
+                          setCuentaRendicion(cuentasEfectivo[0]?.id ? String(cuentasEfectivo[0].id) : '');
+                          setSesionARendir(item);
+                        }}
+                      >
+                        Rendir efectivo
+                      </button>
+                    )}
                   </section>
                 </div>
               </article>
@@ -1355,6 +1433,31 @@ export function Ventas({ token, permisos }) {
             Cerrar
           </button>
         </div>
+      </Modal>
+      <Modal
+        abierto={Boolean(sesionARendir)}
+        titulo={sesionARendir ? `Rendir ${sesionARendir.caja}` : 'Rendir caja'}
+        alCerrar={() => { if (!procesando) setSesionARendir(null); }}
+      >
+        {sesionARendir && (
+          <div className="formulario-modal">
+            <p>Se ingresarán <strong>${Number(sesionARendir.monto_contado_cierre).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong> en la cuenta seleccionada.</p>
+            {!sesionARendir.cuenta_origen_apertura_id && Number(sesionARendir.monto_inicial) > 0 && (
+              <p className="mensaje">Esta sesión es anterior a la integración. También se registrará el egreso histórico de su fondo inicial de ${Number(sesionARendir.monto_inicial).toLocaleString('es-AR')} para evitar duplicar dinero.</p>
+            )}
+            <div>
+              <label htmlFor="cuenta_rendicion_pendiente">Cuenta de efectivo</label>
+              <select id="cuenta_rendicion_pendiente" value={cuentaRendicion} onChange={(evento) => setCuentaRendicion(evento.target.value)}>
+                <option value="" disabled>Seleccionar cuenta</option>
+                {cuentasEfectivo.map((cuenta) => <option key={cuenta.id} value={cuenta.id}>{cuenta.nombre} · saldo ${Number(cuenta.saldo).toLocaleString('es-AR')}</option>)}
+              </select>
+            </div>
+            <div className="modal__acciones">
+              <button className="boton boton--secundario" disabled={procesando} onClick={() => setSesionARendir(null)}>Cancelar</button>
+              <button className="boton" disabled={procesando || !cuentaRendicion} onClick={rendirSesion}>{procesando ? 'Rindiendo…' : 'Confirmar rendición'}</button>
+            </div>
+          </div>
+        )}
       </Modal>
       <Modal
         abierto={Boolean(ventaDetalle)}

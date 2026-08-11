@@ -3,8 +3,15 @@ import { z } from 'zod';
 export const esquemaAbrirCaja = z.object({
   caja_id: z.coerce.number().int().positive(),
   monto_inicial: z.coerce.number().min(0).max(9999999999999.99),
+  cuenta_origen_id: z.coerce.number().int().positive().nullable().optional(),
+}).superRefine((datos, contexto) => {
+  if (datos.monto_inicial > 0 && !datos.cuenta_origen_id) contexto.addIssue({ code: 'custom', path: ['cuenta_origen_id'], message: 'Debe indicarse el origen del fondo inicial' });
 });
-export const esquemaCerrarCaja = z.object({ monto_contado: z.coerce.number().min(0).max(9999999999999.99) });
+export const esquemaCerrarCaja = z.object({
+  monto_contado: z.coerce.number().min(0).max(9999999999999.99),
+  cuenta_destino_id: z.coerce.number().int().positive().nullable().optional(),
+});
+export const esquemaRendirCaja = z.object({ cuenta_destino_id: z.coerce.number().int().positive() });
 export const esquemaMovimientoCaja = z.object({
   tipo: z.enum(['ingreso', 'egreso']),
   monto: z.coerce.number().positive().max(9999999999999.99),
