@@ -1293,77 +1293,59 @@ export function Ventas({ token, permisos }) {
         ancho="grande"
         alCerrar={() => setModalHistorialCajas(false)}
       >
-        <div className="tabla-contenedor">
-          <table>
-            <thead>
-              <tr>
-                <th>Caja</th>
-                <th>Usuario</th>
-                <th>Apertura</th>
-                <th>Cierre</th>
-                <th>Inicial</th>
-                <th>Ventas totales</th>
-                <th>Efectivo de ventas</th>
-                <th>Cobranzas en efectivo</th>
-                <th>Cobros por cambios</th>
-                <th>Reintegros</th>
-                <th>Otros movimientos</th>
-                <th>Egresos operativos</th>
-                <th>Esperado</th>
-                <th>Contado</th>
-                <th>Diferencia</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sesionesCaja.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.caja}</td>
-                  <td>{item.nombre_usuario}</td>
-                  <td>
-                    {formatearFechaHora(item.fecha_apertura)}
-                  </td>
-                  <td>
-                    {item.fecha_cierre
-                      ? formatearFechaHora(item.fecha_cierre)
-                      : '—'}
-                  </td>
-                  <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.ventas_efectivo).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.cobranzas_efectivo).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.cambios_cobros).toLocaleString('es-AR')}</td>
-                  <td>-${Number(item.reintegros).toLocaleString('es-AR')}</td>
-                  <td>
-                    ${(Number(item.otros_ingresos) - Number(item.otros_egresos)).toLocaleString('es-AR')}
-                  </td>
-                  <td>-${Number(item.egresos_operativos).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.efectivo_esperado).toLocaleString('es-AR')}</td>
-                  <td>
-                    {item.monto_contado_cierre == null
-                      ? '—'
-                      : `$${Number(item.monto_contado_cierre).toLocaleString('es-AR')}`}
-                  </td>
-                  <td>
-                    {item.diferencia_cierre == null
-                      ? '—'
-                      : `$${Number(item.diferencia_cierre).toLocaleString('es-AR')}`}
-                  </td>
-                  <td>
-                    <span
-                      className={
-                        item.estado === 'abierta'
-                          ? 'estado-activo'
-                          : 'estado-inactivo'
-                      }
-                    >
-                      {item.estado}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="historial-cajas">
+          {sesionesCaja.map((item) => {
+            const moneda = (valor) =>
+              Number(valor).toLocaleString('es-AR', {
+                style: 'currency',
+                currency: 'ARS',
+                minimumFractionDigits: 2,
+              });
+            const diferencia = Number(item.diferencia_cierre || 0);
+            return (
+              <article className="cierre-caja" key={item.id}>
+                <header className="cierre-caja__cabecera">
+                  <div>
+                    <h3>{item.caja}</h3>
+                    <p>{item.nombre_usuario}</p>
+                  </div>
+                  <div className="cierre-caja__fechas">
+                    <span>Apertura <strong>{formatearFechaHora(item.fecha_apertura)}</strong></span>
+                    <span>Cierre <strong>{item.fecha_cierre ? formatearFechaHora(item.fecha_cierre) : '—'}</strong></span>
+                  </div>
+                  <span className={item.estado === 'abierta' ? 'estado-activo' : 'estado-inactivo'}>
+                    {item.estado}
+                  </span>
+                </header>
+                <div className="cierre-caja__grupos">
+                  <section>
+                    <h4>Ingresos en efectivo</h4>
+                    <div><span>Fondo inicial</span><strong>{moneda(item.monto_inicial)}</strong></div>
+                    <div><span>Ventas</span><strong>{moneda(item.ventas_efectivo)}</strong></div>
+                    <div><span>Cobranzas</span><strong>{moneda(item.cobranzas_efectivo)}</strong></div>
+                    <div><span>Cambios</span><strong>{moneda(item.cambios_cobros)}</strong></div>
+                    <div><span>Otros ingresos</span><strong>{moneda(item.otros_ingresos)}</strong></div>
+                    <small>Ventas totales por todos los medios: {moneda(item.ventas)}</small>
+                  </section>
+                  <section>
+                    <h4>Egresos en efectivo</h4>
+                    <div><span>Reintegros</span><strong>-{moneda(item.reintegros)}</strong></div>
+                    <div><span>Operativos</span><strong>-{moneda(item.egresos_operativos)}</strong></div>
+                    <div><span>Otros egresos</span><strong>-{moneda(item.otros_egresos)}</strong></div>
+                  </section>
+                  <section className="cierre-caja__control">
+                    <h4>Control del cierre</h4>
+                    <div><span>Efectivo esperado</span><strong>{moneda(item.efectivo_esperado)}</strong></div>
+                    <div><span>Efectivo contado</span><strong>{item.monto_contado_cierre == null ? '—' : moneda(item.monto_contado_cierre)}</strong></div>
+                    <div className={Math.abs(diferencia) > 0.009 ? 'cierre-caja__diferencia cierre-caja__diferencia--alerta' : 'cierre-caja__diferencia'}>
+                      <span>Diferencia</span>
+                      <strong>{item.diferencia_cierre == null ? '—' : moneda(item.diferencia_cierre)}</strong>
+                    </div>
+                  </section>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <div className="modal__acciones">
           <button
