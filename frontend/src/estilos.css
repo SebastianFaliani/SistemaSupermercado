@@ -140,12 +140,12 @@
 }
 .tienda__hero {
   position: relative;
-  min-height: 190px;
+  min-height: 0;
   grid-template-columns: minmax(270px, 390px) minmax(300px, 1fr) auto;
   grid-template-areas: "logo texto acciones";
   align-items: start;
   gap: clamp(18px, 3vw, 48px);
-  padding: 5px;
+  padding: 5px 5px 5px 0;
   overflow: hidden;
   text-align: center;
   background:
@@ -223,8 +223,8 @@
 .tienda__hero-contenido { display: contents; }
 .tienda__hero-contenido > a { position: relative; z-index: 1; display: block; grid-area: logo; align-self: start; }
 .tienda__hero-logo { display: block; width: 100%; max-height: 155px; margin: 0; object-fit: contain; }
-.tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 145px; text-align: center; }
-.tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(22px, 2.7vw, 34px); font-weight: 400; letter-spacing: .025em; }
+.tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 0; text-align: center; }
+.tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(27px, 3vw, 40px); font-weight: 400; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
 .tienda__cuerpo aside button > img,
 .tienda__icono-categoria-vacio {
@@ -247,7 +247,7 @@
   .tienda__icono-categoria-vacio { width: 40px; height: 40px; }
 }
 @media (max-width: 620px) {
-  .tienda__hero { min-height: 300px; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 6px; padding: 5px; }
+  .tienda__hero { min-height: 0; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 6px; padding: 5px 5px 5px 0; }
   .tienda__hero-nav { flex-wrap: wrap; justify-content: flex-end; }
   .tienda__hero-nav button,
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
