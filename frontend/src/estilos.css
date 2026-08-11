@@ -446,6 +446,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 }
 .barra-superior .usuario-actual { position: relative; z-index: 1; align-self: start; justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; margin-top: 5px; }
 .barra-superior .usuario-actual > span { color: var(--color-blanco); }
+.icono-rol {
+  display: inline-block;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-image: url('/iconos/roles/roles.png');
+  background-repeat: no-repeat;
+  background-size: 160px 107px;
+  background-position-y: -30px;
+}
+.icono-rol--administrador { background-position-x: -2px; }
+.icono-rol--cajero { background-position-x: -40px; }
+.icono-rol--supervisor { background-position-x: -81px; }
+.icono-rol--deposito { background-position-x: -120px; }
 .barra-superior .boton-cerrar-sesion {
   display: grid;
   place-items: center;
@@ -461,7 +476,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 @media (max-width: 720px) {
   .barra-superior { grid-template-columns: 150px 1fr auto; min-height: 72px; }
   .barra-superior .marca-encabezado img { max-height: 72px; }
-  .barra-superior .usuario-actual > span { display: none; }
+  .barra-superior .usuario-actual .nombre-usuario { display: none; }
   .barra-superior .titulo-gestion { font-size: 1.1rem; }
 }
 .contenido-interno { width: min(1310px, calc(100% - 27px)); margin: 0 auto; padding: 27px 0 43px; }

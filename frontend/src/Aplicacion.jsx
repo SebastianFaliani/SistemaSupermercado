@@ -84,13 +84,16 @@ export function Aplicacion() {
   }
 
   if (estado === 'autenticado') {
+    const prioridadRoles = ['administrador', 'supervisor', 'cajero', 'deposito'];
+    const rolVisual = prioridadRoles.find((rol) => usuario.roles.includes(rol)) ?? usuario.roles[0] ?? 'administrador';
     return (
       <div className="aplicacion-interna">
         <header className="barra-superior">
           <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-principal.png" alt="La 91 Supermercado" /></a>
           <strong className="titulo-gestion">Gestión local</strong>
           <div className="usuario-actual">
-            <span>{usuario.nombre_usuario}</span>
+            <span className={`icono-rol icono-rol--${rolVisual}`} aria-hidden="true" />
+            <span className="nombre-usuario">{usuario.nombre_usuario}</span>
             <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión"><span className="icono-accion-tienda icono-accion-tienda--salir" aria-hidden="true" /></button>
           </div>
         </header>
