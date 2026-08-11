@@ -138,6 +138,31 @@
   gap: 9px;
   min-height: 45px;
 }
+.tienda__hero {
+  position: relative;
+  min-height: 310px;
+  place-items: center;
+  overflow: hidden;
+  text-align: center;
+  background:
+    radial-gradient(circle at 78% 22%, rgb(196 223 230 / 24%), transparent 25%),
+    linear-gradient(120deg, var(--color-primario-900), var(--color-primario-700) 68%, var(--color-acento-500));
+}
+.tienda__hero::before,
+.tienda__hero::after {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border: 1px solid rgb(196 223 230 / 18%);
+  border-radius: 50%;
+  content: '';
+}
+.tienda__hero::before { top: -115px; left: 8%; }
+.tienda__hero::after { right: 7%; bottom: -145px; width: 270px; height: 270px; }
+.tienda__hero-contenido { position: relative; z-index: 1; width: min(720px, 90vw); }
+.tienda__hero-logo { display: block; width: min(560px, 82vw); max-height: 150px; margin: 0 auto 14px; object-fit: contain; }
+.tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(22px, 2.7vw, 34px); font-weight: 400; letter-spacing: .025em; }
+.tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
 .tienda__cuerpo aside button > img,
 .tienda__icono-categoria-vacio {
   flex: 0 0 auto;
