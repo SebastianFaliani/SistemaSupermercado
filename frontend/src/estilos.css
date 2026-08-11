@@ -444,14 +444,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
   letter-spacing: .025em;
   text-align: center;
 }
-.barra-superior .usuario-actual { position: relative; z-index: 1; justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; }
+.barra-superior .usuario-actual { position: relative; z-index: 1; align-self: start; justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; margin-top: 5px; }
 .barra-superior .usuario-actual > span { color: var(--color-blanco); }
 .barra-superior .boton-cerrar-sesion {
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  margin-top: 5px;
+  margin-top: 0;
   padding: 4px;
   border: 0;
   border-radius: 50%;
