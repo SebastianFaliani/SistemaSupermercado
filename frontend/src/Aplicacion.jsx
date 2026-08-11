@@ -99,7 +99,7 @@ export function Aplicacion() {
           </div>
           <strong className="titulo-gestion">Gestión Local</strong>
           <a className="acceso-tienda-banner" href="/tienda" target="_blank" rel="noreferrer" aria-label="Visitar la tienda online" title="Visitar la tienda online">
-            <img src="/marca/boton-visita-tienda.png" alt="Visita la tienda" />
+            <img src="/marca/boton-visita-tienda-transparente.png" alt="Visita la tienda" />
           </a>
           <div className="usuario-actual">
             <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión">
