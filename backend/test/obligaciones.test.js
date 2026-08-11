@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { esquemaFacturaProveedor, esquemaPagoProveedor } from '../src/modulos/proveedores/proveedores.esquemas.js';
 import { esquemaGasto, esquemaPagoGasto } from '../src/modulos/gastos/gastos.esquemas.js';
+import { calcularPrecioVenta } from '../src/modulos/compras/compras.servicio.js';
 
 test('acepta una factura de proveedor válida y rechaza fechas invertidas', () => {
   const factura = { tipo_comprobante: 'factura', numero_comprobante: 'A-0001', fecha_emision: '2026-08-01', fecha_vencimiento: '2026-08-31', total: 125000 };
@@ -25,4 +26,9 @@ test('los pagos de gastos validan medio e importe', () => {
   assert.equal(esquemaPagoGasto.safeParse({ medio: 'cheque', monto: 25000 }).success, true);
   assert.equal(esquemaPagoGasto.safeParse({ medio: 'cuenta_corriente', monto: 25000 }).success, false);
   assert.equal(esquemaPagoGasto.safeParse({ medio: 'debito', monto: -1 }).success, false);
+});
+
+test('calcula el precio de venta desde el costo y redondea a decenas', () => {
+  assert.equal(calcularPrecioVenta(1500, 30), 1950);
+  assert.equal(calcularPrecioVenta(1399, 30), 1820);
 });

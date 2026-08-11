@@ -24,6 +24,7 @@ export const esquemaProducto = z.object({
   contenido_neto: z.coerce.number().positive().nullable().optional(),
   precio_costo: dinero,
   precio_venta: dinero,
+  precio_venta_editado_manualmente: z.boolean().default(false),
   precio_mayorista: dinero.nullable().optional(),
   porcentaje_margen: z.coerce.number().min(0).max(999.999).nullable().optional(),
   cantidad_minima_mayorista: z.coerce.number().positive().nullable().optional(),

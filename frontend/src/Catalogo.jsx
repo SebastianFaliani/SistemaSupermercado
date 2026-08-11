@@ -28,6 +28,7 @@ function datosDesdeFormulario(formulario) {
     contenido_neto: numeroOpcional('contenido_neto'),
     precio_costo: Number(dato.get('precio_costo')),
     precio_venta: Number(dato.get('precio_venta')),
+    precio_venta_editado_manualmente: dato.get('precio_venta_editado_manualmente') === 'on',
     precio_mayorista: numeroOpcional('precio_mayorista'),
     porcentaje_margen: numeroOpcional('porcentaje_margen'),
     cantidad_minima_mayorista: numeroOpcional('cantidad_minima_mayorista'),
@@ -40,15 +41,16 @@ function datosDesdeFormulario(formulario) {
 
 function FormularioProducto({ producto, categorias, referencias, alGuardar, alCancelar }) {
   const [esPesable, setEsPesable] = useState(Boolean(producto?.es_pesable));
+  const [ventaManual, setVentaManual] = useState(Boolean(producto?.precio_venta_editado_manualmente));
   const seleccionarContenido = (evento) => evento.currentTarget.select();
-  function recalcularVenta(evento) {
-    const formulario = evento.currentTarget.form;
+  function calcularVenta(formulario) {
     const costo = Number(formulario.elements.precio_costo.value);
     const margen = Number(formulario.elements.porcentaje_margen.value);
     if (Number.isFinite(costo) && Number.isFinite(margen)) {
       formulario.elements.precio_venta.value = Math.round(costo * (1 + margen / 100) / 10) * 10;
     }
   }
+  function recalcularVenta(evento) { if (!ventaManual) calcularVenta(evento.currentTarget.form); }
 
   return (
     <form className="formulario-producto" onSubmit={alGuardar}>
@@ -62,7 +64,7 @@ function FormularioProducto({ producto, categorias, referencias, alGuardar, alCa
         <div className="campo"><label htmlFor="producto_contenido">Contenido neto</label><input id="producto_contenido" name="contenido_neto" type="number" min="0.001" step="0.001" defaultValue={producto?.contenido_neto ?? ''} /></div>
         <div className="campo"><label htmlFor="producto_costo">Precio de costo</label><input id="producto_costo" name="precio_costo" type="number" min="0" step="0.01" defaultValue={producto?.precio_costo ?? ''} onInput={recalcularVenta} required /></div>
         <div className="campo"><label htmlFor="producto_margen">Margen (%)</label><input id="producto_margen" name="porcentaje_margen" type="number" min="0" max="999.999" step="0.001" defaultValue={producto?.porcentaje_margen ?? 30} onInput={recalcularVenta} required /></div>
-        <div className="campo"><label htmlFor="producto_venta">Precio de venta</label><input id="producto_venta" name="precio_venta" type="number" min="0" step="0.01" defaultValue={producto?.precio_venta ?? ''} required /></div>
+        <div className="campo"><label htmlFor="producto_venta">Precio de venta</label><input id="producto_venta" name="precio_venta" type="number" min="0" step="0.01" defaultValue={producto?.precio_venta ?? ''} onInput={() => setVentaManual(true)} required /><label className="campo-verificacion"><input name="precio_venta_editado_manualmente" type="checkbox" checked={ventaManual} onChange={(evento) => { const manual = evento.target.checked; setVentaManual(manual); if (!manual) calcularVenta(evento.currentTarget.form); }} /> Precio manual</label></div>
         <div className="campo"><label htmlFor="producto_mayorista">Nuestro precio mayorista</label><input id="producto_mayorista" name="precio_mayorista" type="number" min="0" step="0.01" defaultValue={producto?.precio_mayorista ?? ''} /></div>
         <div className="campo"><label htmlFor="producto_cantidad_mayorista">Cantidad mínima mayorista</label><input id="producto_cantidad_mayorista" name="cantidad_minima_mayorista" type="number" min={esPesable ? '0.001' : '1'} step={esPesable ? '0.001' : '1'} defaultValue={producto?.cantidad_minima_mayorista ?? ''} onFocus={seleccionarContenido} /></div>
         <div className="campo"><label htmlFor="producto_stock_minimo">Stock mínimo</label><input id="producto_stock_minimo" name="stock_minimo" type="number" min="0" step={esPesable ? '0.001' : '1'} defaultValue={producto?.stock_minimo ?? 0} onFocus={seleccionarContenido} /></div>

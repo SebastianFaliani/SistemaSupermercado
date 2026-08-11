@@ -1,5 +1,8 @@
 import { baseDatos } from '../../configuracion/base-datos.js';
 
+export const calcularPrecioVenta = (costo, margen) =>
+  Math.round((Number(costo) * (1 + Number(margen) / 100)) / 10) * 10;
+
 export async function listarCompras(consulta) {
   const condiciones = []; const parametros = [];
   if (consulta.buscar) { condiciones.push('(p.razon_social LIKE ? OR p.nombre_fantasia LIKE ? OR oc.id = ?)'); const patron = `%${consulta.buscar}%`; parametros.push(patron, patron, Number(consulta.buscar) || 0); }
@@ -109,6 +112,28 @@ export async function recibirCompra(id, usuarioId, datos) {
       (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
       VALUES (?, ?, 'entrada_compra', ?, 'orden_compra', ?)`, [ubicacion.id, usuarioId, `Recepción de compra #${id}`, id]);
     for (const detalle of detalles) {
+      const [[producto]] = await conexion.query(`SELECT p.precio_costo, p.precio_venta,
+        p.porcentaje_margen, p.precio_venta_editado_manualmente,
+        c.porcentaje_margen_predeterminado
+        FROM productos p JOIN categorias c ON c.id = p.categoria_id
+        WHERE p.id = ? FOR UPDATE`, [detalle.producto_id]);
+      const costoAnterior = Number(producto.precio_costo);
+      const costoNuevo = Number(detalle.costo_unitario);
+      if (Math.abs(costoAnterior - costoNuevo) > 0.009) {
+        const margen = Number(producto.porcentaje_margen ?? producto.porcentaje_margen_predeterminado);
+        const ventaAnterior = Number(producto.precio_venta);
+        const ventaNueva = producto.precio_venta_editado_manualmente
+          ? ventaAnterior
+          : calcularPrecioVenta(costoNuevo, margen);
+        await conexion.query('UPDATE productos SET precio_costo = ?, precio_venta = ? WHERE id = ?',
+          [costoNuevo, ventaNueva, detalle.producto_id]);
+        await conexion.query(`INSERT INTO historiales_precios
+          (producto_id, usuario_id, precio_costo_anterior, precio_costo_nuevo,
+           precio_venta_anterior, precio_venta_nuevo, porcentaje_margen, origen)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'recepcion_compra')`,
+        [detalle.producto_id, usuarioId, costoAnterior, costoNuevo,
+          ventaAnterior, ventaNueva, margen]);
+      }
       await conexion.query('INSERT IGNORE INTO existencias (producto_id, ubicacion_id, cantidad) VALUES (?, ?, 0)', [detalle.producto_id, ubicacion.id]);
       const [[existencia]] = await conexion.query('SELECT cantidad FROM existencias WHERE producto_id = ? AND ubicacion_id = ? FOR UPDATE', [detalle.producto_id, ubicacion.id]);
       const anterior = Number(existencia.cantidad); const nueva = anterior + Number(detalle.cantidad_recepcion);

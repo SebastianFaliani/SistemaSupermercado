@@ -101,12 +101,14 @@ export async function crearProducto(datos) {
       `INSERT INTO productos
        (categoria_id, marca_id, unidad_medida_id, codigo_interno, nombre,
         descripcion, contenido_neto, precio_costo, precio_venta, precio_mayorista,
-        porcentaje_margen, cantidad_minima_mayorista, stock_minimo, es_pesable, imagen_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        porcentaje_margen, precio_venta_editado_manualmente,
+        cantidad_minima_mayorista, stock_minimo, es_pesable, imagen_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [datos.categoria_id, datos.marca_id ?? null, datos.unidad_medida_id,
         datos.codigo_interno ?? null, datos.nombre, datos.descripcion ?? null,
         datos.contenido_neto ?? null, datos.precio_costo, datos.precio_venta,
         datos.precio_mayorista ?? null, datos.porcentaje_margen ?? null,
+        datos.precio_venta_editado_manualmente,
         datos.cantidad_minima_mayorista ?? null,
         datos.stock_minimo, datos.es_pesable, datos.imagen_url ?? null],
     );
@@ -150,12 +152,14 @@ export async function actualizarProducto(productoId, datos, usuarioId) {
       `UPDATE productos SET categoria_id = ?, marca_id = ?, unidad_medida_id = ?,
        codigo_interno = ?, nombre = ?, descripcion = ?, contenido_neto = ?,
        precio_costo = ?, precio_venta = ?, precio_mayorista = ?, porcentaje_margen = ?,
+       precio_venta_editado_manualmente = ?,
        cantidad_minima_mayorista = ?, stock_minimo = ?, es_pesable = ?, imagen_url = ?
        WHERE id = ?`,
       [datos.categoria_id, datos.marca_id ?? null, datos.unidad_medida_id,
         datos.codigo_interno ?? null, datos.nombre, datos.descripcion ?? null,
         datos.contenido_neto ?? null, datos.precio_costo, datos.precio_venta,
         datos.precio_mayorista ?? null, datos.porcentaje_margen ?? null,
+        datos.precio_venta_editado_manualmente,
         datos.cantidad_minima_mayorista ?? null, datos.stock_minimo,
         datos.es_pesable, datos.imagen_url ?? null, productoId],
     );
