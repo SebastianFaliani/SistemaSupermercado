@@ -140,9 +140,12 @@
 }
 .tienda__hero {
   position: relative;
-  min-height: 340px;
-  place-items: center;
-  padding-top: 78px;
+  min-height: 235px;
+  grid-template-columns: minmax(270px, 390px) minmax(300px, 1fr) auto;
+  grid-template-areas: "logo texto acciones";
+  align-items: start;
+  gap: clamp(18px, 3vw, 48px);
+  padding: 24px clamp(22px, 4vw, 64px);
   overflow: hidden;
   text-align: center;
   background:
@@ -150,13 +153,13 @@
     linear-gradient(120deg, var(--color-primario-900), var(--color-primario-700) 68%, var(--color-acento-500));
 }
 .tienda__hero-nav {
-  position: absolute;
-  top: 18px;
-  right: clamp(20px, 5vw, 72px);
+  position: relative;
   z-index: 3;
+  grid-area: acciones;
   display: flex;
   align-items: center;
   gap: 7px;
+  justify-self: end;
 }
 .tienda__hero-nav button,
 .tienda__hero-nav a {
@@ -217,10 +220,10 @@
 }
 .tienda__hero::before { top: -115px; left: 8%; }
 .tienda__hero::after { right: 7%; bottom: -145px; width: 270px; height: 270px; }
-.tienda__hero-contenido { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(300px, 430px) minmax(0, 1fr); align-items: center; gap: clamp(24px, 5vw, 70px); width: min(1180px, 92vw); }
-.tienda__hero-contenido > a { display: block; }
+.tienda__hero-contenido { display: contents; }
+.tienda__hero-contenido > a { position: relative; z-index: 1; display: block; grid-area: logo; align-self: start; }
 .tienda__hero-logo { display: block; width: 100%; max-height: 155px; margin: 0; object-fit: contain; }
-.tienda__hero-texto { display: grid; place-items: center; text-align: center; }
+.tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 145px; text-align: center; }
 .tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(22px, 2.7vw, 34px); font-weight: 400; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
 .tienda__cuerpo aside button > img,
@@ -244,12 +247,12 @@
   .tienda__icono-categoria-vacio { width: 40px; height: 40px; }
 }
 @media (max-width: 620px) {
-  .tienda__hero { min-height: 370px; padding-top: 104px; }
-  .tienda__hero-nav { top: 13px; right: 13px; left: 13px; flex-wrap: wrap; justify-content: flex-end; }
+  .tienda__hero { min-height: 370px; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 8px; padding: 13px; }
+  .tienda__hero-nav { flex-wrap: wrap; justify-content: flex-end; }
   .tienda__hero-nav button,
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
-  .tienda__hero-contenido { grid-template-columns: 1fr; gap: 12px; width: min(500px, 92vw); }
   .tienda__hero-logo { width: min(430px, 88vw); margin: 0 auto; }
+  .tienda__hero-texto { min-height: auto; }
 }
 .configuracion-ecommerce__introduccion {
   display: flex;
