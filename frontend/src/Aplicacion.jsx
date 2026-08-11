@@ -86,16 +86,19 @@ export function Aplicacion() {
   if (estado === 'autenticado') {
     const prioridadRoles = ['administrador', 'supervisor', 'cajero', 'deposito'];
     const rolVisual = prioridadRoles.find((rol) => usuario.roles.includes(rol)) ?? usuario.roles[0] ?? 'administrador';
+    const etiquetasRoles = { administrador: 'Administrador', supervisor: 'Supervisor', cajero: 'Cajero', deposito: 'Repositor' };
     return (
       <div className="aplicacion-interna">
         <header className="barra-superior">
           <div className="identidad-rol">
             <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-principal.png" alt="La 91 Supermercado" /></a>
-            <span className={`icono-rol icono-rol--${rolVisual}`} aria-hidden="true" />
+            <div className="rol-autenticado" title={`Usuario: ${usuario.nombre_usuario}`}>
+              <span className={`icono-rol icono-rol--${rolVisual}`} aria-hidden="true" />
+              <span>{etiquetasRoles[rolVisual] ?? rolVisual}</span>
+            </div>
           </div>
           <strong className="titulo-gestion">Gestión local</strong>
           <div className="usuario-actual">
-            <span className="nombre-usuario">{usuario.nombre_usuario}</span>
             <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión"><span className="icono-accion-tienda icono-accion-tienda--salir" aria-hidden="true" /></button>
           </div>
         </header>
