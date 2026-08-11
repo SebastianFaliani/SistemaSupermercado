@@ -89,10 +89,12 @@ export function Aplicacion() {
     return (
       <div className="aplicacion-interna">
         <header className="barra-superior">
-          <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-principal.png" alt="La 91 Supermercado" /></a>
+          <div className="identidad-rol">
+            <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-principal.png" alt="La 91 Supermercado" /></a>
+            <span className={`icono-rol icono-rol--${rolVisual}`} aria-hidden="true" />
+          </div>
           <strong className="titulo-gestion">Gestión local</strong>
           <div className="usuario-actual">
-            <span className={`icono-rol icono-rol--${rolVisual}`} aria-hidden="true" />
             <span className="nombre-usuario">{usuario.nombre_usuario}</span>
             <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión"><span className="icono-accion-tienda icono-accion-tienda--salir" aria-hidden="true" /></button>
           </div>

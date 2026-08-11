@@ -424,7 +424,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 }
 .barra-superior::before { top: -95px; left: 9%; }
 .barra-superior::after { right: 8%; bottom: -115px; width: 190px; height: 190px; }
-.barra-superior .marca-encabezado { position: relative; z-index: 1; display: block; align-self: stretch; min-width: 0; }
+.barra-superior .identidad-rol {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.barra-superior .marca-encabezado { position: relative; z-index: 1; display: block; flex: 1 1 auto; align-self: stretch; min-width: 0; }
 .barra-superior .marca-encabezado img {
   display: block;
   width: 100%;
@@ -474,7 +483,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 }
 .barra-superior .boton-cerrar-sesion:hover { background: rgb(255 255 255 / 10%); }
 @media (max-width: 720px) {
-  .barra-superior { grid-template-columns: 150px 1fr auto; min-height: 72px; }
+  .barra-superior { grid-template-columns: 180px 1fr auto; min-height: 72px; }
   .barra-superior .marca-encabezado img { max-height: 72px; }
   .barra-superior .usuario-actual .nombre-usuario { display: none; }
   .barra-superior .titulo-gestion { font-size: 1.1rem; }
