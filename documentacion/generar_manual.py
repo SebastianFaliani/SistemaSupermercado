@@ -8,9 +8,10 @@ from docx.oxml.ns import qn
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.10.docx'
+OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.11.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
-CAPTURA = ROOT / 'documentacion' / 'capturas' / 'acceso.png'
+CAPTURAS = ROOT / 'documentacion' / 'capturas_manual'
+CAPTURA = CAPTURAS / '01-acceso.png'
 AZUL = '003B46'; VERDE = '07575B'; CELESTE = '66A5AD'; CLARO = 'C4DFE6'; GRIS = '52656A'
 
 doc = Document()
@@ -79,12 +80,40 @@ def page(): doc.add_page_break()
 def heading(title, level=1): doc.add_heading(title,level=level)
 
 def screenshot_placeholder(modulo):
-    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(5); p.paragraph_format.space_after=Pt(8)
-    r=p.add_run(f'CAPTURA PENDIENTE · {modulo.upper()} · se incorporará después de la prueba funcional'); font(r,9,GRIS,False,True)
+    capturas = {
+        'Inicio': [('02-inicio.png', 'Tablero de inicio con el resumen operativo.')],
+        'Catálogo': [('03-catalogo.png', 'Catálogo, categorías y búsqueda de productos.')],
+        'Inventario': [('04-inventario.png', 'Existencias, filtros y control de stock mínimo.')],
+        'Compras y proveedores': [
+            ('05-proveedores.png', 'Padrón y cuentas de proveedores.'),
+            ('06-compras.png', 'Órdenes de compra y sus estados.'),
+        ],
+        'Clientes': [('07-clientes.png', 'Padrón de clientes y cuentas corrientes.')],
+        'Punto de venta': [('08-punto-venta.png', 'Punto de venta y apertura de caja requerida.')],
+        'Cierre de caja': [('08-punto-venta.png', 'Acceso al punto de venta y gestión de la caja.')],
+        'Gastos': [('10-gastos.png', 'Gastos, servicios y obligaciones pendientes.')],
+        'Empleados': [
+            ('11-empleados.png', 'Padrón de empleados y resumen de nómina.'),
+            ('15-detalle-empleado.png', 'Detalle de liquidaciones, pagos y adelantos.'),
+        ],
+        'Tesorería': [('12-tesoreria.png', 'Cuentas, obligaciones y libro de tesorería.')],
+        'Usuarios': [
+            ('13-usuarios.png', 'Usuarios, roles y estados de acceso.'),
+            ('14-nuevo-usuario-modal.png', 'Formulario para crear un usuario.'),
+        ],
+        'Reportes': [('09-reportes.png', 'Análisis comercial agrupado por circuito.')],
+    }
+    for archivo, descripcion in capturas.get(modulo, []):
+        ruta = CAPTURAS / archivo
+        if not ruta.exists():
+            continue
+        p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(7); p.paragraph_format.space_after=Pt(3); p.paragraph_format.keep_together=True; p.paragraph_format.keep_with_next=True
+        pic=p.add_run().add_picture(str(ruta),width=Inches(6.35)); pic._inline.docPr.set('descr',descripcion)
+        p=doc.add_paragraph(descripcion); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(9); p.paragraph_format.keep_with_next=False; font(p.runs[0],8.5,GRIS,False,True)
 
 # Encabezado y pie
 h=sec.header.paragraphs[0]; h.alignment=WD_ALIGN_PARAGRAPH.LEFT; font(h.add_run('LA 91 SUPERMERCADO  |  MANUAL DE USUARIO'),8.5,VERDE,True)
-f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.10 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
+f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.11 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
 
 # Portada editorial
 doc.add_paragraph().paragraph_format.space_after=Pt(70)
@@ -94,13 +123,13 @@ p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('MA
 p=doc.add_paragraph(); p.style='Title'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p=doc.add_paragraph(); p.style='Subtitle'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Guía operativa para administración, supervisión y caja')
 doc.add_paragraph().paragraph_format.space_after=Pt(90)
-p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.10'),11,VERDE,True)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.11'),11,VERDE,True)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('Agosto de 2026'),10,GRIS)
-note('Estado del documento.', 'Esta edición acompaña la prueba funcional. Las capturas internas y cualquier ajuste encontrado se incorporarán en la versión 1.0.', 'EAF4F6')
+note('Estado del documento.', 'Esta edición incorpora capturas reales obtenidas con los datos de la prueba funcional. Se actualizará cuando cambien pantallas o circuitos.', 'EAF4F6')
 
 page(); heading('Control del documento')
 table(['Campo','Detalle'],[
- ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.10 – preliminar'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Después de la prueba funcional integral')],[1.65,4.85])
+ ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.11 – preliminar ilustrada'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Cuando cambien pantallas o circuitos operativos')],[1.65,4.85])
 heading('Cómo utilizar este manual',2)
 doc.add_paragraph('Cada capítulo describe el objetivo del módulo, el procedimiento habitual y los controles que deben respetarse. Los nombres de botones y opciones aparecen tal como se muestran en el sistema.')
 note('Regla general.', 'Nunca comparta su contraseña. No elimine ni corrija movimientos financieros por fuera del procedimiento autorizado. Ante una diferencia, registre lo ocurrido y comuníquelo al supervisor.')
@@ -135,6 +164,7 @@ bullets(['Controlar diferencias, excepciones y operaciones sensibles.','Consulta
 heading('2.4 Administrador',2)
 doc.add_paragraph('Posee las capacidades del supervisor y además administra identidades y accesos. Es el único responsable del alta, modificación, activación y asignación de roles de los usuarios.')
 bullets(['Crear usuarios con el rol mínimo necesario.','Proteger y restablecer credenciales de manera segura.','Revisar permisos y accesos periódicamente.','No compartir cuentas administrativas para tareas cotidianas.'])
+screenshot_placeholder('Usuarios')
 heading('2.5 Cómo colaboran los roles',2)
 doc.add_paragraph('El circuito de abastecimiento recomendado es: Depósito detecta faltantes → prepara la orden → Supervisor revisa cuando corresponda → se realiza el pedido o compra presencial → Depósito recibe y controla → Administración registra la factura → Tesorería realiza el pago.')
 note('Comercios pequeños.', 'Una persona puede cumplir varias funciones, pero debe respetar el circuito y utilizar el usuario autorizado. Compartir contraseñas elimina la trazabilidad de quién realizó cada operación.')
@@ -238,6 +268,7 @@ heading('14. Reportes')
 doc.add_paragraph('Seleccione el período y revise ventas, operaciones, ticket promedio, costo, margen bruto, crédito otorgado, deudas, gastos y sueldos.')
 bullets(['Compare ventas con costo y margen.','Revise productos y categorías más vendidos.','Controle medios de pago.','Analice cuentas por cobrar y pagar.','Revise gastos y sueldos pagados y pendientes.'])
 note('Alcance.', 'Los reportes son herramientas de gestión. No sustituyen libros contables, declaraciones impositivas ni documentación fiscal oficial.')
+screenshot_placeholder('Reportes')
 
 page(); heading('15. Cierre diario y controles')
 heading('15.1 Cajero',2)
@@ -254,12 +285,12 @@ table(['Situación','Qué revisar'],[
 page(); heading('17. Lista de verificación para puesta en marcha')
 for x in ['Usuarios y roles revisados','Cajas físicas identificadas','Productos, precios y códigos verificados','Stock inicial controlado','Proveedores cargados','Clientes con crédito autorizados','Empleados y modalidades revisados','Cuentas de Tesorería conciliadas','Prueba de compra realizada','Prueba de venta y devolución realizada','Prueba de cuenta corriente y cobranza realizada','Prueba de gasto, sueldo y adelanto realizada','Cierre de caja comprobado','Reportes revisados','Procedimiento de respaldo y restauración probado']:
     doc.add_paragraph('☐ '+x)
-note('Criterio de salida.', 'La versión 1.0 del manual se emitirá cuando esta lista haya sido ejecutada, se incorporen las capturas internas y se documenten las correcciones finales.')
+note('Criterio de salida.', 'La versión 1.0 del manual se emitirá después de la puesta en marcha controlada y de incorporar cualquier corrección detectada durante el uso real.')
 heading('Registro de incidencias de la prueba',2)
 table(['Fecha','Módulo','Situación observada','Prioridad','Resolución'],[('','','','',''),('','','','',''),('','','','',''),('','','','','')],[.8,1.05,2.75,.8,1.1])
 
 doc.core_properties.title='Manual de Usuario - Sistema de Gestión La 91 Supermercado'
-doc.core_properties.subject='Guía operativa preliminar versión 0.9'
+doc.core_properties.subject='Guía operativa ilustrada, versión 0.11'
 doc.core_properties.author='La 91 Supermercado'
 doc.core_properties.keywords='supermercado, manual, usuario, caja, inventario, tesorería'
 OUT.parent.mkdir(parents=True,exist_ok=True)
