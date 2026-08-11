@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
+import { formatearFechaHora } from './utilidades/fechas.js';
 import { CampoClave } from './componentes/CampoClave.jsx';
 
 async function solicitar(ruta, token, opciones = {}) {
@@ -106,7 +107,7 @@ export function Usuarios({ token, permisos }) {
           <td><img className="miniatura-producto" src="/iconos/sistema/usuarios.png" alt="" /></td>
           <td>{[usuario.nombres, usuario.apellidos].filter(Boolean).join(' ') || 'Sin datos personales'}</td><td>{usuario.nombre_usuario}</td><td>{usuario.rol}</td>
           <td><span className={usuario.esta_activo ? 'estado-activo' : 'estado-inactivo'}>{usuario.esta_activo ? 'Activo' : 'Inactivo'}</span></td>
-          <td>{usuario.fecha_ultimo_acceso ? new Date(usuario.fecha_ultimo_acceso).toLocaleString('es-AR') : 'Nunca'}</td>
+          <td>{usuario.fecha_ultimo_acceso ? formatearFechaHora(usuario.fecha_ultimo_acceso) : 'Nunca'}</td>
           {puedeGestionar && <td><button className="boton-tabla" onClick={() => { setUsuarioEditado(usuario); setModalAbierto(true); }}>Editar</button></td>}
         </tr>)}</tbody>
       </table></div>

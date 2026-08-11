@@ -11,7 +11,9 @@ export const baseDatos = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   decimalNumbers: false,
-  timezone: 'Z',
+  // MariaDB guarda DATETIME sin zona horaria. La aplicación opera con la hora
+  // comercial de Argentina y debe interpretarla sin desplazarla como UTC.
+  timezone: '-03:00',
 });
 
 export async function comprobarBaseDatos() {

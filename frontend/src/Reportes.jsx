@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { formatearFecha } from './utilidades/fechas.js';
 
 const moneda = (valor) =>
   Number(valor).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
@@ -168,9 +169,7 @@ export function Reportes({ token }) {
                   {datos.por_dia.map((item) => (
                     <tr key={item.fecha}>
                       <td>
-                        {new Date(
-                          `${String(item.fecha).slice(0, 10)}T12:00:00`,
-                        ).toLocaleDateString('es-AR')}
+                        {formatearFecha(item.fecha)}
                       </td>
                       <td>{item.operaciones}</td>
                       <td>{moneda(item.ventas)}</td>

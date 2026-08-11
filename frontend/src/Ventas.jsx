@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
+import { formatearFecha, formatearFechaHora, formatearHora } from './utilidades/fechas.js';
 import { GestionCajas } from './componentes/GestionCajas.jsx';
 
 async function pedir(ruta, token, opciones = {}) {
@@ -545,10 +546,7 @@ export function Ventas({ token, permisos }) {
               <span>{sesion.caja}</span>
               <small>
                 Abierta{' '}
-                {new Date(sesion.fecha_apertura).toLocaleTimeString('es-AR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {formatearHora(sesion.fecha_apertura)}
               </small>
               <div className="acciones-caja">
                 {permisos.includes('caja.operar') && (
@@ -852,9 +850,7 @@ export function Ventas({ token, permisos }) {
                       <tr key={venta.id}>
                         <td>#{venta.id}</td>
                         <td>
-                          {new Date(venta.fecha_creacion).toLocaleString(
-                            'es-AR',
-                          )}
+                          {formatearFechaHora(venta.fecha_creacion)}
                         </td>
                         <td>{venta.caja}</td>
                         <td>{venta.nombre_usuario}</td>
@@ -1296,11 +1292,11 @@ export function Ventas({ token, permisos }) {
                   <td>{item.caja}</td>
                   <td>{item.nombre_usuario}</td>
                   <td>
-                    {new Date(item.fecha_apertura).toLocaleString('es-AR')}
+                    {formatearFechaHora(item.fecha_apertura)}
                   </td>
                   <td>
                     {item.fecha_cierre
-                      ? new Date(item.fecha_cierre).toLocaleString('es-AR')
+                      ? formatearFechaHora(item.fecha_cierre)
                       : '—'}
                   </td>
                   <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
@@ -1355,7 +1351,7 @@ export function Ventas({ token, permisos }) {
             </div>
             <div className="detalle-venta-cabecera">
               <span>
-                {new Date(ventaDetalle.fecha_creacion).toLocaleString('es-AR')}
+                {formatearFechaHora(ventaDetalle.fecha_creacion)}
               </span>
               <span>{ventaDetalle.caja}</span>
               <span>Cajero: {ventaDetalle.nombre_usuario}</span>
@@ -1424,9 +1420,7 @@ export function Ventas({ token, permisos }) {
                 {ventaDetalle.devoluciones.map((devolucion) => (
                   <p key={devolucion.id}>
                     #{devolucion.id} ·{' '}
-                    {new Date(devolucion.fecha_creacion).toLocaleString(
-                      'es-AR',
-                    )}{' '}
+                    {formatearFechaHora(devolucion.fecha_creacion)}{' '}
                     · {devolucion.motivo} · Diferencia $
                     {Number(devolucion.diferencia).toLocaleString('es-AR', {
                       minimumFractionDigits: 2,
@@ -1445,7 +1439,7 @@ export function Ventas({ token, permisos }) {
                     })}
                   </span>
                 ))}
-                {Number(ventaDetalle.saldo_pendiente) > 0 && <span>Cuenta corriente: {Number(ventaDetalle.saldo_pendiente).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} · vence {new Date(`${String(ventaDetalle.fecha_vencimiento).slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR')}</span>}
+                {Number(ventaDetalle.saldo_pendiente) > 0 && <span>Cuenta corriente: {Number(ventaDetalle.saldo_pendiente).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} · vence {formatearFecha(ventaDetalle.fecha_vencimiento)}</span>}
               </div>
               <strong>
                 Total: $

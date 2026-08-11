@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { formatearFechaHora } from './utilidades/fechas.js';
 
 const moneda = (valor) =>
   Number(valor).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
@@ -109,7 +110,7 @@ export function Tablero({ token, permisos, alNavegar }) {
                       <td>{venta.caja}</td>
                       <td>{venta.nombre_usuario}</td>
                       <td>
-                        {new Date(venta.fecha_creacion).toLocaleString('es-AR')}
+                        {formatearFechaHora(venta.fecha_creacion)}
                       </td>
                       <td>{moneda(venta.total)}</td>
                     </tr>

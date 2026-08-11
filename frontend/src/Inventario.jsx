@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
+import { formatearFechaHora } from './utilidades/fechas.js';
 
 async function solicitar(ruta, token, opciones = {}) {
   const respuesta = await fetch(ruta, {
@@ -205,7 +206,7 @@ export function Inventario({ token, permisos }) {
           {movimientos.length ? <div className="tabla-contenedor">
             <table><thead><tr><th>Fecha</th><th>Producto</th><th>Usuario</th><th>Anterior</th><th>Variación</th><th>Nueva</th><th>Motivo</th></tr></thead>
               <tbody>{movimientos.map((movimiento) => <tr key={movimiento.id}>
-                <td>{new Date(movimiento.fecha_creacion).toLocaleString('es-AR')}</td>
+                <td>{formatearFechaHora(movimiento.fecha_creacion)}</td>
                 <td>{movimiento.producto}</td><td>{movimiento.nombre_usuario}</td>
                 <td>{Number(movimiento.cantidad_anterior).toLocaleString('es-AR')}</td>
                 <td className={Number(movimiento.variacion) < 0 ? 'variacion-negativa' : 'variacion-positiva'}>{Number(movimiento.variacion) > 0 ? '+' : ''}{Number(movimiento.variacion).toLocaleString('es-AR')}</td>
