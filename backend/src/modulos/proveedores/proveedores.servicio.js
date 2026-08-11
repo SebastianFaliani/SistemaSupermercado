@@ -73,23 +73,41 @@ export async function obtenerCuentaProveedor(id) {
       LEFT JOIN cuentas_tesoreria ct ON ct.id = pp.cuenta_tesoreria_id
       WHERE pp.proveedor_id = ? ORDER BY pp.fecha_creacion DESC LIMIT 200`, [id]),
     baseDatos.query(`SELECT oc.id, oc.total, oc.fecha_recepcion FROM ordenes_compra oc
-      WHERE oc.proveedor_id = ? AND oc.estado = 'recibida' ORDER BY oc.id DESC LIMIT 100`, [id]),
+      WHERE oc.proveedor_id = ? AND oc.estado = 'recibida'
+      AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id)
+      ORDER BY oc.id DESC LIMIT 100`, [id]),
   ]);
   return { ...proveedor, saldo: Number(proveedor.saldo), vencido: Number(proveedor.vencido), facturas, pagos, ordenes };
 }
 
 export async function crearFacturaProveedor(proveedorId, usuarioId, datos) {
   if (datos.orden_compra_id) {
-    const [[orden]] = await baseDatos.query("SELECT id FROM ordenes_compra WHERE id = ? AND proveedor_id = ? AND estado IN ('parcial', 'recibida')", [datos.orden_compra_id, proveedorId]);
-    if (!orden) { const error = new Error('La orden no pertenece al proveedor o todavía no fue recibida'); error.codigoPublico = 'ORDEN_INVALIDA'; throw error; }
+    const [[orden]] = await baseDatos.query(`SELECT oc.id FROM ordenes_compra oc
+      WHERE oc.id = ? AND oc.proveedor_id = ? AND oc.estado IN ('parcial', 'recibida')
+      AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id)`, [datos.orden_compra_id, proveedorId]);
+    if (!orden) { const error = new Error('La orden no está disponible o ya tiene una factura asociada'); error.codigoPublico = 'ORDEN_INVALIDA'; throw error; }
   }
-  const [resultado] = await baseDatos.query(`INSERT INTO facturas_proveedores
-    (proveedor_id, orden_compra_id, usuario_id, tipo_comprobante, numero_comprobante,
-     fecha_emision, fecha_vencimiento, total, saldo_pendiente, observaciones)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [proveedorId, datos.orden_compra_id || null, usuarioId,
-    datos.tipo_comprobante, datos.numero_comprobante, datos.fecha_emision, datos.fecha_vencimiento,
-    datos.total, datos.total, datos.observaciones || null]);
-  return { id: resultado.insertId };
+  try {
+    const [resultado] = await baseDatos.query(`INSERT INTO facturas_proveedores
+      (proveedor_id, orden_compra_id, usuario_id, tipo_comprobante, numero_comprobante,
+       fecha_emision, fecha_vencimiento, total, saldo_pendiente, observaciones)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [proveedorId, datos.orden_compra_id || null, usuarioId,
+      datos.tipo_comprobante, datos.numero_comprobante, datos.fecha_emision, datos.fecha_vencimiento,
+      datos.total, datos.total, datos.observaciones || null]);
+    return { id: resultado.insertId };
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY' && error.sqlMessage?.includes('uq_factura_orden_compra')) {
+      const conflicto = new Error('La orden de compra ya tiene una factura asociada');
+      conflicto.codigoPublico = 'ORDEN_YA_FACTURADA';
+      throw conflicto;
+    }
+    if (error.code === 'ER_DUP_ENTRY') {
+      const conflicto = new Error('Ya existe una factura con ese tipo y número para el proveedor');
+      conflicto.codigoPublico = 'FACTURA_DUPLICADA';
+      throw conflicto;
+    }
+    throw error;
+  }
 }
 
 export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
