@@ -16,6 +16,19 @@ async function api(url, token, opt = {}) {
   if (!r.ok) throw new Error(d.mensaje || 'No se pudo completar');
   return d;
 }
+
+const escaparHtml = (valor) =>
+  String(valor ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+
+function imprimirComprobanteLaboral({ titulo, numero, empleado, fecha, estado, conceptos, observaciones }) {
+  const ventana = window.open('', '_blank', 'width=900,height=700');
+  if (!ventana) return;
+  const filas = conceptos.map(([concepto, importe]) => `<tr><td>${escaparHtml(concepto)}</td><td>${escaparHtml(importe)}</td></tr>`).join('');
+  ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escaparHtml(titulo)} #${numero}</title><style>
+    @page{size:A4;margin:18mm}*{box-sizing:border-box}body{margin:0;color:#003b46;font:12pt Arial,sans-serif}.cabecera{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #07575b;padding-bottom:12px}.cabecera img{width:210px;max-height:70px;object-fit:contain}.cabecera div{text-align:right}h1{margin:22px 0 4px;font-size:20pt}h2{margin:0 0 20px;color:#07575b;font-size:12pt;font-weight:normal}.datos{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin:18px 0;padding:14px;background:#f3f8f9}.datos p{margin:0}table{width:100%;border-collapse:collapse;margin:18px 0}th,td{padding:9px;border-bottom:1px solid #c4dfe6;text-align:left}th:last-child,td:last-child{text-align:right}.observaciones{min-height:55px;margin-top:18px}.firmas{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:85px}.firma{padding-top:8px;border-top:1px solid #003b46;text-align:center}.pie{margin-top:35px;color:#52656a;font-size:9pt;text-align:center}
+  </style></head><body><div class="cabecera"><img src="${window.location.origin}/marca/logo-horizontal-claro.png" alt="La 91 Supermercado"><div><strong>Comprobante interno</strong><br>N.º ${numero}</div></div><h1>${escaparHtml(titulo)}</h1><h2>Constancia de pago y recepción</h2><div class="datos"><p><strong>Empleado:</strong> ${escaparHtml(`${empleado.apellidos}, ${empleado.nombres}`)}</p><p><strong>DNI:</strong> ${escaparHtml(empleado.numero_documento || '—')}</p><p><strong>Cargo:</strong> ${escaparHtml(empleado.cargo || '—')}</p><p><strong>Modalidad:</strong> ${escaparHtml(empleado.modalidad_pago || '—')}</p><p><strong>Fecha / período:</strong> ${escaparHtml(fecha)}</p><p><strong>Estado:</strong> ${escaparHtml(estado)}</p></div><table><thead><tr><th>Concepto</th><th>Importe / detalle</th></tr></thead><tbody>${filas}</tbody></table>${observaciones ? `<div class="observaciones"><strong>Observaciones:</strong> ${escaparHtml(observaciones)}</div>` : ''}<div class="firmas"><div class="firma">Firma del empleado<br><small>Aclaración y DNI</small></div><div class="firma">Firma del empleador<br><small>Aclaración</small></div></div><p class="pie">Se emite por duplicado como constancia interna. Una copia corresponde al empleado.</p><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250))</script></body></html>`);
+  ventana.document.close();
+}
 export function Empleados({ token, permisos }) {
   const [datos, setDatos] = useState([]),
     [total, setTotal] = useState(0),
@@ -186,6 +199,47 @@ export function Empleados({ token, permisos }) {
     } finally {
       setProcesando(false);
     }
+  }
+  function imprimirAdelanto(item) {
+    imprimirComprobanteLaboral({
+      titulo: 'Constancia de adelanto de sueldo',
+      numero: item.id,
+      empleado: detalle,
+      fecha: formatearFecha(item.fecha),
+      estado: item.estado,
+      conceptos: [
+        ['Importe entregado', moneda(item.monto)],
+        ['Medio de pago', item.medio],
+        ['Origen', item.caja || item.cuenta_tesoreria || 'Sin especificar'],
+        ['Referencia', item.referencia || '—'],
+        ['Registrado por', item.nombre_usuario],
+      ],
+      observaciones: item.observaciones,
+    });
+  }
+  function imprimirReciboLiquidacion() {
+    const totalPagado = liquidacion.pagos.reduce((suma, pago) => suma + Number(pago.monto), 0);
+    imprimirComprobanteLaboral({
+      titulo: 'Recibo de liquidación de sueldo',
+      numero: liquidacion.id,
+      empleado: detalle,
+      fecha: `${formatearFecha(liquidacion.periodo_desde)} al ${formatearFecha(liquidacion.periodo_hasta)}`,
+      estado: liquidacion.estado,
+      conceptos: [
+        ['Sueldo base', moneda(liquidacion.sueldo_base)],
+        ['Adicionales', moneda(liquidacion.adicionales)],
+        ['Otros descuentos', `- ${moneda(liquidacion.descuentos)}`],
+        ['Adelantos aplicados', `- ${moneda(liquidacion.adelantos_aplicados)}`],
+        ['Neto liquidado', moneda(liquidacion.total_neto)],
+        ['Total pagado', moneda(totalPagado)],
+        ['Saldo pendiente', moneda(liquidacion.saldo_pendiente)],
+        ...liquidacion.pagos.map((pago, indice) => [
+          `Pago ${indice + 1} · ${formatearFechaHora(pago.fecha_creacion)}`,
+          `${pago.medio} · ${pago.caja || pago.cuenta_tesoreria || 'Sin origen'} · ${moneda(pago.monto)}`,
+        ]),
+      ],
+      observaciones: liquidacion.observaciones,
+    });
   }
   const formulario = (base = {}) => (
     <form className="formulario-modal" onSubmit={guardar}>
@@ -433,6 +487,15 @@ export function Empleados({ token, permisos }) {
             {detalle.adelantos.length ? (
               <div className="tabla-contenedor">
                 <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Medio</th>
+                      <th>Importe</th>
+                      <th>Estado</th>
+                      <th></th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {detalle.adelantos.map((a) => (
                       <tr key={a.id}>
@@ -440,6 +503,11 @@ export function Empleados({ token, permisos }) {
                         <td>{a.medio}</td>
                         <td>{moneda(a.monto)}</td>
                         <td>{a.estado}</td>
+                        <td>
+                          <button className="boton-tabla" onClick={() => imprimirAdelanto(a)}>
+                            Imprimir constancia
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -598,6 +666,9 @@ export function Empleados({ token, permisos }) {
             <div className="modal__acciones">
               <button className="boton boton--secundario" onClick={() => setLiquidacion(null)}>
                 Cerrar
+              </button>
+              <button className="boton boton--secundario" onClick={imprimirReciboLiquidacion}>
+                Imprimir recibo
               </button>
               {gestionar && liquidacion.saldo_pendiente > 0 && (
                 <button className="boton" onClick={() => setPagar(true)}>
