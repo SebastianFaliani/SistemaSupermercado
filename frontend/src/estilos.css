@@ -226,7 +226,7 @@
 .tienda__hero-contenido > a { position: relative; z-index: 1; display: block; grid-area: logo; align-self: start; }
 .tienda__hero-logo { display: block; width: 100%; height: 105px; max-height: 105px; margin: 0; object-fit: contain; object-position: left center; }
 .tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 0; text-align: center; }
-.tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(27px, 3vw, 40px); font-weight: 400; letter-spacing: .025em; }
+.tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(27px, 3vw, 40px); font-weight: 700; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
 .tienda__cuerpo aside button > img,
 .tienda__icono-categoria-vacio {
@@ -464,7 +464,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
   justify-self: center;
   color: var(--color-blanco);
   font-size: clamp(27px, 3vw, 40px);
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: .025em;
   text-align: center;
 }
