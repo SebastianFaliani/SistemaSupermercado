@@ -13,8 +13,9 @@ test('acepta una factura de proveedor válida y rechaza fechas invertidas', () =
 test('los pagos de proveedores requieren importe positivo y un medio admitido', () => {
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'transferencia', monto: 50000, cuenta_tesoreria_id: 1 }).success, true);
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'transferencia', monto: 50000 }).success, false);
-  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000 }).success, true);
-  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000, cuenta_tesoreria_id: 1 }).success, false);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000, origen_efectivo: 'caja' }).success, true);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000, origen_efectivo: 'tesoreria', cuenta_tesoreria_id: 1 }).success, true);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000 }).success, false);
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 0 }).success, false);
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'credito', monto: 1000 }).success, false);
 });
@@ -26,7 +27,9 @@ test('un gasto recurrente exige frecuencia', () => {
 });
 
 test('los pagos de gastos validan medio e importe', () => {
-  assert.equal(esquemaPagoGasto.safeParse({ medio: 'cheque', monto: 25000 }).success, true);
+  assert.equal(esquemaPagoGasto.safeParse({ medio: 'cheque', monto: 25000, cuenta_tesoreria_id: 1 }).success, true);
+  assert.equal(esquemaPagoGasto.safeParse({ medio: 'efectivo', monto: 25000, origen_efectivo: 'caja' }).success, true);
+  assert.equal(esquemaPagoGasto.safeParse({ medio: 'cheque', monto: 25000 }).success, false);
   assert.equal(esquemaPagoGasto.safeParse({ medio: 'cuenta_corriente', monto: 25000 }).success, false);
   assert.equal(esquemaPagoGasto.safeParse({ medio: 'debito', monto: -1 }).success, false);
 });

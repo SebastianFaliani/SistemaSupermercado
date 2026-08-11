@@ -118,16 +118,16 @@ export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
     let cuentaTesoreria = null;
     const [[proveedor]] = await conexion.query('SELECT id, COALESCE(nombre_fantasia, razon_social) AS nombre FROM proveedores WHERE id = ? FOR UPDATE', [proveedorId]);
     if (!proveedor) { const error = new Error('No se encontró el proveedor'); error.codigoPublico = 'NO_ENCONTRADO'; throw error; }
-    if (datos.medio === 'efectivo') {
+    if (datos.medio === 'efectivo' && datos.origen_efectivo === 'caja') {
       const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
       if (!sesion) { const error = new Error('Debés tener una caja abierta para pagar en efectivo'); error.codigoPublico = 'SIN_CAJA'; throw error; }
       sesionId = sesion.id;
     } else {
-      const [[cuenta]] = await conexion.query(`SELECT ct.id, ct.nombre, ct.esta_activa,
+      const [[cuenta]] = await conexion.query(`SELECT ct.id, ct.nombre, ct.tipo, ct.esta_activa,
         ct.saldo_inicial + COALESCE((SELECT SUM(CASE WHEN mt.tipo = 'ingreso' THEN mt.monto ELSE -mt.monto END)
         FROM movimientos_tesoreria mt WHERE mt.cuenta_tesoreria_id = ct.id), 0) AS saldo
         FROM cuentas_tesoreria ct WHERE ct.id = ? FOR UPDATE`, [datos.cuenta_tesoreria_id]);
-      if (!cuenta || !cuenta.esta_activa) { const error = new Error('La cuenta de Tesorería no está disponible'); error.codigoPublico = 'CUENTA_INVALIDA'; throw error; }
+      if (!cuenta || !cuenta.esta_activa || (datos.medio === 'efectivo' && cuenta.tipo !== 'efectivo')) { const error = new Error('La cuenta de Tesorería no está disponible para este pago'); error.codigoPublico = 'CUENTA_INVALIDA'; throw error; }
       if (Number(cuenta.saldo) + 0.009 < datos.monto) { const error = new Error(`Saldo insuficiente en ${cuenta.nombre}`); error.codigoPublico = 'SALDO_INSUFICIENTE'; throw error; }
       cuentaTesoreria = cuenta;
     }
