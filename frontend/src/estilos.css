@@ -40,17 +40,16 @@
 .acceso-tienda-online {
   display: block;
   flex: 0 0 auto;
-  width: 58px;
-  height: 58px;
-  border: 2px solid var(--color-blanco);
-  border-radius: 50%;
-  background: var(--color-primario-900);
-  box-shadow: 0 3px 10px rgb(0 59 70 / 20%);
+  width: 210px;
+  height: 105px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
   overflow: hidden;
   transition: transform .16s ease, box-shadow .16s ease;
 }
-.acceso-tienda-online img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.acceso-tienda-online:hover { box-shadow: 0 5px 14px rgb(0 59 70 / 28%); transform: translateY(-2px); }
+.acceso-tienda-online img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.acceso-tienda-online:hover { transform: translateY(-2px) scale(1.015); }
 .acceso-tienda-online:focus-visible { outline: 3px solid var(--color-acento-500); outline-offset: 3px; }
 .solo-lectura {
   position: absolute;
@@ -120,6 +119,7 @@
 @media (max-width: 760px) {
   .ecommerce-admin .encabezado-pagina { align-items: stretch; flex-direction: column; }
   .ecommerce-admin .encabezado-pagina .boton { align-self: flex-start; }
+  .acceso-tienda-online { width: 170px; height: 85px; }
   .ecommerce-admin .formulario--grilla { grid-template-columns: 1fr; }
   .ecommerce-admin .ecommerce-filtros > span { text-align: left; }
 }
