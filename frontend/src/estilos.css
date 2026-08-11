@@ -145,7 +145,7 @@
   grid-template-areas: "logo texto acciones";
   align-items: start;
   gap: clamp(18px, 3vw, 48px);
-  padding: 5px 5px 5px 0;
+  padding: 0;
   overflow: hidden;
   text-align: center;
   background:
@@ -247,7 +247,7 @@
   .tienda__icono-categoria-vacio { width: 40px; height: 40px; }
 }
 @media (max-width: 620px) {
-  .tienda__hero { min-height: 0; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 6px; padding: 5px 5px 5px 0; }
+  .tienda__hero { min-height: 0; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 6px; padding: 0; }
   .tienda__hero-nav { flex-wrap: wrap; justify-content: flex-end; }
   .tienda__hero-nav button,
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
