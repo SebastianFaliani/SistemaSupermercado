@@ -19,6 +19,7 @@ import { rutasClientes } from './modulos/clientes/clientes.rutas.js';
 import { rutasGastos } from './modulos/gastos/gastos.rutas.js';
 import { rutasEmpleados } from './modulos/empleados/empleados.rutas.js';
 import { rutasTesoreria } from './modulos/tesoreria/tesoreria.rutas.js';
+import { rutasEcommerce } from './modulos/ecommerce/ecommerce.rutas.js';
 
 export const aplicacion = express();
 const carpetaProyecto = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -44,6 +45,7 @@ aplicacion.use('/api/clientes', rutasClientes);
 aplicacion.use('/api/gastos', rutasGastos);
 aplicacion.use('/api/empleados', rutasEmpleados);
 aplicacion.use('/api/tesoreria', rutasTesoreria);
+aplicacion.use('/api/ecommerce', rutasEcommerce);
 
 aplicacion.get('/api/salud', async (_solicitud, respuesta) => {
   try {

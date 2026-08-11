@@ -16,7 +16,9 @@
     "simulacion:cargar": "node scripts/cargar-simulacion.js",
     "catalogo:importar": "node scripts/importar-catalogo.js",
     "marcas:inferir": "node scripts/inferir-marcas.js",
-    "db:limpiar-operacion": "node scripts/limpiar-operacion.js"
+    "db:limpiar-operacion": "node scripts/limpiar-operacion.js",
+    "ecommerce:probar": "node scripts/probar-ecommerce.js",
+    "ecommerce:preparar-catalogo": "node scripts/preparar-catalogo-ecommerce.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

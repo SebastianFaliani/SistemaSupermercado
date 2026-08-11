@@ -304,20 +304,20 @@ function condicionesVentas(consulta, usuarioId) {
 export async function listarVentas(consulta, usuarioId = null) {
   const { donde, parametros } = condicionesVentas(consulta, usuarioId);
   const desde = `FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
-    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
+    LEFT JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id LEFT JOIN cajas c ON c.id = sc.caja_id
     LEFT JOIN clientes cl ON cl.id = v.cliente_id ${donde}`;
   const offset = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [resumen], [pagos]] = await Promise.all([
     baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, v.saldo_pendiente,
       u.nombre_usuario, cl.nombre AS cliente,
-      c.nombre AS caja, (SELECT COUNT(*) FROM ventas_detalles vd WHERE vd.venta_id = v.id) AS productos
+      COALESCE(c.nombre, 'Venta online') AS caja, v.canal, (SELECT COUNT(*) FROM ventas_detalles vd WHERE vd.venta_id = v.id) AS productos
       ${desde} ORDER BY v.fecha_creacion DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
     baseDatos.query(`SELECT COUNT(*) AS total,
       COALESCE(SUM(IF(v.estado = 'completada', v.total, 0)), 0) AS facturacion ${desde}`, parametros),
     baseDatos.query(`SELECT vp.medio, COALESCE(SUM(vp.monto), 0) AS total
       FROM ventas_pagos vp JOIN ventas v ON v.id = vp.venta_id
-      JOIN usuarios u ON u.id = v.usuario_id JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id
-      JOIN cajas c ON c.id = sc.caja_id LEFT JOIN clientes cl ON cl.id = v.cliente_id
+      JOIN usuarios u ON u.id = v.usuario_id LEFT JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id
+      LEFT JOIN cajas c ON c.id = sc.caja_id LEFT JOIN clientes cl ON cl.id = v.cliente_id
       ${donde ? `${donde} AND` : 'WHERE'} v.estado = 'completada'
       GROUP BY vp.medio`, parametros),
   ]);
@@ -332,8 +332,8 @@ export async function obtenerVenta(id, usuarioId = null) {
   const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, v.efectivo_recibido, v.vuelto,
     v.saldo_pendiente, v.fecha_vencimiento, v.cliente_id, cl.nombre AS cliente,
     v.fecha_anulacion, v.motivo_anulacion,
-    u.nombre_usuario, c.nombre AS caja FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
-    JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id JOIN cajas c ON c.id = sc.caja_id
+    u.nombre_usuario, COALESCE(c.nombre, 'Venta online') AS caja, v.canal FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
+    LEFT JOIN sesiones_caja sc ON sc.id = v.sesion_caja_id LEFT JOIN cajas c ON c.id = sc.caja_id
     LEFT JOIN clientes cl ON cl.id = v.cliente_id
     WHERE v.id = ? ${restriccion}`, parametros);
   if (!ventas[0]) return null;
