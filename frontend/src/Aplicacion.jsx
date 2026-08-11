@@ -87,7 +87,7 @@ export function Aplicacion() {
     return (
       <div className="aplicacion-interna">
         <header className="barra-superior">
-          <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-horizontal-oscuro.png" alt="La 91 Supermercado" /></a>
+          <a className="marca-encabezado" href="/" aria-label="Inicio de Gestión"><img src="/marca/logo-principal.png" alt="La 91 Supermercado" /></a>
           <strong className="titulo-gestion">Gestión local</strong>
           <div className="usuario-actual">
             <span>{usuario.nombre_usuario}</span>
