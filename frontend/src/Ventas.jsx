@@ -1485,15 +1485,17 @@ export function Ventas({ token, permisos }) {
               >
                 Imprimir ticket
               </button>
-              {ventaDetalle.estado === 'completada' &&
-                permisos.includes('ventas.anular') && (
-                  <>
+              {ventaDetalle.estado === 'completada' && (
+                <>
+                  {permisos.includes('ventas.devolver') && (
                     <button
                       className="boton boton--secundario"
                       onClick={() => iniciarCambio(ventaDetalle)}
                     >
                       Cambio / devolución
                     </button>
+                  )}
+                  {permisos.includes('ventas.anular') && (
                     <button
                       className="boton"
                       onClick={() => {
@@ -1503,8 +1505,9 @@ export function Ventas({ token, permisos }) {
                     >
                       Anular venta
                     </button>
-                  </>
-                )}
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}
