@@ -8,7 +8,7 @@ from docx.oxml.ns import qn
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.9.docx'
+OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.10.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 CAPTURA = ROOT / 'documentacion' / 'capturas' / 'acceso.png'
 AZUL = '003B46'; VERDE = '07575B'; CELESTE = '66A5AD'; CLARO = 'C4DFE6'; GRIS = '52656A'
@@ -61,9 +61,12 @@ def table(headers, rows, widths=None):
     return t
 
 def note(title, text, color=CLARO):
-    t=doc.add_table(rows=1,cols=1); t.autofit=False; t.alignment=WD_TABLE_ALIGNMENT.CENTER; t.columns[0].width=Inches(6.5)
-    c=t.cell(0,0); shade(c,color); set_cell_margin(c,150,180,150,180); p=c.paragraphs[0]; font(p.add_run(title+' '),10,AZUL,True); font(p.add_run(text),10,AZUL)
-    doc.add_paragraph().paragraph_format.space_after=Pt(1)
+    p=doc.add_paragraph(); p.paragraph_format.left_indent=Inches(.12); p.paragraph_format.right_indent=Inches(.12); p.paragraph_format.space_before=Pt(5); p.paragraph_format.space_after=Pt(8); p.paragraph_format.keep_together=True
+    pPr=p._p.get_or_add_pPr(); shd=OxmlElement('w:shd'); shd.set(qn('w:fill'),color); pPr.append(shd)
+    borders=OxmlElement('w:pBdr')
+    for side in ('top','left','bottom','right'):
+        border=OxmlElement(f'w:{side}'); border.set(qn('w:val'),'single'); border.set(qn('w:sz'),'4'); border.set(qn('w:space'),'5'); border.set(qn('w:color'),CELESTE); borders.append(border)
+    pPr.append(borders); font(p.add_run(title+' '),10,AZUL,True); font(p.add_run(text),10,AZUL)
 
 def bullets(items):
     for x in items: doc.add_paragraph(x,style='List Bullet')
@@ -81,7 +84,7 @@ def screenshot_placeholder(modulo):
 
 # Encabezado y pie
 h=sec.header.paragraphs[0]; h.alignment=WD_ALIGN_PARAGRAPH.LEFT; font(h.add_run('LA 91 SUPERMERCADO  |  MANUAL DE USUARIO'),8.5,VERDE,True)
-f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.9 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
+f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.10 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
 
 # Portada editorial
 doc.add_paragraph().paragraph_format.space_after=Pt(70)
@@ -91,13 +94,13 @@ p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('MA
 p=doc.add_paragraph(); p.style='Title'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p=doc.add_paragraph(); p.style='Subtitle'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Guía operativa para administración, supervisión y caja')
 doc.add_paragraph().paragraph_format.space_after=Pt(90)
-p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.9'),11,VERDE,True)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.10'),11,VERDE,True)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('Agosto de 2026'),10,GRIS)
 note('Estado del documento.', 'Esta edición acompaña la prueba funcional. Las capturas internas y cualquier ajuste encontrado se incorporarán en la versión 1.0.', 'EAF4F6')
 
 page(); heading('Control del documento')
 table(['Campo','Detalle'],[
- ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.9 – preliminar'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Después de la prueba funcional integral')],[1.65,4.85])
+ ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.10 – preliminar'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Después de la prueba funcional integral')],[1.65,4.85])
 heading('Cómo utilizar este manual',2)
 doc.add_paragraph('Cada capítulo describe el objetivo del módulo, el procedimiento habitual y los controles que deben respetarse. Los nombres de botones y opciones aparecen tal como se muestran en el sistema.')
 note('Regla general.', 'Nunca comparta su contraseña. No elimine ni corrija movimientos financieros por fuera del procedimiento autorizado. Ante una diferencia, registre lo ocurrido y comuníquelo al supervisor.')
@@ -118,7 +121,23 @@ doc.add_paragraph('El menú superior muestra únicamente los módulos habilitado
 
 heading('2. Roles y responsabilidades')
 table(['Rol','Responsabilidad principal','Operaciones habituales'],[
- ('Administrador','Configuración y control general','Usuarios, catálogo, finanzas, personal, reportes y correcciones autorizadas'),('Supervisor','Seguimiento operativo','Compras, inventario, cuentas, gastos, personal y reportes'),('Cajero','Atención y manejo de su caja','Ventas, cobranzas autorizadas, cambios y cierre de su propia caja')],[1.1,2.15,3.25])
+ ('Administrador','Configuración, accesos y control general','Todas las operaciones, usuarios, roles y permisos'),('Supervisor','Dirección operativa del negocio','Operación completa, supervisión, finanzas, personal y reportes; usuarios en consulta'),('Depósito','Mercadería y abastecimiento','Existencias, movimientos, órdenes, compras y recepción'),('Cajero','Atención y manejo de su caja','Ventas, cobranzas, cambios, devoluciones y cierre de su caja')],[1.1,2.15,3.25])
+heading('2.1 Cajero',2)
+doc.add_paragraph('Atiende al cliente y responde por el dinero de su turno. Puede consultar productos, existencias y clientes; abrir y cerrar su caja; vender; cobrar cuentas corrientes; y registrar cambios o devoluciones autorizadas.')
+bullets(['Utilizar siempre su propio usuario y una caja física disponible.','Comprobar efectivo inicial, cobros, vuelto y efectivo contado.','No anular ventas completas, modificar precios, ajustar stock ni acceder a Tesorería.','Informar al supervisor cualquier diferencia antes de cerrar.'])
+heading('2.2 Depósito',2)
+doc.add_paragraph('Controla la mercadería y el abastecimiento. Detecta faltantes, revisa mínimos, prepara órdenes de compra, realiza o coordina pedidos y controla la recepción total o parcial.')
+bullets(['Consultar catálogo y existencias sin modificar precios.','Registrar movimientos entre ubicaciones cuando corresponda.','Preparar, enviar y recibir órdenes de compra.','No realizar ajustes manuales, pagos, ventas, sueldos ni movimientos financieros.'])
+note('Compra presencial.', 'Si el responsable va al mayorista, utiliza una orden como lista de compra, conserva al mayorista como proveedor y registra la recepción al regresar. Administración registra la factura y Tesorería registra el pago desde el origen real.')
+heading('2.3 Supervisor',2)
+doc.add_paragraph('Administra la operación general. Puede gestionar catálogo, inventario, compras, clientes, proveedores, cajas, ventas, gastos, empleados, Tesorería y reportes. También puede anular ventas y rendir cajas pendientes.')
+bullets(['Controlar diferencias, excepciones y operaciones sensibles.','Consultar usuarios para identificar responsables.','No crear, editar, reactivar ni cambiar roles o contraseñas de usuarios.','Solicitar al administrador cualquier modificación de accesos.'])
+heading('2.4 Administrador',2)
+doc.add_paragraph('Posee las capacidades del supervisor y además administra identidades y accesos. Es el único responsable del alta, modificación, activación y asignación de roles de los usuarios.')
+bullets(['Crear usuarios con el rol mínimo necesario.','Proteger y restablecer credenciales de manera segura.','Revisar permisos y accesos periódicamente.','No compartir cuentas administrativas para tareas cotidianas.'])
+heading('2.5 Cómo colaboran los roles',2)
+doc.add_paragraph('El circuito de abastecimiento recomendado es: Depósito detecta faltantes → prepara la orden → Supervisor revisa cuando corresponda → se realiza el pedido o compra presencial → Depósito recibe y controla → Administración registra la factura → Tesorería realiza el pago.')
+note('Comercios pequeños.', 'Una persona puede cumplir varias funciones, pero debe respetar el circuito y utilizar el usuario autorizado. Compartir contraseñas elimina la trazabilidad de quién realizó cada operación.')
 note('Separación de funciones.', 'Cada cajero debe utilizar su propio usuario y su propia caja. La caja física no debe abrirse simultáneamente desde dos sesiones.')
 
 page(); heading('3. Inicio y tablero')

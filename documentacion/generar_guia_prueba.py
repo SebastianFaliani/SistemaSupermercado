@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.6.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.7.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -79,7 +79,7 @@ def check(texto): doc.add_paragraph('[ ] ' + texto)
 def pagina(): doc.add_page_break()
 
 header = sec.header.paragraphs[0]; header.alignment = WD_ALIGN_PARAGRAPH.LEFT; aplicar_fuente(header.add_run('LA 91 SUPERMERCADO  |  GUÍA DE PRUEBA FUNCIONAL'), 8.5, VERDE, True)
-footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.4 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
+footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.7 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
 
 doc.add_paragraph().paragraph_format.space_after = Pt(60)
 if LOGO.exists():
@@ -322,13 +322,27 @@ nota('Alcance documental.', 'Estos comprobantes funcionan como constancia intern
 heading('19.6 Paginación del Libro de Tesorería', 2)
 doc.add_paragraph('El Libro de Tesorería muestra hasta 15 movimientos por página. Los botones Anterior y Siguiente recorren el historial sin producir desplazamiento infinito. Los totales de ingresos y egresos continúan calculándose sobre todos los movimientos que coinciden con los filtros.')
 
-heading('20. Controles transversales validados')
+pagina(); heading('20. Roles y separación de funciones')
+doc.add_paragraph('La prueba debe realizarse cerrando sesión entre usuarios. El menú y las acciones visibles cambian según el rol. La ausencia de una opción restringida es el resultado esperado.')
+tabla(['Rol', 'Función principal', 'Límite validado'], [('Cajero', 'Ventas, cobranzas, cambios y su propia caja', 'Sin administración, compras, Tesorería ni anulación total'), ('Depósito', 'Mercadería, abastecimiento, compras y recepción', 'Sin pagos, ventas, ajustes manuales ni finanzas'), ('Supervisor', 'Administración operativa general', 'Usuarios únicamente en consulta'), ('Administrador', 'Operación completa e identidades', 'Único con ABM de usuarios y roles')], [1.1, 2.9, 2.5])
+heading('20.1 Validar Cajero', 2)
+for texto in ['Ve Inicio, Catálogo, Inventario, Clientes y Punto de venta.', 'Consulta productos y existencias sin editarlos.', 'Puede cobrar cuentas y realizar cambios o devoluciones.', 'No ve Usuarios, Compras, Reportes, Gastos, Empleados ni Tesorería.', 'No puede anular ventas completas ni supervisar cajas ajenas.']: check(texto)
+heading('20.2 Validar Depósito', 2)
+for texto in ['Ve Inicio, Catálogo, Inventario, Proveedores y Compras.', 'Consulta productos sin modificar precios.', 'Puede preparar, enviar y recibir órdenes de compra.', 'Puede registrar movimientos de stock, pero no ajustes manuales.', 'No accede a ventas, cajas, clientes, sueldos ni Tesorería.']: check(texto)
+nota('Circuito de abastecimiento.', 'Depósito detecta faltantes → prepara la orden → se realiza el pedido o compra presencial → recibe y controla → Administración registra la factura → Tesorería paga al proveedor.')
+heading('20.3 Validar Supervisor', 2)
+for texto in ['Ve todos los módulos operativos y financieros.', 'Puede gestionar catálogo, stock, compras, cuentas, cajas, gastos, empleados y Tesorería.', 'Puede anular ventas y rendir cajas pendientes.', 'En Usuarios puede consultar, pero no crear, editar, reactivar, cambiar contraseñas ni asignar roles.']: check(texto)
+heading('20.4 Validar Administrador', 2)
+for texto in ['Ve todos los módulos y operaciones del Supervisor.', 'En Usuarios dispone de Nuevo usuario y Editar.', 'Puede asignar roles y activar o desactivar usuarios.', 'Los campos de contraseña permiten mostrar u ocultar el contenido.']: check(texto)
+nota('Principio de menor permiso.', 'Asigne a cada persona el rol mínimo necesario para su tarea. No comparta usuarios: la trazabilidad depende de que cada operación quede vinculada con su responsable real.')
+
+heading('21. Controles transversales validados')
 for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Historial de cajas filtrable y paginado, sin desplazamiento infinito.', 'Libro de Tesorería paginado en el servidor y con totales globales filtrados.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
 
-heading('21. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.'), ('11-08-2026', 'Cierre pendiente y rendición posterior', 'Aprobado', 'Rendición $51.130; saldo final $350.340.'), ('11-08-2026', 'Adelanto y liquidación de sueldo', 'Aprobado', 'Adelanto $50.000; neto $550.000.'), ('11-08-2026', 'Pago parcial y final de sueldo', 'Aprobado', 'Banco final $190.000; saldo $0.'), ('11-08-2026', 'Comprobantes laborales', 'Aprobado', 'Constancia y recibo A4 firmables.')], [1.1, 2.1, 1.25, 2.05])
-heading('21.1 Próximos circuitos a incorporar', 2)
-for texto in ['Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.', 'Respaldo, restauración y controles de puesta en marcha.']: check(texto)
+heading('22. Registro incremental de pruebas')
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.'), ('11-08-2026', 'Cierre pendiente y rendición posterior', 'Aprobado', 'Rendición $51.130; saldo final $350.340.'), ('11-08-2026', 'Adelanto y liquidación de sueldo', 'Aprobado', 'Adelanto $50.000; neto $550.000.'), ('11-08-2026', 'Pago parcial y final de sueldo', 'Aprobado', 'Banco final $190.000; saldo $0.'), ('11-08-2026', 'Comprobantes laborales', 'Aprobado', 'Constancia y recibo A4 firmables.'), ('11-08-2026', 'Permisos por rol', 'Aprobado', 'Cajero, Depósito, Supervisor y Administrador.')], [1.1, 2.1, 1.25, 2.05])
+heading('22.1 Próximos circuitos a incorporar', 2)
+for texto in ['Cierre diario consolidado y reportes.', 'Operaciones inválidas y auditoría de acciones sensibles.', 'Respaldo, restauración y controles de puesta en marcha.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
 
 doc.core_properties.title = 'Guía de Prueba Funcional - Sistema de Gestión La 91 Supermercado'
