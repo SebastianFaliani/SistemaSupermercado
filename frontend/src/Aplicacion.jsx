@@ -99,7 +99,10 @@ export function Aplicacion() {
           </div>
           <strong className="titulo-gestion">Gestión local</strong>
           <div className="usuario-actual">
-            <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión"><span className="icono-accion-tienda icono-accion-tienda--salir" aria-hidden="true" /></button>
+            <button type="button" className="boton-cerrar-sesion" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión">
+              <span className="icono-accion-tienda icono-accion-tienda--salir" aria-hidden="true" />
+              <span className="etiqueta-cerrar-sesion">Cerrar sesión</span>
+            </button>
           </div>
         </header>
         <nav className="navegacion-principal" aria-label="Módulos principales">

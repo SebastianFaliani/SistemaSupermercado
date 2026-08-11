@@ -468,7 +468,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
   letter-spacing: .025em;
   text-align: center;
 }
-.barra-superior .usuario-actual { position: relative; z-index: 1; align-self: start; justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; margin-top: 5px; }
+.barra-superior .usuario-actual { position: relative; z-index: 1; align-self: center; justify-self: center; align-items: center; justify-content: center; gap: 9px; margin-top: 0; }
 .barra-superior .usuario-actual > span { color: var(--color-blanco); }
 .icono-rol {
   display: inline-block;
@@ -486,15 +486,31 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .icono-rol--supervisor { background-position-x: -81px; }
 .icono-rol--deposito { background-position-x: -120px; }
 .barra-superior .boton-cerrar-sesion {
-  display: grid;
-  place-items: center;
+  display: flex;
+  width: auto;
+  height: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.barra-superior .boton-cerrar-sesion .icono-accion-tienda {
   width: 36px;
   height: 36px;
-  margin-top: 0;
-  padding: 4px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
+  background-size: 180px 120px;
+  background-position-x: -110px;
+  background-position-y: -36px;
+}
+.barra-superior .etiqueta-cerrar-sesion {
+  color: var(--color-blanco);
+  font-size: 9.25px;
+  line-height: 1;
+  letter-spacing: .035em;
+  text-transform: uppercase;
 }
 .barra-superior .boton-cerrar-sesion:hover { background: rgb(255 255 255 / 10%); }
 @media (max-width: 720px) {
