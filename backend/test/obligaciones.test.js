@@ -11,7 +11,10 @@ test('acepta una factura de proveedor válida y rechaza fechas invertidas', () =
 });
 
 test('los pagos de proveedores requieren importe positivo y un medio admitido', () => {
-  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'transferencia', monto: 50000 }).success, true);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'transferencia', monto: 50000, cuenta_tesoreria_id: 1 }).success, true);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'transferencia', monto: 50000 }).success, false);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000 }).success, true);
+  assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 50000, cuenta_tesoreria_id: 1 }).success, false);
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'efectivo', monto: 0 }).success, false);
   assert.equal(esquemaPagoProveedor.safeParse({ medio: 'credito', monto: 1000 }).success, false);
 });

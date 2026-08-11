@@ -35,5 +35,13 @@ export const esquemaFacturaProveedor = z.object({
 export const esquemaPagoProveedor = z.object({
   medio: z.enum(['efectivo', 'transferencia', 'cheque', 'debito']),
   monto: z.coerce.number().positive().max(9999999999999.99),
+  cuenta_tesoreria_id: z.coerce.number().int().positive().nullable().optional(),
   referencia: textoOpcional(100), observaciones: textoOpcional(255),
+}).superRefine((datos, contexto) => {
+  if (datos.medio !== 'efectivo' && !datos.cuenta_tesoreria_id) {
+    contexto.addIssue({ code: 'custom', path: ['cuenta_tesoreria_id'], message: 'La cuenta de Tesorería es obligatoria' });
+  }
+  if (datos.medio === 'efectivo' && datos.cuenta_tesoreria_id) {
+    contexto.addIssue({ code: 'custom', path: ['cuenta_tesoreria_id'], message: 'El efectivo se descuenta de la caja abierta' });
+  }
 });

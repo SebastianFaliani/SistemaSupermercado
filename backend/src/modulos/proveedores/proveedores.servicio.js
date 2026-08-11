@@ -69,7 +69,8 @@ export async function obtenerCuentaProveedor(id) {
       fecha_vencimiento, total, saldo_pendiente, estado, observaciones
       FROM facturas_proveedores WHERE proveedor_id = ? ORDER BY fecha_vencimiento DESC, id DESC LIMIT 200`, [id]),
     baseDatos.query(`SELECT pp.id, pp.medio, pp.monto, pp.referencia, pp.observaciones, pp.fecha_creacion,
-      u.nombre_usuario FROM pagos_proveedores pp JOIN usuarios u ON u.id = pp.usuario_id
+      u.nombre_usuario, ct.nombre AS cuenta_tesoreria FROM pagos_proveedores pp JOIN usuarios u ON u.id = pp.usuario_id
+      LEFT JOIN cuentas_tesoreria ct ON ct.id = pp.cuenta_tesoreria_id
       WHERE pp.proveedor_id = ? ORDER BY pp.fecha_creacion DESC LIMIT 200`, [id]),
     baseDatos.query(`SELECT oc.id, oc.total, oc.fecha_recepcion FROM ordenes_compra oc
       WHERE oc.proveedor_id = ? AND oc.estado = 'recibida' ORDER BY oc.id DESC LIMIT 100`, [id]),
@@ -96,18 +97,35 @@ export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
   try {
     await conexion.beginTransaction();
     let sesionId = null;
+    let cuentaTesoreria = null;
+    const [[proveedor]] = await conexion.query('SELECT id, COALESCE(nombre_fantasia, razon_social) AS nombre FROM proveedores WHERE id = ? FOR UPDATE', [proveedorId]);
+    if (!proveedor) { const error = new Error('No se encontró el proveedor'); error.codigoPublico = 'NO_ENCONTRADO'; throw error; }
     if (datos.medio === 'efectivo') {
       const [[sesion]] = await conexion.query("SELECT id FROM sesiones_caja WHERE usuario_id = ? AND estado = 'abierta' ORDER BY id DESC LIMIT 1 FOR UPDATE", [usuarioId]);
       if (!sesion) { const error = new Error('Debés tener una caja abierta para pagar en efectivo'); error.codigoPublico = 'SIN_CAJA'; throw error; }
       sesionId = sesion.id;
+    } else {
+      const [[cuenta]] = await conexion.query(`SELECT ct.id, ct.nombre, ct.esta_activa,
+        ct.saldo_inicial + COALESCE((SELECT SUM(CASE WHEN mt.tipo = 'ingreso' THEN mt.monto ELSE -mt.monto END)
+        FROM movimientos_tesoreria mt WHERE mt.cuenta_tesoreria_id = ct.id), 0) AS saldo
+        FROM cuentas_tesoreria ct WHERE ct.id = ? FOR UPDATE`, [datos.cuenta_tesoreria_id]);
+      if (!cuenta || !cuenta.esta_activa) { const error = new Error('La cuenta de Tesorería no está disponible'); error.codigoPublico = 'CUENTA_INVALIDA'; throw error; }
+      if (Number(cuenta.saldo) + 0.009 < datos.monto) { const error = new Error(`Saldo insuficiente en ${cuenta.nombre}`); error.codigoPublico = 'SALDO_INSUFICIENTE'; throw error; }
+      cuentaTesoreria = cuenta;
     }
     const [facturas] = await conexion.query("SELECT id, saldo_pendiente FROM facturas_proveedores WHERE proveedor_id = ? AND estado IN ('pendiente', 'parcial') AND saldo_pendiente > 0 ORDER BY fecha_vencimiento, id FOR UPDATE", [proveedorId]);
     const saldo = facturas.reduce((suma, factura) => suma + Number(factura.saldo_pendiente), 0);
     if (!saldo) { const error = new Error('El proveedor no tiene deuda pendiente'); error.codigoPublico = 'SIN_DEUDA'; throw error; }
     if (datos.monto - saldo > 0.009) { const error = new Error('El pago no puede superar la deuda del proveedor'); error.codigoPublico = 'MONTO_INVALIDO'; throw error; }
     const [pago] = await conexion.query(`INSERT INTO pagos_proveedores
-      (proveedor_id, sesion_caja_id, usuario_id, medio, monto, referencia, observaciones)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`, [proveedorId, sesionId, usuarioId, datos.medio, datos.monto, datos.referencia || null, datos.observaciones || null]);
+      (proveedor_id, sesion_caja_id, cuenta_tesoreria_id, usuario_id, medio, monto, referencia, observaciones)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [proveedorId, sesionId, cuentaTesoreria?.id || null, usuarioId, datos.medio, datos.monto, datos.referencia || null, datos.observaciones || null]);
+    if (cuentaTesoreria) {
+      await conexion.query(`INSERT INTO movimientos_tesoreria
+        (cuenta_tesoreria_id, usuario_id, tipo, categoria, concepto, monto, referencia, fecha, pago_proveedor_id)
+        VALUES (?, ?, 'egreso', 'proveedores', ?, ?, ?, CURRENT_DATE(), ?)`,
+      [cuentaTesoreria.id, usuarioId, `Pago a proveedor ${proveedor.nombre}`, datos.monto, datos.referencia || `Pago #${pago.insertId}`, pago.insertId]);
+    }
     let restante = Number(datos.monto);
     for (const factura of facturas) {
       if (restante <= 0.009) break;
@@ -124,9 +142,10 @@ export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
 export async function obtenerPagoProveedor(id) {
   const [[pago]] = await baseDatos.query(`SELECT pp.id, pp.medio, pp.monto, pp.referencia,
     pp.observaciones, pp.fecha_creacion, COALESCE(p.nombre_fantasia, p.razon_social) AS proveedor,
-    p.cuit, u.nombre_usuario, c.nombre AS caja FROM pagos_proveedores pp
+    p.cuit, u.nombre_usuario, c.nombre AS caja, ct.nombre AS cuenta_tesoreria FROM pagos_proveedores pp
     JOIN proveedores p ON p.id = pp.proveedor_id JOIN usuarios u ON u.id = pp.usuario_id
-    LEFT JOIN sesiones_caja sc ON sc.id = pp.sesion_caja_id LEFT JOIN cajas c ON c.id = sc.caja_id WHERE pp.id = ?`, [id]);
+    LEFT JOIN sesiones_caja sc ON sc.id = pp.sesion_caja_id LEFT JOIN cajas c ON c.id = sc.caja_id
+    LEFT JOIN cuentas_tesoreria ct ON ct.id = pp.cuenta_tesoreria_id WHERE pp.id = ?`, [id]);
   if (!pago) return null;
   const [aplicaciones] = await baseDatos.query(`SELECT ppa.factura_proveedor_id, ppa.monto,
     fp.numero_comprobante FROM pagos_proveedores_aplicaciones ppa JOIN facturas_proveedores fp
