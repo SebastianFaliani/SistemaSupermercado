@@ -18,6 +18,13 @@ test('una venta puede no tener pagos para resolverse como crédito', () => {
   assert.equal(resultado.success, true);
 });
 
+test('una venta en efectivo conserva lo recibido y valida el vuelto', () => {
+  const base = { detalles: [{ producto_id: 1, cantidad: 1 }], pagos: [{ medio: 'efectivo', monto: 6300 }] };
+  assert.equal(esquemaVenta.safeParse({ ...base, efectivo_recibido: 7000 }).success, true);
+  assert.equal(esquemaVenta.safeParse({ ...base, efectivo_recibido: 6000 }).success, false);
+  assert.equal(esquemaVenta.safeParse({ detalles: base.detalles, pagos: [{ medio: 'debito', monto: 6300 }], efectivo_recibido: 7000 }).success, false);
+});
+
 test('una cobranza requiere importe positivo y medio válido', () => {
   assert.equal(esquemaCobranza.safeParse({ medio: 'efectivo', monto: 1000 }).success, true);
   assert.equal(esquemaCobranza.safeParse({ medio: 'cuenta_corriente', monto: 1000 }).success, false);

@@ -27,6 +27,15 @@ export const esquemaVenta = z.object({
     .refine((items) => new Set(items.map((item) => item.producto_id)).size === items.length, 'No puede repetirse un producto'),
   pagos: z.array(z.object({ medio: z.enum(['efectivo', 'debito', 'credito', 'transferencia']), monto: z.coerce.number().positive() })).max(4)
     .refine((pagos) => new Set(pagos.map((pago) => pago.medio)).size === pagos.length, 'No puede repetirse un medio de pago'),
+  efectivo_recibido: z.coerce.number().nonnegative().max(9999999999999.99).nullable().optional(),
+}).superRefine((datos, contexto) => {
+  const efectivoAplicado = datos.pagos.find((pago) => pago.medio === 'efectivo')?.monto || 0;
+  if (efectivoAplicado > 0 && Number(datos.efectivo_recibido || 0) + 0.009 < efectivoAplicado) {
+    contexto.addIssue({ code: 'custom', path: ['efectivo_recibido'], message: 'El efectivo recibido no puede ser menor al aplicado' });
+  }
+  if (!efectivoAplicado && Number(datos.efectivo_recibido || 0) > 0) {
+    contexto.addIssue({ code: 'custom', path: ['efectivo_recibido'], message: 'No corresponde efectivo recibido sin pago en efectivo' });
+  }
 });
 
 export const esquemaConsultaVentas = z.object({

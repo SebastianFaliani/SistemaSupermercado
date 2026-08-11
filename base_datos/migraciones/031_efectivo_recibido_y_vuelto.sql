@@ -1,0 +1,3 @@
+ALTER TABLE ventas
+  ADD COLUMN efectivo_recibido DECIMAL(15,2) NOT NULL DEFAULT 0 AFTER total,
+  ADD COLUMN vuelto DECIMAL(15,2) NOT NULL DEFAULT 0 AFTER efectivo_recibido;

@@ -301,6 +301,7 @@ export function Ventas({ token, permisos }) {
             cantidad: Number(item.cantidad),
           })),
           pagos,
+          efectivo_recibido: Number(pagosVenta.efectivo) > 0 ? Number(recibido) : null,
         }),
       });
       const comprobante = await pedir(
@@ -1441,6 +1442,7 @@ export function Ventas({ token, permisos }) {
                     })}
                   </span>
                 ))}
+                {Number(ventaDetalle.efectivo_recibido) > 0 && <><span>Efectivo entregado: ${Number(ventaDetalle.efectivo_recibido).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span><span>Vuelto: ${Number(ventaDetalle.vuelto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span></>}
                 {Number(ventaDetalle.saldo_pendiente) > 0 && <span>Cuenta corriente: {Number(ventaDetalle.saldo_pendiente).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} · vence {formatearFecha(ventaDetalle.fecha_vencimiento)}</span>}
               </div>
               <strong>

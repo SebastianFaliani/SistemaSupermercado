@@ -234,7 +234,7 @@ export async function listarVentas(consulta, usuarioId = null) {
 export async function obtenerVenta(id, usuarioId = null) {
   const parametros = [id]; const restriccion = usuarioId ? 'AND v.usuario_id = ?' : '';
   if (usuarioId) parametros.push(usuarioId);
-  const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total,
+  const [ventas] = await baseDatos.query(`SELECT v.id, v.fecha_creacion, v.estado, v.total, v.efectivo_recibido, v.vuelto,
     v.saldo_pendiente, v.fecha_vencimiento, v.cliente_id, cl.nombre AS cliente,
     v.fecha_anulacion, v.motivo_anulacion,
     u.nombre_usuario, c.nombre AS caja FROM ventas v JOIN usuarios u ON u.id = v.usuario_id
@@ -400,7 +400,10 @@ export async function crearVenta(usuarioId, datos) {
     if (saldoPendiente > 0.009 && !cliente.credito_habilitado) { const error = new Error('El cliente no tiene habilitada la cuenta corriente'); error.codigoPublico = 'CREDITO_NO_HABILITADO'; throw error; }
     if (saldoPendiente > 0.009 && Number(cliente.saldo) + saldoPendiente - Number(cliente.limite_credito) > 0.009) { const error = new Error(`El crédito supera el límite disponible de ${cliente.nombre}`); error.codigoPublico = 'LIMITE_CREDITO'; throw error; }
     const fechaVencimiento = saldoPendiente > 0.009 ? new Date(Date.now() + Number(cliente.dias_vencimiento) * 86400000).toISOString().slice(0, 10) : null;
-    const [venta] = await conexion.query('INSERT INTO ventas (sesion_caja_id, usuario_id, cliente_id, total, saldo_pendiente, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?)', [sesion.id, usuarioId, cliente?.id || null, total, saldoPendiente, fechaVencimiento]);
+    const efectivoAplicado = Number(datos.pagos.find((pago) => pago.medio === 'efectivo')?.monto || 0);
+    const efectivoRecibido = efectivoAplicado > 0 ? Number(datos.efectivo_recibido || efectivoAplicado) : 0;
+    const vuelto = Math.max(0, efectivoRecibido - efectivoAplicado);
+    const [venta] = await conexion.query('INSERT INTO ventas (sesion_caja_id, usuario_id, cliente_id, total, efectivo_recibido, vuelto, saldo_pendiente, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [sesion.id, usuarioId, cliente?.id || null, total, efectivoRecibido, vuelto, saldoPendiente, fechaVencimiento]);
     const [movimiento] = await conexion.query(`INSERT INTO movimientos_stock
       (ubicacion_id, usuario_id, tipo, motivo, referencia_tipo, referencia_id)
       VALUES (?, ?, 'salida_venta', ?, 'venta', ?)`, [ubicacion.id, usuarioId, `Venta #${venta.insertId}`, venta.insertId]);
@@ -416,6 +419,6 @@ export async function crearVenta(usuarioId, datos) {
     if (saldoPendiente > 0.009) await conexion.query(`INSERT INTO movimientos_cuenta_clientes
       (cliente_id, usuario_id, tipo, debe, referencia_tipo, referencia_id, descripcion, fecha_vencimiento)
       VALUES (?, ?, 'venta_credito', ?, 'venta', ?, ?, ?)`, [cliente.id, usuarioId, saldoPendiente, venta.insertId, `Venta #${venta.insertId}`, fechaVencimiento]);
-    await conexion.commit(); return { id: venta.insertId, total, saldo_pendiente: saldoPendiente, fecha_vencimiento: fechaVencimiento };
+    await conexion.commit(); return { id: venta.insertId, total, efectivo_recibido: efectivoRecibido, vuelto, saldo_pendiente: saldoPendiente, fecha_vencimiento: fechaVencimiento };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
