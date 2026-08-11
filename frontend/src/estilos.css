@@ -279,5 +279,8 @@ body.modal-abierto { overflow: hidden; }
 .tabla-cuenta { max-height: 260px; margin-bottom: 14px; border: 1px solid var(--color-gris-200); border-radius: 8px; }
 .tabla-cuenta th { position: sticky; top: 0; background: var(--color-blanco); }
 .estado-deuda-vencida { display: inline-block; padding: 3px 7px; border-radius: 999px; color: #8a3600; background: #fff0e5; }
+.importe-movimiento { font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; }
+.importe-movimiento--ingreso { color: #18794e; }
+.importe-movimiento--egreso { color: var(--color-error); }
 .comprobante-cobranza > p { margin: 6px 0; }
 @media (max-width: 800px) { .tarjetas-reporte { grid-template-columns: repeat(2, 1fr); } .rejilla-reportes { grid-template-columns: 1fr; } }
