@@ -151,6 +151,7 @@ export function Proveedores({ token, permisos }) {
   const [cuenta, setCuenta] = useState(null);
   const [factura, setFactura] = useState(false);
   const [pagar, setPagar] = useState(false);
+  const [errorPago, setErrorPago] = useState('');
   const [comprobante, setComprobante] = useState(null);
   const [procesando, setProcesando] = useState(false);
   const [cuentasTesoreria, setCuentasTesoreria] = useState([]);
@@ -181,7 +182,7 @@ export function Proveedores({ token, permisos }) {
   }, [cargar]);
   useEffect(() => {
     if (!pagar) return;
-    setMensaje('');
+    setErrorPago('');
     setMedioPago('transferencia');
     setOrigenEfectivo('tesoreria');
     solicitar('/api/tesoreria/cuentas', token)
@@ -300,7 +301,7 @@ export function Proveedores({ token, permisos }) {
       await Promise.all([abrirCuenta(cuenta), cargar()]);
       setMensaje('Pago registrado correctamente.');
     } catch (error) {
-      setMensaje(error.message);
+      setErrorPago(error.message);
     } finally {
       setProcesando(false);
     }
@@ -705,11 +706,6 @@ export function Proveedores({ token, permisos }) {
         alCerrar={() => setPagar(false)}
       >
         <form className="formulario-modal" onSubmit={guardarPago}>
-          {mensaje && (
-            <p className="mensaje" role="alert">
-              {mensaje}
-            </p>
-          )}
           <p>
             Saldo pendiente: <strong>{moneda(cuenta?.saldo || 0)}</strong>
           </p>
@@ -793,6 +789,21 @@ export function Proveedores({ token, permisos }) {
             </button>
           </div>
         </form>
+      </Modal>
+      <Modal
+        abierto={Boolean(errorPago)}
+        titulo="No se pudo registrar el pago"
+        alCerrar={() => setErrorPago('')}
+      >
+        <p className="mensaje" role="alert">
+          {errorPago}
+        </p>
+        <p>La deuda y el saldo de la cuenta no fueron modificados.</p>
+        <div className="modal__acciones">
+          <button className="boton" onClick={() => setErrorPago('')} autoFocus>
+            Entendido
+          </button>
+        </div>
       </Modal>
       <Modal
         abierto={Boolean(comprobante)}
