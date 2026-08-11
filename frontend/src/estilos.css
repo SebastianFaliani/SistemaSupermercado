@@ -216,9 +216,10 @@
 }
 .tienda__hero::before { top: -115px; left: 8%; }
 .tienda__hero::after { right: 7%; bottom: -145px; width: 270px; height: 270px; }
-.tienda__hero-contenido { position: relative; z-index: 1; width: min(720px, 90vw); }
+.tienda__hero-contenido { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(300px, 430px) minmax(0, 1fr); align-items: center; gap: clamp(24px, 5vw, 70px); width: min(1180px, 92vw); }
 .tienda__hero-contenido > a { display: block; }
-.tienda__hero-logo { display: block; width: min(560px, 82vw); max-height: 150px; margin: 0 auto 14px; object-fit: contain; }
+.tienda__hero-logo { display: block; width: 100%; max-height: 155px; margin: 0; object-fit: contain; }
+.tienda__hero-texto { display: grid; place-items: center; text-align: center; }
 .tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(22px, 2.7vw, 34px); font-weight: 400; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
 .tienda__cuerpo aside button > img,
@@ -246,7 +247,8 @@
   .tienda__hero-nav { top: 13px; right: 13px; left: 13px; flex-wrap: wrap; justify-content: flex-end; }
   .tienda__hero-nav button,
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
-  .tienda__hero-logo { width: min(500px, 92vw); }
+  .tienda__hero-contenido { grid-template-columns: 1fr; gap: 12px; width: min(500px, 92vw); }
+  .tienda__hero-logo { width: min(430px, 88vw); margin: 0 auto; }
 }
 .configuracion-ecommerce__introduccion {
   display: flex;
