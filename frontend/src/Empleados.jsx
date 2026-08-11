@@ -160,7 +160,8 @@ export function Empleados({ token, permisos }) {
   async function pagarSueldo(e) {
     e.preventDefault();
     const f = new FormData(e.currentTarget),
-      usaCaja = medioPago === 'efectivo' && origenEfectivo === 'caja';
+      usaCaja = medioPago === 'efectivo' && origenEfectivo === 'caja',
+      empleadoId = detalle?.id;
     setProcesando(true);
     try {
       await api(`/api/empleados/liquidaciones/${liquidacion.id}/pagos`, token, {
@@ -174,8 +175,11 @@ export function Empleados({ token, permisos }) {
         }),
       });
       setPagar(false);
-      await abrirLiquidacion(liquidacion.id);
-      await cargar();
+      await Promise.all([
+        abrirLiquidacion(liquidacion.id),
+        empleadoId ? abrir(empleadoId) : Promise.resolve(),
+        cargar(),
+      ]);
       setMensaje('Pago de sueldo registrado.');
     } catch (x) {
       setMensaje(x.message);
