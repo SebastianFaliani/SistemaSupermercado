@@ -71,7 +71,7 @@ export async function pagarGasto(id, usuarioId, datos) {
     } else cuentaTesoreria = await obtenerCuentaParaPago(conexion, datos);
     const [pago] = await conexion.query('INSERT INTO pagos_gastos (gasto_id, sesion_caja_id, cuenta_tesoreria_id, usuario_id, medio, monto, referencia) VALUES (?, ?, ?, ?, ?, ?, ?)', [id, sesionId, cuentaTesoreria?.id || null, usuarioId, datos.medio, datos.monto, datos.referencia || null]);
     if (cuentaTesoreria) await conexion.query(`INSERT INTO movimientos_tesoreria (cuenta_tesoreria_id, usuario_id, tipo, categoria, concepto, monto, referencia, fecha, pago_gasto_id) VALUES (?, ?, 'egreso', 'gastos', ?, ?, ?, CURRENT_DATE(), ?)`, [cuentaTesoreria.id, usuarioId, `Pago de ${gasto.concepto}`, datos.monto, datos.referencia || `Pago de gasto #${id}`, pago.insertId]);
-    await conexion.query(`UPDATE gastos SET saldo_pendiente = saldo_pendiente - ?, estado = CASE WHEN saldo_pendiente - ? <= 0.009 THEN 'pagado' ELSE 'parcial' END WHERE id = ?`, [datos.monto, datos.monto, id]);
+    await conexion.query(`UPDATE gastos SET estado = CASE WHEN saldo_pendiente - ? <= 0.009 THEN 'pagado' ELSE 'parcial' END, saldo_pendiente = saldo_pendiente - ? WHERE id = ?`, [datos.monto, datos.monto, id]);
     await conexion.commit();
     return { id: pago.insertId };
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }

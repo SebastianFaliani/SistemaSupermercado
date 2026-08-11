@@ -149,8 +149,9 @@ export async function registrarPagoProveedor(proveedorId, usuarioId, datos) {
       if (restante <= 0.009) break;
       const aplicado = Math.min(restante, Number(factura.saldo_pendiente));
       await conexion.query('INSERT INTO pagos_proveedores_aplicaciones (pago_proveedor_id, factura_proveedor_id, monto) VALUES (?, ?, ?)', [pago.insertId, factura.id, aplicado]);
-      await conexion.query(`UPDATE facturas_proveedores SET saldo_pendiente = saldo_pendiente - ?,
-        estado = CASE WHEN saldo_pendiente - ? <= 0.009 THEN 'pagada' ELSE 'parcial' END WHERE id = ?`, [aplicado, aplicado, factura.id]);
+      await conexion.query(`UPDATE facturas_proveedores SET
+        estado = CASE WHEN saldo_pendiente - ? <= 0.009 THEN 'pagada' ELSE 'parcial' END,
+        saldo_pendiente = saldo_pendiente - ? WHERE id = ?`, [aplicado, aplicado, factura.id]);
       restante -= aplicado;
     }
     await conexion.commit(); return { id: pago.insertId, saldo_anterior: saldo, saldo_nuevo: saldo - datos.monto };
