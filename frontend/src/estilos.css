@@ -160,6 +160,7 @@
   align-items: center;
   gap: 7px;
   justify-self: end;
+  margin-top: 5px;
 }
 .tienda__hero-nav button,
 .tienda__hero-nav a {
