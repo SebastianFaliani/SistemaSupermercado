@@ -981,7 +981,7 @@ export function Ventas({ token, permisos }) {
           {clienteSeleccionado && <div className="resumen-credito-cliente"><span>Saldo actual</span><strong>${Number(clienteSeleccionado.saldo).toLocaleString('es-AR')}</strong><span>Crédito disponible</span><strong>{clienteSeleccionado.credito_habilitado ? `$${Number(clienteSeleccionado.disponible).toLocaleString('es-AR')}` : 'No habilitado'}</strong></div>}
           <div className="medios-pago">
             {[
-              ['efectivo', 'Efectivo'],
+              ['efectivo', 'Efectivo entregado'],
               ['debito', 'Débito'],
               ['credito', 'Tarjeta de crédito'],
               ['transferencia', 'Transferencia'],
@@ -994,15 +994,26 @@ export function Ventas({ token, permisos }) {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={pagosVenta[clave]}
+                    value={clave === 'efectivo' ? recibido : pagosVenta[clave]}
                     onFocus={(evento) => evento.currentTarget.select()}
                     onChange={(evento) => {
+                      const valorIngresado = evento.target.value;
+                      if (clave === 'efectivo') {
+                        const otrosMedios = Object.entries(pagosVenta)
+                          .filter(([medio]) => medio !== 'efectivo')
+                          .reduce((suma, [, importe]) => suma + Number(importe || 0), 0);
+                        const maximoAplicable = Math.max(0, total - otrosMedios);
+                        const efectivoAplicado = Number(valorIngresado) > maximoAplicable
+                          ? maximoAplicable.toFixed(2)
+                          : valorIngresado;
+                        setPagosVenta((actual) => ({ ...actual, efectivo: efectivoAplicado }));
+                        setRecibido(valorIngresado);
+                        return;
+                      }
                       setPagosVenta((actual) => ({
                         ...actual,
-                        [clave]: evento.target.value,
+                        [clave]: valorIngresado,
                       }));
-                      if (clave === 'efectivo')
-                        setRecibido(evento.target.value);
                     }}
                   />
                   <button
@@ -1036,18 +1047,6 @@ export function Ventas({ token, permisos }) {
           {saldoPago > 0.009 && !creditoValido && <p className="mensaje-error">Seleccioná un cliente con crédito habilitado y límite disponible suficiente.</p>}
           {Number(pagosVenta.efectivo) > 0 && (
             <>
-              <div>
-                <label htmlFor="importe_recibido">Efectivo recibido</label>
-                <input
-                  id="importe_recibido"
-                  type="number"
-                  min={Number(pagosVenta.efectivo)}
-                  step="0.01"
-                  value={recibido}
-                  onFocus={(evento) => evento.currentTarget.select()}
-                  onChange={(evento) => setRecibido(evento.target.value)}
-                />
-              </div>
               <p>
                 Vuelto:{' '}
                 <strong>
