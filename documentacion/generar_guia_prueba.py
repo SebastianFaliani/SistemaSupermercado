@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.4.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.5.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -284,11 +284,20 @@ for texto in ['Tesorería muestra un egreso de $80.000 vinculado a la apertura.'
 nota('Cierre pendiente.', 'Si el efectivo aún no se entregó, desactive Rendir ahora. La caja quedará Cerrada y Pendiente de rendición. Un supervisor podrá abrir Historial de cajas, seleccionar Rendir efectivo y elegir la cuenta de destino cuando reciba físicamente el dinero.')
 nota('Sesiones anteriores.', 'Cuando una caja cerrada fue creada antes de esta integración, la primera rendición registra también el egreso histórico del fondo inicial. De este modo sólo aumenta Tesorería por la ganancia neta del turno.')
 
+heading('18.5 Cierre pendiente y rendición posterior', 2)
+paso('Abra Caja 1 con un fondo inicial de $50.000 proveniente de Efectivo general. Compruebe que Tesorería disminuya de $349.210 a $299.210.')
+paso('Venda 1 Levadura LEVEX por $1.130. Registre $2.000 recibidos en efectivo y entregue $870 de vuelto.')
+paso('Cierre Caja 1 con $51.130 contados y desactive Rendir ahora. Confirme que la sesión quede Cerrada y Pendiente, sin modificar todavía Tesorería.')
+paso('Abra Historial de cajas, filtre Rendición: Pendientes y localice Caja 1. El estado Pendiente debe aparecer destacado en color.')
+paso('Seleccione Rendir efectivo, elija Efectivo general como destino y confirme la operación.')
+tabla(['Control', 'Resultado validado'], [('Fondo retirado al abrir', '- $50.000'), ('Efectivo esperado al cerrar', '$51.130'), ('Diferencia de caja', '$0'), ('Estado antes de entregar', 'Cerrada / Pendiente'), ('Estado después de entregar', 'Cerrada / Rendida'), ('Saldo final de Efectivo general', '$350.340'), ('Incremento neto del turno', '+ $1.130')], [3.5, 3.0])
+for texto in ['El cierre pendiente no aumenta Tesorería antes de la entrega física.', 'El historial permite filtrar por fecha, estado de caja y estado de rendición.', 'El historial muestra hasta 8 sesiones por página y dispone de paginación.', 'La rendición posterior registra un ingreso de $51.130 en Efectivo general.', 'La caja conserva la fecha, hora, importe y cuenta de destino de la rendición.']: check(texto)
+
 heading('19. Controles transversales validados')
-for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
+for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Historial de cajas filtrable y paginado, sin desplazamiento infinito.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
 
 heading('20. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.')], [1.1, 2.1, 1.25, 2.05])
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.'), ('11-08-2026', 'Cierre pendiente y rendición posterior', 'Aprobado', 'Rendición $51.130; saldo final $350.340.')], [1.1, 2.1, 1.25, 2.05])
 heading('20.1 Próximos circuitos a incorporar', 2)
 for texto in ['Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
