@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.1.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.2.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -75,7 +75,7 @@ def check(texto): doc.add_paragraph('[ ] ' + texto)
 def pagina(): doc.add_page_break()
 
 header = sec.header.paragraphs[0]; header.alignment = WD_ALIGN_PARAGRAPH.LEFT; aplicar_fuente(header.add_run('LA 91 SUPERMERCADO  |  GUÍA DE PRUEBA FUNCIONAL'), 8.5, VERDE, True)
-footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.1 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
+footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.2 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
 
 doc.add_paragraph().paragraph_format.space_after = Pt(60)
 if LOGO.exists():
@@ -85,7 +85,7 @@ p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente
 p = doc.add_paragraph(); p.style = 'Title'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p = doc.add_paragraph(); p.style = 'Subtitle'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Recorrido paso a paso con datos de ejemplo y resultados esperados')
 doc.add_paragraph().paragraph_format.space_after = Pt(70)
-p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.1'), 11, VERDE, True)
+p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.2'), 11, VERDE, True)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('Actualizada al 10 de agosto de 2026'), 10, GRIS)
 nota('Documento vivo.', 'Esta guía registra las pruebas realizadas y se ampliará después de cada nuevo circuito validado. No contiene contraseñas reales.', 'EAF4F6')
 
@@ -208,6 +208,13 @@ paso('Confirme el pago.')
 tabla(['Control', 'Resultado esperado'], [('Gasto', 'Estado Parcial · saldo $60.000'), ('Banco de prueba', '$740.000'), ('Efectivo general', '$400.000'), ('Disponible total', '$1.140.000'), ('Gastos pendientes', '$60.000'), ('Deuda proveedores', '$203.956,98'), ('Disponible neto proyectado', '$876.043,02'), ('Libro de Tesorería', 'Egreso $60.000 · categoría gastos')], [3.0, 3.5])
 nota('Control corregido durante la prueba.', 'Un pago exactamente igual a la mitad dejó inicialmente el gasto oculto por un estado incorrecto. La versión actual conserva saldo $60.000 y estado Parcial; la migración 030 reparó el registro sin alterar el dinero.')
 
+heading('12.1 Cancelar el saldo desde Efectivo general', 2)
+paso('Abra nuevamente el gasto original y seleccione Registrar pago.')
+tabla(['Campo', 'Valor'], [('Importe', '$60.000'), ('Medio', 'Efectivo'), ('Origen del efectivo', 'Cuenta de efectivo de Tesorería'), ('Cuenta', 'Efectivo general'), ('Referencia', 'EFECTIVO-ENERGIA-PRUEBA-002')], [2.5, 4.0])
+paso('Confirme el pago y compruebe que no afecte ninguna caja abierta.')
+tabla(['Control', 'Resultado validado'], [('Gasto', 'Pagado · saldo $0'), ('Banco de prueba', '$740.000'), ('Efectivo general', '$340.000'), ('Disponible total', '$1.080.000'), ('Gastos pendientes', '$0'), ('Deuda proveedores', '$203.956,98'), ('Disponible neto proyectado', '$876.043,02'), ('Libro de Tesorería', 'Egreso $60.000 · categoría gastos · Efectivo general')], [3.0, 3.5])
+nota('Resultado.', 'Circuito aprobado. El gasto pasó a Pagado, el efectivo se descontó de la cuenta seleccionada y la caja operativa no fue modificada.')
+
 heading('13. Compra directa en un mayorista')
 doc.add_paragraph('Cuando una persona del supermercado retira y paga mercadería en un mayorista, el circuito conserva los mismos documentos para no perder stock, costo, comprobante ni origen del dinero.')
 paso('Cree una orden para el mayorista que realmente vende la mercadería.')
@@ -221,9 +228,9 @@ pagina(); heading('14. Controles transversales validados')
 for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
 
 heading('15. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.')], [1.1, 2.1, 1.25, 2.05])
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.')], [1.1, 2.1, 1.25, 2.05])
 heading('15.1 Próximos circuitos a incorporar', 2)
-for texto in ['Pago restante del gasto desde Efectivo general.', 'Venta contado y cierre de caja.', 'Venta a cuenta corriente y cobranza.', 'Cambio o devolución con diferencia.', 'Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario y reportes.']: check(texto)
+for texto in ['Venta contado y cierre de caja.', 'Venta a cuenta corriente y cobranza.', 'Cambio o devolución con diferencia.', 'Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario y reportes.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
 
 doc.core_properties.title = 'Guía de Prueba Funcional - Sistema de Gestión La 91 Supermercado'
