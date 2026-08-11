@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.3.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.4.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -79,7 +79,7 @@ def check(texto): doc.add_paragraph('[ ] ' + texto)
 def pagina(): doc.add_page_break()
 
 header = sec.header.paragraphs[0]; header.alignment = WD_ALIGN_PARAGRAPH.LEFT; aplicar_fuente(header.add_run('LA 91 SUPERMERCADO  |  GUÍA DE PRUEBA FUNCIONAL'), 8.5, VERDE, True)
-footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.3 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
+footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.4 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
 
 doc.add_paragraph().paragraph_format.space_after = Pt(60)
 if LOGO.exists():
@@ -89,8 +89,8 @@ p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente
 p = doc.add_paragraph(); p.style = 'Title'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p = doc.add_paragraph(); p.style = 'Subtitle'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Recorrido paso a paso con datos de ejemplo y resultados esperados')
 doc.add_paragraph().paragraph_format.space_after = Pt(70)
-p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.3'), 11, VERDE, True)
-p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('Actualizada al 10 de agosto de 2026'), 10, GRIS)
+p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.4'), 11, VERDE, True)
+p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('Actualizada al 11 de agosto de 2026'), 10, GRIS)
 nota('Documento vivo.', 'Esta guía registra las pruebas realizadas y se ampliará después de cada nuevo circuito validado. No contiene contraseñas reales.', 'EAF4F6')
 
 pagina(); heading('1. Objetivo y forma de uso')
@@ -120,7 +120,9 @@ heading('3.3 Cajas', 2)
 paso('Abra Punto de venta y acceda a Administrar cajas.')
 paso('Cree o edite una caja física con código y nombre identificables.')
 paso('Abra una sesión seleccionando una caja disponible e ingresando el fondo inicial contado.')
+paso('Origen del fondo inicial: seleccione la cuenta de efectivo de Tesorería desde la que sale el dinero.')
 nota('Control de concurrencia.', 'Una caja física no debe quedar abierta para dos sesiones. Cada operador utiliza su propio usuario y selecciona una caja disponible.')
+nota('Origen del dinero.', 'La apertura genera automáticamente un egreso en la cuenta de efectivo seleccionada. No registre otro movimiento manual, porque duplicaría la salida del fondo inicial.')
 
 pagina(); heading('4. Tesorería inicial')
 heading('4.1 Crear las cuentas', 2)
@@ -269,17 +271,24 @@ nota('Dato comercial separado.', 'Las ventas totales fueron $13.030, pero $5.000
 heading('18.2 Cerrar Caja 1', 2)
 paso('Seleccione Cerrar caja y revise el resumen antes de confirmar.')
 paso('Ingrese $89.210 como cantidad física contada.')
-paso('Confirme el cierre mediante el modal.')
-tabla(['Control', 'Resultado validado'], [('Estado', 'Cerrada'), ('Apertura', '10-08-2026 22:43'), ('Cierre', '10-08-2026 23:43'), ('Efectivo esperado', '$89.210'), ('Efectivo contado', '$89.210'), ('Diferencia', '$0')], [3.1, 3.4])
+paso('Mantenga activada la opción Rendir ahora el efectivo contado a Tesorería.')
+paso('Seleccione Efectivo general como destino y confirme mediante el modal.')
+tabla(['Control', 'Resultado validado'], [('Estado de caja', 'Cerrada'), ('Estado de rendición', 'Rendida'), ('Apertura', '10-08-2026 22:43'), ('Cierre', '10-08-2026 23:43'), ('Efectivo esperado', '$89.210'), ('Efectivo contado', '$89.210'), ('Monto rendido', '$89.210'), ('Diferencia', '$0')], [3.1, 3.4])
 heading('18.3 Interpretar el historial', 2)
 doc.add_paragraph('Cada sesión aparece en una tarjeta dividida en Ingresos en efectivo, Egresos en efectivo y Control del cierre. Esta distribución evita confundir facturación con dinero físico y facilita el arqueo.')
 for texto in ['Ventas totales: $13.030.', 'Efectivo de ventas: $8.030.', 'Cobranzas en efectivo: $2.000.', 'Reintegros: -$820.', 'Esperado y contado: $89.210.', 'Diferencia: $0.']: check(texto)
+heading('18.4 Integración con Tesorería', 2)
+doc.add_paragraph('La rendición mueve el dinero físico desde la caja cerrada hacia una cuenta de efectivo de Tesorería. La apertura y la rendición se registran como movimientos vinculados a la misma sesión, por lo que el incremento real queda conciliado sin crear dinero ficticio.')
+tabla(['Movimiento', 'Efectivo general'], [('Saldo antes de regularizar Caja 1', '$340.000'), ('Fondo inicial histórico de Caja 1', '- $80.000'), ('Rendición del cierre', '+ $89.210'), ('Saldo final', '$349.210'), ('Incremento neto real', '+ $9.210')], [3.9, 2.6])
+for texto in ['Tesorería muestra un egreso de $80.000 vinculado a la apertura.', 'Tesorería muestra un ingreso de $89.210 vinculado al cierre.', 'El Historial de cajas identifica Efectivo general como destino.', 'La Caja 1 figura Cerrada y Rendida.']: check(texto)
+nota('Cierre pendiente.', 'Si el efectivo aún no se entregó, desactive Rendir ahora. La caja quedará Cerrada y Pendiente de rendición. Un supervisor podrá abrir Historial de cajas, seleccionar Rendir efectivo y elegir la cuenta de destino cuando reciba físicamente el dinero.')
+nota('Sesiones anteriores.', 'Cuando una caja cerrada fue creada antes de esta integración, la primera rendición registra también el egreso histórico del fondo inicial. De este modo sólo aumenta Tesorería por la ganancia neta del turno.')
 
 heading('19. Controles transversales validados')
 for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
 
 heading('20. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.')], [1.1, 2.1, 1.25, 2.05])
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.'), ('11-08-2026', 'Rendición de Caja 1', 'Aprobado', 'Efectivo general $349.210; incremento neto $9.210.')], [1.1, 2.1, 1.25, 2.05])
 heading('20.1 Próximos circuitos a incorporar', 2)
 for texto in ['Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
