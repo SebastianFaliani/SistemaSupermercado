@@ -114,6 +114,8 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
   if (usuarioId) { condiciones.push('sc.usuario_id = ?'); parametros.push(usuarioId); }
   if (consulta.fecha_desde) { condiciones.push('sc.fecha_apertura >= ?'); parametros.push(`${consulta.fecha_desde} 00:00:00`); }
   if (consulta.fecha_hasta) { condiciones.push('sc.fecha_apertura < DATE_ADD(?, INTERVAL 1 DAY)'); parametros.push(`${consulta.fecha_hasta} 00:00:00`); }
+  if (consulta.estado) { condiciones.push('sc.estado = ?'); parametros.push(consulta.estado); }
+  if (consulta.estado_rendicion) { condiciones.push("sc.estado = 'cerrada' AND sc.estado_rendicion = ?"); parametros.push(consulta.estado_rendicion); }
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
   const desde = `FROM sesiones_caja sc JOIN cajas c ON c.id = sc.caja_id
     JOIN usuarios u ON u.id = sc.usuario_id

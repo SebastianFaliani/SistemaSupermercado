@@ -19,6 +19,8 @@ export const esquemaMovimientoCaja = z.object({
 });
 export const esquemaConsultaCajas = z.object({
   fecha_desde: z.string().date().optional(), fecha_hasta: z.string().date().optional(),
+  estado: z.enum(['abierta', 'cerrada']).optional(),
+  estado_rendicion: z.enum(['pendiente', 'rendida']).optional(),
   pagina: z.coerce.number().int().positive().default(1),
   limite: z.coerce.number().int().min(1).max(100).default(25),
 });

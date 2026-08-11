@@ -69,6 +69,12 @@ export function Ventas({ token, permisos }) {
   const [tipoMovimiento, setTipoMovimiento] = useState('ingreso');
   const [modalHistorialCajas, setModalHistorialCajas] = useState(false);
   const [sesionesCaja, setSesionesCaja] = useState([]);
+  const [paginaCajas, setPaginaCajas] = useState(1);
+  const [totalSesionesCaja, setTotalSesionesCaja] = useState(0);
+  const [fechaDesdeCajas, setFechaDesdeCajas] = useState('');
+  const [fechaHastaCajas, setFechaHastaCajas] = useState('');
+  const [estadoCajas, setEstadoCajas] = useState('');
+  const [rendicionCajas, setRendicionCajas] = useState('');
   const [sesionARendir, setSesionARendir] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState('');
@@ -546,17 +552,30 @@ export function Ventas({ token, permisos }) {
       setProcesando(false);
     }
   }
-  async function abrirHistorialCajas() {
+  const cargarHistorialCajas = useCallback(async () => {
     try {
-      const respuesta = await pedir(
-        '/api/ventas/caja/historial?pagina=1&limite=100',
-        token,
-      );
+      const parametros = new URLSearchParams({ pagina: String(paginaCajas), limite: '8' });
+      if (fechaDesdeCajas) parametros.set('fecha_desde', fechaDesdeCajas);
+      if (fechaHastaCajas) parametros.set('fecha_hasta', fechaHastaCajas);
+      if (estadoCajas) parametros.set('estado', estadoCajas);
+      if (rendicionCajas) parametros.set('estado_rendicion', rendicionCajas);
+      const respuesta = await pedir(`/api/ventas/caja/historial?${parametros}`, token);
       setSesionesCaja(respuesta.datos);
-      setModalHistorialCajas(true);
+      setTotalSesionesCaja(Number(respuesta.total));
     } catch (error) {
       setMensaje(error.message);
     }
+  }, [token, paginaCajas, fechaDesdeCajas, fechaHastaCajas, estadoCajas, rendicionCajas]);
+
+  useEffect(() => {
+    if (!modalHistorialCajas) return undefined;
+    const temporizador = setTimeout(cargarHistorialCajas, 200);
+    return () => clearTimeout(temporizador);
+  }, [modalHistorialCajas, cargarHistorialCajas]);
+
+  function abrirHistorialCajas() {
+    setPaginaCajas(1);
+    setModalHistorialCajas(true);
   }
 
   async function rendirSesion() {
@@ -568,8 +587,7 @@ export function Ventas({ token, permisos }) {
       });
       setSesionARendir(null);
       setMensaje(`Caja rendida correctamente en ${respuesta.dato.cuenta}.`);
-      const historial = await pedir('/api/ventas/caja/historial?pagina=1&limite=100', token);
-      setSesionesCaja(historial.datos);
+      await cargarHistorialCajas();
       const cuentas = await pedir('/api/ventas/caja/cuentas-efectivo', token);
       setCuentasEfectivo(cuentas.datos);
     } catch (error) {
@@ -1355,6 +1373,29 @@ export function Ventas({ token, permisos }) {
         ancho="grande"
         alCerrar={() => setModalHistorialCajas(false)}
       >
+        <div className="barra-filtros filtros-historial-cajas">
+          <div>
+            <label htmlFor="cajas_desde">Desde</label>
+            <input id="cajas_desde" type="date" value={fechaDesdeCajas} onChange={(evento) => { setFechaDesdeCajas(evento.target.value); setPaginaCajas(1); }} />
+          </div>
+          <div>
+            <label htmlFor="cajas_hasta">Hasta</label>
+            <input id="cajas_hasta" type="date" value={fechaHastaCajas} onChange={(evento) => { setFechaHastaCajas(evento.target.value); setPaginaCajas(1); }} />
+          </div>
+          <div>
+            <label htmlFor="cajas_estado">Caja</label>
+            <select id="cajas_estado" value={estadoCajas} onChange={(evento) => { setEstadoCajas(evento.target.value); setPaginaCajas(1); }}>
+              <option value="">Todas</option><option value="abierta">Abiertas</option><option value="cerrada">Cerradas</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="cajas_rendicion">Rendición</label>
+            <select id="cajas_rendicion" value={rendicionCajas} onChange={(evento) => { setRendicionCajas(evento.target.value); setPaginaCajas(1); }}>
+              <option value="">Todas</option><option value="pendiente">Pendientes</option><option value="rendida">Rendidas</option>
+            </select>
+          </div>
+        </div>
+        <p className="filtro-activo">Mostrando {totalSesionesCaja.toLocaleString('es-AR')} sesiones de caja.</p>
         <div className="historial-cajas">
           {sesionesCaja.map((item) => {
             const moneda = (valor) =>
@@ -1405,7 +1446,7 @@ export function Ventas({ token, permisos }) {
                     </div>
                     <div>
                       <span>Rendición</span>
-                      <strong>{item.estado === 'abierta' ? '—' : item.estado_rendicion}</strong>
+                      <strong className={item.estado_rendicion === 'pendiente' && item.estado === 'cerrada' ? 'estado-rendicion--pendiente' : item.estado_rendicion === 'rendida' ? 'estado-rendicion--rendida' : ''}>{item.estado === 'abierta' ? '—' : item.estado_rendicion}</strong>
                     </div>
                     {item.estado_rendicion === 'rendida' && <small>{moneda(item.monto_rendido)} en {item.cuenta_destino_rendicion} · {formatearFechaHora(item.fecha_rendicion)}</small>}
                     {item.estado === 'cerrada' && item.estado_rendicion === 'pendiente' && permisos.includes('caja.supervisar') && (
@@ -1424,6 +1465,12 @@ export function Ventas({ token, permisos }) {
               </article>
             );
           })}
+        </div>
+        {!sesionesCaja.length && <p className="vacio">No hay cajas para los filtros seleccionados.</p>}
+        <div className="paginacion">
+          <button disabled={paginaCajas === 1} onClick={() => setPaginaCajas((pagina) => pagina - 1)}>Anterior</button>
+          <span>Página {paginaCajas} de {Math.max(1, Math.ceil(totalSesionesCaja / 8))}</span>
+          <button disabled={paginaCajas >= Math.ceil(totalSesionesCaja / 8)} onClick={() => setPaginaCajas((pagina) => pagina + 1)}>Siguiente</button>
         </div>
         <div className="modal__acciones">
           <button
