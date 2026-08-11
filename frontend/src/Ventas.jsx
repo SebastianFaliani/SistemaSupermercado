@@ -1044,18 +1044,21 @@ export function Ventas({ token, permisos }) {
               })}
             </strong>
           </div>
-          {saldoPago > 0.009 && !creditoValido && <p className="mensaje-error">Seleccioná un cliente con crédito habilitado y límite disponible suficiente.</p>}
-          {Number(pagosVenta.efectivo) > 0 && (
-            <>
-              <p>
-                Vuelto:{' '}
-                <strong>
-                  $
-                  {vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </strong>
-              </p>
-            </>
-          )}
+          <p
+            className={`mensaje-error reserva-aviso-cobro ${saldoPago > 0.009 && !creditoValido ? '' : 'reserva-aviso-cobro--oculta'}`}
+            aria-hidden={!(saldoPago > 0.009 && !creditoValido)}
+          >
+            Seleccioná un cliente con crédito habilitado y límite disponible suficiente.
+          </p>
+          <p
+            className={`reserva-vuelto-cobro ${Number(pagosVenta.efectivo) > 0 ? '' : 'reserva-aviso-cobro--oculta'}`}
+            aria-hidden={!(Number(pagosVenta.efectivo) > 0)}
+          >
+            Vuelto:{' '}
+            <strong>
+              ${vuelto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </strong>
+          </p>
           <div className="modal__acciones">
             <button
               className="boton boton--secundario"

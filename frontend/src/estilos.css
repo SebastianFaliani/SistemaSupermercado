@@ -185,6 +185,9 @@ body.modal-abierto { overflow: hidden; }
 .importe-medio { display: grid; gap: 5px; grid-template-columns: 1fr auto; }
 .saldo-pago { display: flex; justify-content: space-between; padding: 8px 10px; border-radius: 7px; color: #8a3600; background: #fff0e5; }
 .saldo-pago--completo { color: var(--color-primario-900); background: var(--color-acento-100); }
+.reserva-aviso-cobro { min-height: 1.15rem; }
+.reserva-vuelto-cobro { min-height: 1.25rem; margin: 0; }
+.reserva-aviso-cobro--oculta { visibility: hidden; }
 .resumen-caja { display: grid; gap: 6px 12px; padding: 10px; border-radius: 8px; background: var(--color-gris-50); grid-template-columns: 1fr auto; }
 .resumen-caja strong { font-weight: 400; text-align: right; }
 .resumen-caja__total { padding-top: 7px; border-top: 1px solid var(--color-gris-200); color: var(--color-primario-900); }
