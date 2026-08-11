@@ -188,6 +188,7 @@
 .icono-accion-tienda--cuenta { background-position-x: -32px; }
 .icono-accion-tienda--pedido { background-position-x: -62px; }
 .icono-accion-tienda--salir { background-position-x: -92px; }
+.icono-gestion-tienda { display: block; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; object-fit: contain; }
 .tienda .modal__cerrar {
   width: 32px;
   height: 32px;
