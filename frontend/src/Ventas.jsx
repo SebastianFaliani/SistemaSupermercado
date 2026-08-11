@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from './componentes/Modal.jsx';
 import { formatearFecha, formatearFechaHora, formatearHora } from './utilidades/fechas.js';
 import { GestionCajas } from './componentes/GestionCajas.jsx';
@@ -59,6 +59,7 @@ export function Ventas({ token, permisos }) {
   const [reemplazos, setReemplazos] = useState([]);
   const [buscarReemplazo, setBuscarReemplazo] = useState('');
   const [reemplazoActivo, setReemplazoActivo] = useState(-1);
+  const buscarReemplazoRef = useRef(null);
   const [motivoCambio, setMotivoCambio] = useState('');
   const [medioDiferencia, setMedioDiferencia] = useState('efectivo');
   const [modalMovimiento, setModalMovimiento] = useState(false);
@@ -419,7 +420,7 @@ export function Ventas({ token, permisos }) {
     setBuscarReemplazo('');
     setMotivoCambio('');
   }
-  function agregarReemplazo(producto, conservar = true) {
+  function agregarReemplazo(producto) {
     if (Number(producto.stock) <= 0) return;
     setReemplazos((actual) => {
       const existente = actual.find((item) => item.id === producto.id);
@@ -437,10 +438,12 @@ export function Ventas({ token, permisos }) {
           )
         : [...actual, { ...producto, cantidad: 1 }];
     });
-    if (!conservar) {
-      setBuscarReemplazo('');
-      setReemplazoActivo(-1);
-    }
+    setBuscarReemplazo('');
+    setReemplazoActivo(-1);
+    requestAnimationFrame(() => {
+      buscarReemplazoRef.current?.focus();
+      buscarReemplazoRef.current?.select();
+    });
   }
   function navegarReemplazos(evento) {
     if (evento.key === 'ArrowDown') {
@@ -470,7 +473,7 @@ export function Ventas({ token, permisos }) {
     );
     const producto =
       exacto || resultadosReemplazo[reemplazoActivo] || resultadosReemplazo[0];
-    if (producto) agregarReemplazo(producto, !exacto);
+    if (producto) agregarReemplazo(producto);
   }
   async function confirmarCambio() {
     setProcesando(true);
@@ -1438,14 +1441,26 @@ export function Ventas({ token, permisos }) {
               <div className="devoluciones-previas">
                 <h3>Cambios y devoluciones</h3>
                 {ventaDetalle.devoluciones.map((devolucion) => (
-                  <p key={devolucion.id}>
-                    #{devolucion.id} ·{' '}
-                    {formatearFechaHora(devolucion.fecha_creacion)}{' '}
-                    · {devolucion.motivo} · Diferencia $
-                    {Number(devolucion.diferencia).toLocaleString('es-AR', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </p>
+                  <div key={devolucion.id} className="devolucion-registrada">
+                    <p>
+                      #{devolucion.id} ·{' '}
+                      {formatearFechaHora(devolucion.fecha_creacion)}{' '}
+                      · {devolucion.motivo} · Diferencia $
+                      {Number(devolucion.diferencia).toLocaleString('es-AR', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                    {devolucion.detalles.map((detalle) => (
+                      <p key={detalle.id}>
+                        {detalle.tipo === 'devuelto' ? 'Devuelto' : 'Reemplazo'}:{' '}
+                        {Number(detalle.cantidad).toLocaleString('es-AR')} ×{' '}
+                        {detalle.nombre} ({detalle.codigo_barra || 'sin código'}) · $
+                        {Number(detalle.subtotal).toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </p>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
@@ -1641,6 +1656,7 @@ export function Ventas({ token, permisos }) {
             <h3>Productos de reemplazo</h3>
             <div className="buscador-productos-compra">
               <input
+                ref={buscarReemplazoRef}
                 value={buscarReemplazo}
                 onChange={(evento) => {
                   setBuscarReemplazo(evento.target.value);

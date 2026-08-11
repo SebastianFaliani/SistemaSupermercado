@@ -242,7 +242,7 @@ export async function obtenerVenta(id, usuarioId = null) {
     LEFT JOIN clientes cl ON cl.id = v.cliente_id
     WHERE v.id = ? ${restriccion}`, parametros);
   if (!ventas[0]) return null;
-  const [[detalles], [pagos], [devoluciones]] = await Promise.all([
+  const [[detalles], [pagos], [devoluciones], [detallesDevoluciones]] = await Promise.all([
     baseDatos.query(`SELECT vd.producto_id, p.nombre, p.es_pesable, pcb.codigo_barra,
       vd.cantidad, vd.precio_unitario, vd.subtotal,
       COALESCE((SELECT SUM(dvd.cantidad) FROM devoluciones_ventas_detalles dvd
@@ -256,8 +256,27 @@ export async function obtenerVenta(id, usuarioId = null) {
     baseDatos.query(`SELECT dv.id, dv.fecha_creacion, dv.motivo, dv.total_devuelto,
       dv.total_reemplazo, dv.diferencia, u.nombre_usuario FROM devoluciones_ventas dv
       JOIN usuarios u ON u.id = dv.usuario_id WHERE dv.venta_id = ? ORDER BY dv.id`, [id]),
+    baseDatos.query(`SELECT dvd.id, dvd.devolucion_id, dvd.tipo, dvd.cantidad,
+      dvd.precio_unitario, dvd.subtotal, dvd.reintegra_stock, p.nombre,
+      pcb.codigo_barra
+      FROM devoluciones_ventas_detalles dvd
+      JOIN devoluciones_ventas dv ON dv.id = dvd.devolucion_id
+      JOIN productos p ON p.id = dvd.producto_id
+      LEFT JOIN productos_codigos_barra pcb
+        ON pcb.producto_id = p.id AND pcb.es_principal = TRUE
+      WHERE dv.venta_id = ? ORDER BY dvd.id`, [id]),
   ]);
-  return { ...ventas[0], detalles, pagos, devoluciones };
+  return {
+    ...ventas[0],
+    detalles,
+    pagos,
+    devoluciones: devoluciones.map((devolucion) => ({
+      ...devolucion,
+      detalles: detallesDevoluciones.filter(
+        (detalle) => Number(detalle.devolucion_id) === Number(devolucion.id),
+      ),
+    })),
+  };
 }
 
 export async function anularVenta(id, usuarioId, motivo) {
