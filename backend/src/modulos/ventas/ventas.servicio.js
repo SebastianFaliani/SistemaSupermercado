@@ -107,8 +107,24 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
       sc.fecha_apertura, sc.fecha_cierre,
       (SELECT COALESCE(SUM(v.total), 0) FROM ventas v
        WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada') AS ventas,
+      (SELECT COALESCE(SUM(vp.monto), 0) FROM ventas_pagos vp
+       JOIN ventas v ON v.id = vp.venta_id
+       WHERE v.sesion_caja_id = sc.id AND v.estado = 'completada'
+         AND vp.medio = 'efectivo') AS ventas_efectivo,
       (SELECT COALESCE(SUM(cc.monto), 0) FROM cobranzas_clientes cc
-       WHERE cc.sesion_caja_id = sc.id) AS cobranzas,
+       WHERE cc.sesion_caja_id = sc.id AND cc.medio = 'efectivo') AS cobranzas_efectivo,
+      (SELECT COALESCE(SUM(dvp.monto), 0) FROM devoluciones_ventas_pagos dvp
+       JOIN devoluciones_ventas dv ON dv.id = dvp.devolucion_id
+       WHERE dv.sesion_caja_id = sc.id AND dvp.medio = 'efectivo'
+         AND dvp.tipo = 'cobro') AS cambios_cobros,
+      (SELECT COALESCE(SUM(dvp.monto), 0) FROM devoluciones_ventas_pagos dvp
+       JOIN devoluciones_ventas dv ON dv.id = dvp.devolucion_id
+       WHERE dv.sesion_caja_id = sc.id AND dvp.medio = 'efectivo'
+         AND dvp.tipo = 'reintegro') AS reintegros,
+      (SELECT COALESCE(SUM(IF(mc.tipo = 'ingreso', mc.monto, 0)), 0)
+       FROM movimientos_caja mc WHERE mc.sesion_caja_id = sc.id) AS otros_ingresos,
+      (SELECT COALESCE(SUM(IF(mc.tipo = 'egreso', mc.monto, 0)), 0)
+       FROM movimientos_caja mc WHERE mc.sesion_caja_id = sc.id) AS otros_egresos,
       (SELECT COALESCE(SUM(pp.monto), 0) FROM pagos_proveedores pp
        WHERE pp.sesion_caja_id = sc.id AND pp.medio = 'efectivo') AS pagos_proveedores,
       (SELECT COALESCE(SUM(pg.monto), 0) FROM pagos_gastos pg
@@ -118,7 +134,21 @@ export async function listarSesionesCaja(consulta, usuarioId = null) {
       ${desde} ORDER BY sc.fecha_apertura DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
     baseDatos.query(`SELECT COUNT(*) AS total ${desde}`, parametros),
   ]);
-  return { datos, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
+  const sesiones = datos.map((sesion) => {
+    const egresosOperativos = Number(sesion.pagos_proveedores)
+      + Number(sesion.pagos_gastos) + Number(sesion.pagos_sueldos)
+      + Number(sesion.adelantos_empleados);
+    return {
+      ...sesion,
+      egresos_operativos: egresosOperativos,
+      efectivo_esperado: Number(sesion.monto_inicial)
+        + Number(sesion.ventas_efectivo) + Number(sesion.cobranzas_efectivo)
+        + Number(sesion.cambios_cobros) + Number(sesion.otros_ingresos)
+        - Number(sesion.reintegros) - Number(sesion.otros_egresos)
+        - egresosOperativos,
+    };
+  });
+  return { datos: sesiones, total: conteo[0].total, pagina: consulta.pagina, limite: consulta.limite };
 }
 
 export async function cerrarCaja(usuarioId, montoContado) {

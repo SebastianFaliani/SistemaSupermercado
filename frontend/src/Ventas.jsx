@@ -1302,9 +1302,15 @@ export function Ventas({ token, permisos }) {
                 <th>Apertura</th>
                 <th>Cierre</th>
                 <th>Inicial</th>
-                <th>Ventas</th>
-                <th>Cobranzas</th>
+                <th>Ventas totales</th>
+                <th>Efectivo de ventas</th>
+                <th>Cobranzas en efectivo</th>
+                <th>Cobros por cambios</th>
+                <th>Reintegros</th>
+                <th>Otros movimientos</th>
                 <th>Egresos operativos</th>
+                <th>Esperado</th>
+                <th>Contado</th>
                 <th>Diferencia</th>
                 <th>Estado</th>
               </tr>
@@ -1324,8 +1330,20 @@ export function Ventas({ token, permisos }) {
                   </td>
                   <td>${Number(item.monto_inicial).toLocaleString('es-AR')}</td>
                   <td>${Number(item.ventas).toLocaleString('es-AR')}</td>
-                  <td>${Number(item.cobranzas).toLocaleString('es-AR')}</td>
-                  <td>-${(Number(item.pagos_proveedores) + Number(item.pagos_gastos) + Number(item.pagos_sueldos) + Number(item.adelantos_empleados)).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.ventas_efectivo).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.cobranzas_efectivo).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.cambios_cobros).toLocaleString('es-AR')}</td>
+                  <td>-${Number(item.reintegros).toLocaleString('es-AR')}</td>
+                  <td>
+                    ${(Number(item.otros_ingresos) - Number(item.otros_egresos)).toLocaleString('es-AR')}
+                  </td>
+                  <td>-${Number(item.egresos_operativos).toLocaleString('es-AR')}</td>
+                  <td>${Number(item.efectivo_esperado).toLocaleString('es-AR')}</td>
+                  <td>
+                    {item.monto_contado_cierre == null
+                      ? '—'
+                      : `$${Number(item.monto_contado_cierre).toLocaleString('es-AR')}`}
+                  </td>
                   <td>
                     {item.diferencia_cierre == null
                       ? '—'
