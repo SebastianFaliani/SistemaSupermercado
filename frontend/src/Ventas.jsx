@@ -19,6 +19,7 @@ async function pedir(ruta, token, opciones = {}) {
 
 export function Ventas({ token, permisos }) {
   const [sesion, setSesion] = useState(undefined);
+  const [resumenCajaActual, setResumenCajaActual] = useState(null);
   const [productos, setProductos] = useState([]);
   const [cajasDisponibles, setCajasDisponibles] = useState([]);
   const [buscar, setBuscar] = useState('');
@@ -81,7 +82,8 @@ export function Ventas({ token, permisos }) {
       setCajasDisponibles(disponibles.datos);
       setProductos(referencias.datos);
       setClientes(referenciaClientes.datos);
-      if (!caja.dato) setModalCaja(true);
+      if (caja.dato) setResumenCajaActual((await pedir('/api/ventas/caja/resumen', token)).dato);
+      else { setResumenCajaActual(null); setModalCaja(true); }
     } catch (error) {
       setMensaje(error.message);
     }
@@ -93,6 +95,13 @@ export function Ventas({ token, permisos }) {
   useEffect(() => {
     cargar();
   }, [cargar]);
+  useEffect(() => {
+    if (!sesion) return undefined;
+    const actualizarResumen = async () => { try { setResumenCajaActual((await pedir('/api/ventas/caja/resumen', token)).dato); } catch { /* La carga principal mostrará cualquier error persistente. */ } };
+    const intervalo = setInterval(actualizarResumen, 15000);
+    window.addEventListener('focus', actualizarResumen);
+    return () => { clearInterval(intervalo); window.removeEventListener('focus', actualizarResumen); };
+  }, [sesion, token]);
   const cargarHistorial = useCallback(async () => {
     try {
       const parametros = new URLSearchParams({
@@ -361,6 +370,7 @@ export function Ventas({ token, permisos }) {
       const disponibles = await pedir('/api/ventas/caja/disponibles', token);
       setCajasDisponibles(disponibles.datos);
       setSesion(null);
+      setResumenCajaActual(null);
       setModalCierre(false);
       setResumenCierre(null);
       setMensaje(
@@ -572,6 +582,13 @@ export function Ventas({ token, permisos }) {
           )}
         </div>
       </div>
+      {sesion && resumenCajaActual && <div className="resumen-caja-vivo" aria-label="Resumen actual de caja">
+        <div><span>Fondo inicial</span><strong>${Number(resumenCajaActual.monto_inicial).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>
+        <div><span>Ventas en efectivo</span><strong>${Number(resumenCajaActual.pagos?.efectivo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>
+        <div><span>Otros ingresos</span><strong>${(Number(resumenCajaActual.cobranzas?.efectivo || 0) + Number(resumenCajaActual.ingresos || 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>
+        <div><span>Egresos de caja</span><strong>-${(Number(resumenCajaActual.egresos || 0) + Number(resumenCajaActual.pagos_proveedores_efectivo || 0) + Number(resumenCajaActual.pagos_gastos_efectivo || 0) + Number(resumenCajaActual.pagos_sueldos_efectivo || 0) + Number(resumenCajaActual.adelantos_empleados_efectivo || 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>
+        <div className="resumen-caja-vivo__destacado"><span>Efectivo esperado</span><strong>${Number(resumenCajaActual.efectivo_esperado).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></div>
+      </div>}
       <div className="selector-vista">
         <button
           className={vista === 'venta' ? 'activo' : ''}

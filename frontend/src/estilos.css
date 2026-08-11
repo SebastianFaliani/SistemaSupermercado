@@ -164,6 +164,13 @@ body.modal-abierto { overflow: hidden; }
 .caja-actual { display: flex; align-items: flex-end; flex-direction: column; }
 .caja-actual small { color: var(--color-gris-500); }
 .acciones-caja { display: flex; gap: 5px; margin-top: 3px; }
+.resumen-caja-vivo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; margin: -12px 0 14px; }
+.resumen-caja-vivo > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 7px 9px; border: 1px solid var(--color-gris-200); border-radius: 7px; background: #fff; }
+.resumen-caja-vivo span { color: var(--color-gris-500); font-size: .72rem; }
+.resumen-caja-vivo strong { color: var(--color-primario-900); font-size: .86rem; font-weight: 500; white-space: nowrap; }
+.resumen-caja-vivo .resumen-caja-vivo__destacado { border-color: var(--color-acento-500); background: var(--color-acento-100); }
+@media (max-width: 900px) { .resumen-caja-vivo { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .resumen-caja-vivo { grid-template-columns: repeat(2, minmax(0, 1fr)); } .resumen-caja-vivo__destacado { grid-column: 1 / -1; } }
 .rejilla-venta { display: grid; grid-template-columns: minmax(230px, 30%) 1fr; gap: 12px; }
 .buscador-venta { align-self: start; }
 .ayuda-buscador { display: block; margin-top: 4px; color: var(--color-gris-500); }
