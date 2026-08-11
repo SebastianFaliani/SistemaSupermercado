@@ -468,7 +468,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
   letter-spacing: .025em;
   text-align: center;
 }
-.barra-superior .usuario-actual { position: relative; z-index: 1; align-self: center; justify-self: center; align-items: center; justify-content: center; gap: 9px; margin-top: 0; }
+.barra-superior .usuario-actual { position: relative; z-index: 1; align-self: center; justify-self: end; align-items: center; justify-content: center; gap: 9px; margin-top: 0; }
 .barra-superior .usuario-actual > span { color: var(--color-blanco); }
 .icono-rol {
   display: inline-block;
