@@ -7,7 +7,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.2.docx'
+OUT = ROOT / 'documentacion' / 'Guia_de_Prueba_Funcional_La_91_v0.3.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 AZUL, VERDE, CELESTE, CLARO, GRIS = '003B46', '07575B', '66A5AD', 'C4DFE6', '52656A'
 
@@ -63,10 +63,14 @@ def tabla(headers, rows, widths):
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
 def nota(titulo, texto, color=CLARO):
-    t = doc.add_table(rows=1, cols=1); t.autofit = False; t.alignment = WD_TABLE_ALIGNMENT.CENTER; t.columns[0].width = Inches(6.5)
-    cell = t.cell(0, 0); sombrear(cell, color); margen_celda(cell, 150, 180, 150, 180)
-    p = cell.paragraphs[0]; aplicar_fuente(p.add_run(titulo + ' '), 10, AZUL, True); aplicar_fuente(p.add_run(texto), 10, AZUL)
-    doc.add_paragraph().paragraph_format.space_after = Pt(1)
+    p = doc.add_paragraph(); p.paragraph_format.left_indent = Inches(.12); p.paragraph_format.right_indent = Inches(.12)
+    p.paragraph_format.space_before = Pt(5); p.paragraph_format.space_after = Pt(8); p.paragraph_format.keep_together = True
+    p_pr = p._p.get_or_add_pPr(); shd = OxmlElement('w:shd'); shd.set(qn('w:fill'), color); p_pr.append(shd)
+    bordes = OxmlElement('w:pBdr')
+    for lado in ('top', 'left', 'bottom', 'right'):
+        borde = OxmlElement(f'w:{lado}'); borde.set(qn('w:val'), 'single'); borde.set(qn('w:sz'), '4'); borde.set(qn('w:space'), '5'); borde.set(qn('w:color'), CELESTE); bordes.append(borde)
+    p_pr.append(bordes)
+    aplicar_fuente(p.add_run(titulo + ' '), 10, AZUL, True); aplicar_fuente(p.add_run(texto), 10, AZUL)
 
 def heading(texto, nivel=1): doc.add_heading(texto, level=nivel)
 def paso(texto): doc.add_paragraph(texto, style='List Number')
@@ -75,7 +79,7 @@ def check(texto): doc.add_paragraph('[ ] ' + texto)
 def pagina(): doc.add_page_break()
 
 header = sec.header.paragraphs[0]; header.alignment = WD_ALIGN_PARAGRAPH.LEFT; aplicar_fuente(header.add_run('LA 91 SUPERMERCADO  |  GUÍA DE PRUEBA FUNCIONAL'), 8.5, VERDE, True)
-footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.2 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
+footer = sec.footer.paragraphs[0]; footer.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(footer.add_run('Versión incremental 0.3 · Agosto 2026 · Capacitación y aceptación'), 8, GRIS)
 
 doc.add_paragraph().paragraph_format.space_after = Pt(60)
 if LOGO.exists():
@@ -85,7 +89,7 @@ p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente
 p = doc.add_paragraph(); p.style = 'Title'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p = doc.add_paragraph(); p.style = 'Subtitle'; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Recorrido paso a paso con datos de ejemplo y resultados esperados')
 doc.add_paragraph().paragraph_format.space_after = Pt(70)
-p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.2'), 11, VERDE, True)
+p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('VERSIÓN INCREMENTAL 0.3'), 11, VERDE, True)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER; aplicar_fuente(p.add_run('Actualizada al 10 de agosto de 2026'), 10, GRIS)
 nota('Documento vivo.', 'Esta guía registra las pruebas realizadas y se ampliará después de cada nuevo circuito validado. No contiene contraseñas reales.', 'EAF4F6')
 
@@ -93,7 +97,7 @@ pagina(); heading('1. Objetivo y forma de uso')
 doc.add_paragraph('Esta guía permite que el cliente recorra el sistema desde una base operativa controlada, comprenda qué impacto produce cada acción y confirme que los saldos coincidan. Los importes son ejemplos de capacitación y deben reemplazarse por datos reales al poner el sistema en producción.')
 nota('Regla de prueba.', 'Ejecute los pasos en el orden indicado. Antes de continuar, marque cada control como correcto. Si un importe no coincide, deténgase y registre la incidencia; no repita la operación ni cree un movimiento manual para compensarla.')
 heading('1.1 Alcance de esta edición', 2)
-for texto in ['Acceso, usuarios y cajas.', 'Tesorería inicial.', 'Clientes, proveedores y empleados de prueba.', 'Inventario y ajustes iniciales.', 'Orden de compra y recepción parcial.', 'Actualización automática de costo y precio de venta.', 'Factura y cuenta corriente de proveedor.', 'Pago parcial vinculado con Tesorería.', 'Gastos recurrentes, edición, anulación y pago parcial.']: item(texto)
+for texto in ['Acceso, usuarios y cajas.', 'Tesorería inicial.', 'Clientes, proveedores y empleados de prueba.', 'Inventario y ajustes iniciales.', 'Orden de compra y recepción parcial.', 'Actualización automática de costo y precio de venta.', 'Factura y cuenta corriente de proveedor.', 'Pago parcial vinculado con Tesorería.', 'Gastos recurrentes, edición, anulación y pago parcial.', 'Venta en efectivo y venta a cuenta corriente.', 'Cobranza de clientes.', 'Cambios, devoluciones y reemplazos.', 'Arqueo, cierre e historial de cajas.']: item(texto)
 heading('1.2 Convenciones', 2)
 tabla(['Elemento', 'Significado'], [('Acción', 'Paso que debe ejecutar el operador.'), ('Resultado esperado', 'Dato que debe mostrar el sistema después de guardar.'), ('Control', 'Verificación que debe marcarse antes de continuar.'), ('Detenerse', 'No continuar hasta resolver una diferencia.')], [1.5, 5.0])
 
@@ -224,13 +228,60 @@ paso('Registre el comprobante vinculado a la orden.')
 paso('Registre el pago total y seleccione el origen real: banco, Efectivo general o caja abierta.')
 nota('No duplicar.', 'No registre además un egreso manual en Tesorería. Los pagos vinculados generan automáticamente el movimiento correspondiente.')
 
-pagina(); heading('14. Controles transversales validados')
+pagina(); heading('14. Venta en efectivo')
+paso('Inicie sesión como cajero.prueba y abra Caja 1 con un fondo inicial contado de $80.000.')
+paso('Busque Sal fina DOS ANCLAS estuche x500gr, código 7792900000138, y agregue 2 unidades.')
+paso('Agregue 1 Amargo TERMA pomelo x1.35lt, código 7790950133257.')
+tabla(['Producto', 'Cantidad', 'Precio', 'Subtotal'], [('Sal fina DOS ANCLAS', '2', '$1.950', '$3.900'), ('Amargo TERMA pomelo', '1', '$2.400', '$2.400')], [2.7, .8, 1.4, 1.6])
+paso('Seleccione Cobrar, ingrese $7.000 como efectivo entregado y confirme la venta.')
+tabla(['Control', 'Resultado validado'], [('Total de la venta', '$6.300'), ('Efectivo entregado', '$7.000'), ('Vuelto', '$700'), ('Ingreso neto a caja', '$6.300'), ('Estado', 'Completada')], [3.1, 3.4])
+for texto in ['El detalle conserva el efectivo entregado y el vuelto.', 'El stock de sal disminuye 2 unidades.', 'El stock de TERMA disminuye 1 unidad.', 'El efectivo esperado pasa de $80.000 a $86.300.']: check(texto)
+nota('Uso del buscador.', 'Al leer un código exacto el producto se agrega directamente. Con una búsqueda por nombre, Flecha abajo recorre los resultados y Enter agrega el producto; repetir Enter suma unidades sin cerrar la lista principal de venta.')
+
+heading('15. Venta parcial a cuenta corriente')
+paso('Seleccione Cliente Prueba Cuenta Corriente antes de cobrar.')
+paso('Agregue 1 Mayonesa NATURA d/p x1kg, código 7791866001357, por $6.730.')
+paso('En el cobro registre $1.730 en efectivo y deje $5.000 a cuenta corriente.')
+tabla(['Control', 'Resultado validado'], [('Venta total', '$6.730'), ('Efectivo', '$1.730'), ('Cuenta corriente', '$5.000'), ('Saldo del cliente', '$5.000'), ('Crédito disponible', '$195.000'), ('Efectivo esperado en caja', '$88.030')], [3.1, 3.4])
+nota('Condición necesaria.', 'El crédito sólo está disponible si el cliente tiene cuenta corriente habilitada, límite suficiente y plazo de vencimiento configurado.')
+
+pagina(); heading('16. Cobranza del cliente')
+paso('Abra Clientes, seleccione Cliente Prueba Cuenta Corriente e ingrese a Cuenta.')
+paso('Seleccione Registrar cobranza.')
+tabla(['Campo', 'Valor de prueba'], [('Importe', '$2.000'), ('Medio', 'Efectivo'), ('Referencia', 'COBRANZA-PRUEBA-001')], [2.5, 4.0])
+paso('Confirme la cobranza con la misma caja operativa abierta.')
+tabla(['Control', 'Resultado validado'], [('Saldo anterior', '$5.000'), ('Cobranza', '$2.000'), ('Saldo restante', '$3.000'), ('Crédito disponible', '$197.000'), ('Efectivo esperado en caja', '$90.030')], [3.1, 3.4])
+for texto in ['La cobranza figura en los movimientos del cliente.', 'El pago se aplica a la deuda pendiente.', 'El ingreso aparece separado de las ventas en el resumen de caja.']: check(texto)
+
+heading('17. Cambio y devolución con reemplazo')
+paso('Abra Ventas, ingrese al Historial y seleccione la Venta #1.')
+paso('Seleccione Cambio / devolución.')
+paso('Devuelva 1 Sal fina DOS ANCLAS de $1.950 y mantenga activada la opción para reintegrarla al stock.')
+paso('Agregue como reemplazo 1 Levadura LEVEX, código 7798018850184, de $1.130.')
+paso('Indique el motivo El cliente eligió un producto incorrecto y reintegre la diferencia en efectivo.')
+tabla(['Concepto', 'Importe / resultado'], [('Producto devuelto', '$1.950'), ('Producto de reemplazo', '$1.130'), ('Diferencia reintegrada', '$820'), ('Stock sal', '18 → 19'), ('Stock levadura', '5 → 4'), ('Efectivo esperado', '$90.030 → $89.210')], [3.1, 3.4])
+for texto in ['El detalle de la venta indica 1 unidad devuelta.', 'El historial identifica producto devuelto y reemplazo con cantidad, código e importe.', 'El buscador de reemplazos se cierra, se limpia y recupera el foco después de agregar.', 'El cajero puede registrar cambios sin recibir permiso para anular ventas completas.']: check(texto)
+
+pagina(); heading('18. Arqueo, cierre e historial de cajas')
+heading('18.1 Composición del efectivo esperado', 2)
+tabla(['Concepto', 'Impacto'], [('Fondo inicial', '+ $80.000'), ('Efectivo de ventas', '+ $8.030'), ('Cobranzas en efectivo', '+ $2.000'), ('Reintegros por devoluciones', '- $820'), ('Efectivo esperado', '$89.210')], [3.5, 3.0])
+nota('Dato comercial separado.', 'Las ventas totales fueron $13.030, pero $5.000 quedaron a cuenta corriente. Por eso el efectivo ingresado por ventas fue $8.030 y no $13.030.')
+heading('18.2 Cerrar Caja 1', 2)
+paso('Seleccione Cerrar caja y revise el resumen antes de confirmar.')
+paso('Ingrese $89.210 como cantidad física contada.')
+paso('Confirme el cierre mediante el modal.')
+tabla(['Control', 'Resultado validado'], [('Estado', 'Cerrada'), ('Apertura', '10-08-2026 22:43'), ('Cierre', '10-08-2026 23:43'), ('Efectivo esperado', '$89.210'), ('Efectivo contado', '$89.210'), ('Diferencia', '$0')], [3.1, 3.4])
+heading('18.3 Interpretar el historial', 2)
+doc.add_paragraph('Cada sesión aparece en una tarjeta dividida en Ingresos en efectivo, Egresos en efectivo y Control del cierre. Esta distribución evita confundir facturación con dinero físico y facilita el arqueo.')
+for texto in ['Ventas totales: $13.030.', 'Efectivo de ventas: $8.030.', 'Cobranzas en efectivo: $2.000.', 'Reintegros: -$820.', 'Esperado y contado: $89.210.', 'Diferencia: $0.']: check(texto)
+
+heading('19. Controles transversales validados')
 for texto in ['Altas y ediciones mediante modales; sin alertas del navegador.', 'Botones con texto de peso normal y contraste visible al pasar el mouse.', 'Búsquedas dinámicas sin botones Buscar o Limpiar innecesarios.', 'Navegación con teclado para seleccionar productos.', 'Campos numéricos seleccionan el contenido al recibir foco.', 'Fechas dd-mm-aaaa y horas de 24 horas.', 'Pagos transaccionales: si la cuenta no existe o no tiene saldo, no cambia la deuda.', 'Trazabilidad mediante comprobantes, anulaciones y movimientos automáticos.']: check(texto)
 
-heading('15. Registro incremental de pruebas')
-tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.')], [1.1, 2.1, 1.25, 2.05])
-heading('15.1 Próximos circuitos a incorporar', 2)
-for texto in ['Venta contado y cierre de caja.', 'Venta a cuenta corriente y cobranza.', 'Cambio o devolución con diferencia.', 'Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario y reportes.']: check(texto)
+heading('20. Registro incremental de pruebas')
+tabla(['Fecha', 'Circuito', 'Resultado', 'Observación'], [('10-08-2026', 'Recepción parcial y precios', 'Aprobado', 'Costo y venta actualizados.'), ('10-08-2026', 'Factura y pago proveedor', 'Aprobado', 'Tesorería integrada.'), ('10-08-2026', 'Gasto recurrente', 'Aprobado', 'Edición y anulación disponibles.'), ('10-08-2026', 'Pago parcial de gasto', 'Aprobado', 'Estado parcial corregido.'), ('10-08-2026', 'Pago desde Efectivo general', 'Aprobado', 'Gasto cancelado sin afectar caja.'), ('10-08-2026', 'Ventas y cuenta corriente', 'Aprobado', 'Efectivo, crédito y cobranza conciliados.'), ('10-08-2026', 'Cambio con reemplazo', 'Aprobado', 'Stock y reintegro correctos.'), ('10-08-2026', 'Cierre de Caja 1', 'Aprobado', 'Esperado y contado $89.210; diferencia $0.')], [1.1, 2.1, 1.25, 2.05])
+heading('20.1 Próximos circuitos a incorporar', 2)
+for texto in ['Sueldos, adelantos y pagos desde Tesorería.', 'Cierre diario consolidado y reportes.', 'Permisos por rol y auditoría de operaciones sensibles.']: check(texto)
 nota('Mantenimiento del documento.', 'Después de cada circuito aprobado se actualizarán la versión, los resultados esperados y el registro de pruebas. Las capturas definitivas se incorporarán cuando la interfaz quede cerrada.')
 
 doc.core_properties.title = 'Guía de Prueba Funcional - Sistema de Gestión La 91 Supermercado'
