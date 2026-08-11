@@ -86,15 +86,17 @@ export function Reportes({ token }) {
           <strong>{moneda(datos.resumen.margen)}</strong>
         </div>
         <div><span>Crédito otorgado</span><strong>{moneda(datos.resumen.credito_otorgado)}</strong></div>
-        <div><span>Cuentas por cobrar</span><strong>{moneda(datos.resumen.cuentas_por_cobrar)}</strong></div>
-        <div><span>Deuda vencida</span><strong>{moneda(datos.resumen.deuda_vencida)}</strong></div>
-        <div><span>Cuentas por pagar</span><strong>{moneda(datos.resumen.cuentas_por_pagar)}</strong></div>
-        <div><span>Proveedores vencido</span><strong>{moneda(datos.resumen.proveedores_vencido)}</strong></div>
+        <div><span>Cuentas por cobrar · saldo actual</span><strong>{moneda(datos.resumen.cuentas_por_cobrar)}</strong></div>
+        <div><span>Deuda vencida · saldo actual</span><strong>{moneda(datos.resumen.deuda_vencida)}</strong></div>
+        <div><span>Cuentas por pagar · saldo actual</span><strong>{moneda(datos.resumen.cuentas_por_pagar)}</strong></div>
+        <div><span>Proveedores vencido · saldo actual</span><strong>{moneda(datos.resumen.proveedores_vencido)}</strong></div>
         <div><span>Gastos pagados</span><strong>{moneda(datos.resumen.gastos_pagados)}</strong></div>
         <div><span>Gastos pendientes</span><strong>{moneda(datos.resumen.gastos_pendientes)}</strong></div>
         <div><span>Gastos vencidos</span><strong>{moneda(datos.resumen.gastos_vencidos)}</strong></div>
         <div><span>Sueldos pagados</span><strong>{moneda(datos.resumen.sueldos_pagados)}</strong></div>
-        <div><span>Sueldos pendientes</span><strong>{moneda(datos.resumen.sueldos_pendientes)}</strong></div>
+        <div><span>Adelantos pagados</span><strong>{moneda(datos.resumen.adelantos_pagados)}</strong></div>
+        <div><span>Total pagado al personal</span><strong>{moneda(datos.resumen.total_personal_pagado)}</strong></div>
+        <div><span>Sueldos pendientes · saldo actual</span><strong>{moneda(datos.resumen.sueldos_pendientes)}</strong></div>
           </div>
           <div className="rejilla-reportes">
             <article className="panel">
