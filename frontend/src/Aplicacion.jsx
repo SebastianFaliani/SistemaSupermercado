@@ -11,6 +11,7 @@ import { Clientes } from './Clientes.jsx';
 import { Gastos } from './Gastos.jsx';
 import { Empleados } from './Empleados.jsx';
 import { Tesoreria } from './Tesoreria.jsx';
+import { Ecommerce } from './Ecommerce.jsx';
 import { CampoClave } from './componentes/CampoClave.jsx';
 
 const CLAVE_TOKEN = 'supermercado_token';
@@ -105,6 +106,7 @@ export function Aplicacion() {
           {usuario.permisos.includes('gastos.ver') && <button className={moduloActivo === 'gastos' ? 'activo' : ''} onClick={() => setModuloActivo('gastos')}>Gastos</button>}
           {usuario.permisos.includes('empleados.ver') && <button className={moduloActivo === 'empleados' ? 'activo' : ''} onClick={() => setModuloActivo('empleados')}>Empleados</button>}
           {usuario.permisos.includes('tesoreria.ver') && <button className={moduloActivo === 'tesoreria' ? 'activo' : ''} onClick={() => setModuloActivo('tesoreria')}>Tesorería</button>}
+          {usuario.permisos.includes('ecommerce.ver') && <button className={moduloActivo === 'ecommerce' ? 'activo' : ''} onClick={() => setModuloActivo('ecommerce')}>E-commerce</button>}
         </nav>
         <main className="contenido-interno">
           {moduloActivo === 'tablero' && createElement(Tablero, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos, alNavegar: setModuloActivo })}
@@ -127,6 +129,7 @@ export function Aplicacion() {
           {moduloActivo === 'gastos' && createElement(Gastos, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
           {moduloActivo === 'empleados' && createElement(Empleados, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
           {moduloActivo === 'tesoreria' && createElement(Tesoreria, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
+          {moduloActivo === 'ecommerce' && createElement(Ecommerce, { token: sessionStorage.getItem(CLAVE_TOKEN), permisos: usuario.permisos })}
         </main>
       </div>
     );
