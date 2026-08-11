@@ -64,39 +64,44 @@ export function Reportes({ token }) {
       {mensaje && <p className="mensaje">{mensaje}</p>}
       {datos && (
         <>
-      <div className="tarjetas-resumen tarjetas-reporte">
-            <div>
-              <span>Ventas</span>
-              <strong>{moneda(datos.resumen.ventas)}</strong>
-            </div>
-            <div>
-              <span>Operaciones</span>
-              <strong>{datos.resumen.operaciones}</strong>
-            </div>
-            <div>
-              <span>Ticket promedio</span>
-              <strong>{moneda(datos.resumen.ticket_promedio)}</strong>
-            </div>
-            <div>
-              <span>Costo</span>
-              <strong>{moneda(datos.resumen.costo)}</strong>
-            </div>
-        <div>
-          <span>Margen bruto</span>
-          <strong>{moneda(datos.resumen.margen)}</strong>
-        </div>
-        <div><span>Crédito otorgado</span><strong>{moneda(datos.resumen.credito_otorgado)}</strong></div>
-        <div><span>Cuentas por cobrar · saldo actual</span><strong>{moneda(datos.resumen.cuentas_por_cobrar)}</strong></div>
-        <div><span>Deuda vencida · saldo actual</span><strong>{moneda(datos.resumen.deuda_vencida)}</strong></div>
-        <div><span>Cuentas por pagar · saldo actual</span><strong>{moneda(datos.resumen.cuentas_por_pagar)}</strong></div>
-        <div><span>Proveedores vencido · saldo actual</span><strong>{moneda(datos.resumen.proveedores_vencido)}</strong></div>
-        <div><span>Gastos pagados</span><strong>{moneda(datos.resumen.gastos_pagados)}</strong></div>
-        <div><span>Gastos pendientes</span><strong>{moneda(datos.resumen.gastos_pendientes)}</strong></div>
-        <div><span>Gastos vencidos</span><strong>{moneda(datos.resumen.gastos_vencidos)}</strong></div>
-        <div><span>Sueldos pagados</span><strong>{moneda(datos.resumen.sueldos_pagados)}</strong></div>
-        <div><span>Adelantos pagados</span><strong>{moneda(datos.resumen.adelantos_pagados)}</strong></div>
-        <div><span>Total pagado al personal</span><strong>{moneda(datos.resumen.total_personal_pagado)}</strong></div>
-        <div><span>Sueldos pendientes · saldo actual</span><strong>{moneda(datos.resumen.sueldos_pendientes)}</strong></div>
+          <div className="grupos-resumen-reporte">
+            <article className="panel resumen-reporte resumen-reporte--ancho">
+              <h3>Ventas del período</h3>
+              <div className="tarjetas-resumen tarjetas-reporte">
+                <div><span>Ventas</span><strong>{moneda(datos.resumen.ventas)}</strong></div>
+                <div><span>Operaciones</span><strong>{datos.resumen.operaciones}</strong></div>
+                <div><span>Ticket promedio</span><strong>{moneda(datos.resumen.ticket_promedio)}</strong></div>
+                <div><span>Costo</span><strong>{moneda(datos.resumen.costo)}</strong></div>
+                <div><span>Margen bruto</span><strong>{moneda(datos.resumen.margen)}</strong></div>
+                <div><span>Crédito otorgado</span><strong>{moneda(datos.resumen.credito_otorgado)}</strong></div>
+              </div>
+            </article>
+            <article className="panel resumen-reporte">
+              <h3>Personal del período</h3>
+              <div className="tarjetas-resumen tarjetas-reporte">
+                <div><span>Sueldos pagados</span><strong>{moneda(datos.resumen.sueldos_pagados)}</strong></div>
+                <div><span>Adelantos pagados</span><strong>{moneda(datos.resumen.adelantos_pagados)}</strong></div>
+                <div><span>Total pagado</span><strong>{moneda(datos.resumen.total_personal_pagado)}</strong></div>
+              </div>
+            </article>
+            <article className="panel resumen-reporte">
+              <h3>Gastos del período</h3>
+              <div className="tarjetas-resumen tarjetas-reporte">
+                <div><span>Gastos pagados</span><strong>{moneda(datos.resumen.gastos_pagados)}</strong></div>
+              </div>
+            </article>
+            <article className="panel resumen-reporte resumen-reporte--ancho">
+              <h3>Situación actual</h3>
+              <div className="tarjetas-resumen tarjetas-reporte">
+                <div><span>Cuentas por cobrar</span><strong>{moneda(datos.resumen.cuentas_por_cobrar)}</strong></div>
+                <div><span>Deuda vencida</span><strong>{moneda(datos.resumen.deuda_vencida)}</strong></div>
+                <div><span>Cuentas por pagar</span><strong>{moneda(datos.resumen.cuentas_por_pagar)}</strong></div>
+                <div><span>Proveedores vencido</span><strong>{moneda(datos.resumen.proveedores_vencido)}</strong></div>
+                <div><span>Gastos pendientes</span><strong>{moneda(datos.resumen.gastos_pendientes)}</strong></div>
+                <div><span>Gastos vencidos</span><strong>{moneda(datos.resumen.gastos_vencidos)}</strong></div>
+                <div><span>Sueldos pendientes</span><strong>{moneda(datos.resumen.sueldos_pendientes)}</strong></div>
+              </div>
+            </article>
           </div>
           <div className="rejilla-reportes">
             <article className="panel">

@@ -277,7 +277,11 @@ body.modal-abierto { overflow: hidden; }
 .accesos-rapidos { display: flex; gap: 11px; flex-direction: column; }
 .accesos-rapidos button { width: 100%; padding: 8px; border-radius: 6px; background: var(--color-acento-100); text-align: left; }
 @media (max-width: 950px) { .tarjetas-tablero { grid-template-columns: repeat(2, 1fr); } .rejilla-tablero { grid-template-columns: 1fr; } }
-.tarjetas-reporte { grid-template-columns: repeat(5, 1fr); }
+.grupos-resumen-reporte { display: grid; gap: 12px; margin-bottom: 12px; grid-template-columns: 2fr 1fr; }
+.resumen-reporte--ancho { grid-column: 1 / -1; }
+.resumen-reporte h3 { margin-top: 0; }
+.resumen-reporte .tarjetas-resumen { margin-bottom: 0; }
+.tarjetas-reporte { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
 .rejilla-reportes { display: grid; gap: 12px; grid-template-columns: 3fr 2fr; }
 .subtitulo-reporte { margin-top: 20px !important; }
 .fila-reporte { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-gris-200); text-transform: capitalize; }
@@ -294,4 +298,4 @@ body.modal-abierto { overflow: hidden; }
 .importe-movimiento--ingreso { color: #18794e; }
 .importe-movimiento--egreso { color: var(--color-error); }
 .comprobante-cobranza > p { margin: 6px 0; }
-@media (max-width: 800px) { .tarjetas-reporte { grid-template-columns: repeat(2, 1fr); } .rejilla-reportes { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .grupos-resumen-reporte, .rejilla-reportes { grid-template-columns: 1fr; } .resumen-reporte--ancho { grid-column: auto; } .tarjetas-reporte { grid-template-columns: repeat(2, 1fr); } }
