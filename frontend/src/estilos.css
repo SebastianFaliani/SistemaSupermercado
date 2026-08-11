@@ -400,13 +400,30 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
 .barra-superior span { color: var(--color-acento-100); font-size: .88rem; }
 .usuario-actual button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 8px; color: var(--color-blanco); background: transparent; cursor: pointer; }
 .barra-superior {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(250px, 360px) minmax(200px, 1fr) minmax(250px, 360px);
   min-height: 105px;
   gap: 12px;
   padding: 0 8px 0 0;
+  background:
+    radial-gradient(circle at 78% 22%, rgb(196 223 230 / 24%), transparent 25%),
+    linear-gradient(120deg, var(--color-primario-900), var(--color-primario-700) 68%, var(--color-acento-500));
+  overflow: hidden;
 }
-.barra-superior .marca-encabezado { display: block; align-self: stretch; min-width: 0; }
+.barra-superior::before,
+.barra-superior::after {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgb(196 223 230 / 18%);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+.barra-superior::before { top: -95px; left: 9%; }
+.barra-superior::after { right: 8%; bottom: -115px; width: 190px; height: 190px; }
+.barra-superior .marca-encabezado { position: relative; z-index: 1; display: block; align-self: stretch; min-width: 0; }
 .barra-superior .marca-encabezado img {
   display: block;
   width: 100%;
@@ -417,14 +434,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-primario-7
   object-position: left center;
 }
 .barra-superior .titulo-gestion {
+  position: relative;
+  z-index: 1;
   justify-self: center;
   color: var(--color-blanco);
-  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-size: clamp(27px, 3vw, 40px);
   font-weight: 400;
-  letter-spacing: .035em;
+  letter-spacing: .025em;
   text-align: center;
 }
-.barra-superior .usuario-actual { justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; }
+.barra-superior .usuario-actual { position: relative; z-index: 1; justify-self: end; align-items: center; justify-content: flex-end; gap: 9px; }
 .barra-superior .usuario-actual > span { color: var(--color-blanco); }
 .barra-superior .boton-cerrar-sesion {
   display: grid;
