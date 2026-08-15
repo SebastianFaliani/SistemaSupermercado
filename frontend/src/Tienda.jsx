@@ -25,6 +25,7 @@ async function api(ruta, opciones = {}) {
 export function Tienda() {
   const [portada, setPortada] = useState(null);
   const [productos, setProductos] = useState([]);
+  const [productosPromocion, setProductosPromocion] = useState([]);
   const [total, setTotal] = useState(0);
   const [buscar, setBuscar] = useState('');
   const [categoria, setCategoria] = useState('');
@@ -37,16 +38,40 @@ export function Tienda() {
   const [zonaCheckout, setZonaCheckout] = useState('');
   const [cuponCheckout, setCuponCheckout] = useState('');
   const [cuponAplicado, setCuponAplicado] = useState('');
+  const [cliente, setCliente] = useState(null);
+  const [favoritos, setFavoritos] = useState([]);
+  const [favoritosDetalle, setFavoritosDetalle] = useState([]);
+  const [valoraciones, setValoraciones] = useState({});
+  const [promocionActiva, setPromocionActiva] = useState(0);
+  const apiCliente = (ruta, opciones = {}) =>
+    api(`/cliente${ruta}`, {
+      ...opciones,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem(TOKEN)}`,
+        ...(opciones.headers || {}),
+      },
+    });
+  const cargarPreferencias = async () => {
+    const [perfil, preferencias] = await Promise.all([
+      apiCliente('/perfil'),
+      apiCliente('/preferencias'),
+    ]);
+    setCliente(perfil.dato);
+    setFavoritos(preferencias.dato.favoritos);
+    setValoraciones(preferencias.dato.valoraciones);
+  };
   const cargar = async () => {
     const filtroCategoria = categoria ? `&categoria_id=${categoria}` : '';
-    const [p, listado] = await Promise.all([
+    const [p, listado, promociones] = await Promise.all([
       api('/publico/configuracion'),
       api(
         `/publico/productos?buscar=${encodeURIComponent(buscar)}${filtroCategoria}&limite=60`,
       ),
+      api('/publico/productos?promociones=true&limite=12'),
     ]);
     setPortada(p.dato);
     setProductos(listado.datos);
+    setProductosPromocion(promociones.datos);
     setTotal(listado.total);
   };
   // La búsqueda se demora para evitar una solicitud por cada tecla.
@@ -59,6 +84,23 @@ export function Tienda() {
     // La recarga depende exclusivamente de los filtros visibles.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscar, categoria]);
+  useEffect(() => {
+    if (!localStorage.getItem(TOKEN)) return;
+    cargarPreferencias().catch(() => localStorage.removeItem(TOKEN));
+    // Solo se recupera la sesión guardada al montar la tienda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (productosPromocion.length < 2) return undefined;
+    const intervalo = setInterval(
+      () =>
+        setPromocionActiva(
+          (actual) => (actual + 1) % productosPromocion.length,
+        ),
+      6000,
+    );
+    return () => clearInterval(intervalo);
+  }, [productosPromocion.length]);
   const importe = useMemo(
     () => carrito.reduce((s, i) => s + Number(i.precio) * i.cantidad, 0),
     [carrito],
@@ -175,6 +217,10 @@ export function Tienda() {
         },
       );
       localStorage.setItem(TOKEN, d.token);
+      setCliente(d.cliente);
+      const preferencias = await apiCliente('/preferencias');
+      setFavoritos(preferencias.dato.favoritos);
+      setValoraciones(preferencias.dato.valoraciones);
       setMensaje(`Sesión iniciada como ${d.cliente.nombre}`);
       setModal(null);
     } catch (e) {
@@ -190,6 +236,76 @@ export function Tienda() {
       );
       setPedido(d.dato);
       setModal('seguimiento-resultado');
+    } catch (e) {
+      setMensaje(e.message);
+    }
+  }
+  async function alternarFavorito(productoId) {
+    if (!cliente) {
+      setMensaje('Iniciá sesión para guardar productos favoritos.');
+      setModal('acceso');
+      return;
+    }
+    const esFavorito = favoritos.includes(Number(productoId));
+    try {
+      await apiCliente(`/favoritos/${productoId}`, {
+        method: esFavorito ? 'DELETE' : 'POST',
+      });
+      setFavoritos((actual) =>
+        esFavorito
+          ? actual.filter((id) => Number(id) !== Number(productoId))
+          : [...actual, Number(productoId)],
+      );
+    } catch (e) {
+      setMensaje(e.message);
+    }
+  }
+  async function abrirFavoritos() {
+    if (!cliente) {
+      setMensaje('Iniciá sesión para consultar tus favoritos.');
+      setModal('acceso');
+      return;
+    }
+    try {
+      const respuesta = await apiCliente('/favoritos');
+      setFavoritosDetalle(respuesta.datos);
+      setModal('favoritos');
+    } catch (e) {
+      setMensaje(e.message);
+    }
+  }
+  async function valorar(productoId, puntuacion) {
+    if (!cliente) {
+      setMensaje('Iniciá sesión para valorar productos.');
+      setModal('acceso');
+      return;
+    }
+    try {
+      const puntuacionAnterior = Number(valoraciones[productoId] || 0);
+      await apiCliente(`/valoraciones/${productoId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ puntuacion }),
+      });
+      setValoraciones((actual) => ({ ...actual, [productoId]: puntuacion }));
+      const actualizarResumen = (lista) =>
+        lista.map((producto) => {
+          if (Number(producto.id) !== Number(productoId)) return producto;
+          const cantidadAnterior = Number(producto.valoraciones || 0);
+          const cantidadNueva = puntuacionAnterior
+            ? cantidadAnterior
+            : cantidadAnterior + 1;
+          const sumaAnterior =
+            Number(producto.valoracion_promedio || 0) * cantidadAnterior;
+          return {
+            ...producto,
+            valoraciones: cantidadNueva,
+            valoracion_promedio:
+              (sumaAnterior - puntuacionAnterior + puntuacion) / cantidadNueva,
+          };
+        });
+      setProductos(actualizarResumen);
+      setProductosPromocion(actualizarResumen);
+      setMensaje('Valoración guardada correctamente.');
     } catch (e) {
       setMensaje(e.message);
     }
@@ -215,6 +331,7 @@ export function Tienda() {
       ? Number(zonaSeleccionada?.costo || 0)
       : 0;
   const totalCheckout = totalProductosCheckout + costoEnvioCheckout;
+  const productoBanner = productosPromocion[promocionActiva] || null;
   return (
     <div className="tienda">
       <header className="tienda__hero">
@@ -232,6 +349,12 @@ export function Tienda() {
               aria-hidden="true"
             />
             Mi cuenta
+          </button>
+          <button onClick={abrirFavoritos}>
+            <span className="tienda__icono-favoritos" aria-hidden="true">
+              ♥
+            </span>
+            Favoritos · {favoritos.length}
           </button>
           <button
             className="tienda__carrito"
@@ -268,6 +391,40 @@ export function Tienda() {
           </div>
         </div>
       </header>
+      {productoBanner && (
+        <section className="tienda__banner-promocion" aria-label="Oferta destacada">
+          <div className="tienda__banner-imagen">
+            {productoBanner.imagen_url ? (
+              <img src={productoBanner.imagen_url} alt={productoBanner.nombre} />
+            ) : (
+              <span>LA 91</span>
+            )}
+          </div>
+          <div>
+            <small>OFERTA DESTACADA</small>
+            <h2>{productoBanner.nombre}</h2>
+            <p>
+              <del>{dinero(productoBanner.precio)}</del>{' '}
+              <strong>
+                {dinero(
+                  Number(productoBanner.precio) *
+                    (1 - Number(productoBanner.descuento_porcentaje) / 100),
+                )}
+              </strong>
+            </p>
+          </div>
+          <span className="tienda__banner-descuento">
+            -{Math.round(Number(productoBanner.descuento_porcentaje))}%
+          </span>
+          <button
+            className="boton"
+            disabled={!abierta || Number(productoBanner.disponible_online) <= 0}
+            onClick={() => agregar(productoBanner)}
+          >
+            Agregar al carrito
+          </button>
+        </section>
+      )}
       {!abierta && (
         <p className="tienda__aviso">
           La tienda está en preparación. Podés recorrerla, pero todavía no
@@ -318,6 +475,23 @@ export function Tienda() {
             {productos.map((p) => (
               <article key={p.id}>
                 <div className="tienda__foto">
+                  {Number(p.descuento_porcentaje) > 0 && (
+                    <span className="tienda__descuento-producto">
+                      -{Math.round(Number(p.descuento_porcentaje))}%
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className={`tienda__favorito ${favoritos.includes(Number(p.id)) ? 'activo' : ''}`}
+                    aria-label={
+                      favoritos.includes(Number(p.id))
+                        ? `Quitar ${p.nombre} de favoritos`
+                        : `Agregar ${p.nombre} a favoritos`
+                    }
+                    onClick={() => alternarFavorito(p.id)}
+                  >
+                    {favoritos.includes(Number(p.id)) ? '♥' : '♡'}
+                  </button>
                   {p.imagen_url ? (
                     <img src={p.imagen_url} alt={p.nombre} />
                   ) : (
@@ -329,7 +503,42 @@ export function Tienda() {
                   {p.marca ? ` · ${p.marca}` : ''}
                 </small>
                 <h3>{p.nombre}</h3>
-                <strong>{dinero(p.precio)}</strong>
+                {Number(p.descuento_porcentaje) > 0 ? (
+                  <div className="tienda__precio-promocional">
+                    <del>{dinero(p.precio)}</del>
+                    <strong>
+                      {dinero(
+                        Number(p.precio) *
+                          (1 - Number(p.descuento_porcentaje) / 100),
+                      )}
+                    </strong>
+                  </div>
+                ) : (
+                  <strong>{dinero(p.precio)}</strong>
+                )}
+                <div className="tienda__valoracion" aria-label="Valoración del producto">
+                  {[1, 2, 3, 4, 5].map((estrella) => (
+                    <button
+                      type="button"
+                      key={estrella}
+                      className={
+                        estrella <=
+                        Number(valoraciones[p.id] || p.valoracion_promedio)
+                          ? 'activa'
+                          : ''
+                      }
+                      aria-label={`Valorar con ${estrella} estrellas`}
+                      onClick={() => valorar(p.id, estrella)}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <small>
+                    {Number(p.valoraciones) > 0
+                      ? `${Number(p.valoracion_promedio).toLocaleString('es-AR')} (${p.valoraciones})`
+                      : 'Sin valoraciones'}
+                  </small>
+                </div>
                 <p>
                   {Number(p.disponible_online) > 0 ? 'Disponible' : 'Sin stock'}
                 </p>
@@ -432,6 +641,46 @@ export function Tienda() {
             >
               Continuar
             </button>
+          </div>
+        </Modal>
+      )}
+      {modal === 'favoritos' && (
+        <Modal abierto titulo="Mis favoritos" alCerrar={() => setModal(null)}>
+          <div className="tienda__favoritos-lista">
+            {favoritosDetalle.map((producto) => (
+              <article key={producto.id}>
+                {producto.imagen_url ? (
+                  <img src={producto.imagen_url} alt={producto.nombre} />
+                ) : (
+                  <span className="miniatura-vacia" />
+                )}
+                <div>
+                  <h3>{producto.nombre}</h3>
+                  <strong>{dinero(producto.precio)}</strong>
+                </div>
+                <button
+                  className="boton"
+                  disabled={!abierta || Number(producto.disponible_online) <= 0}
+                  onClick={() => agregar(producto)}
+                >
+                  Agregar
+                </button>
+                <button
+                  className="boton boton--secundario"
+                  onClick={async () => {
+                    await alternarFavorito(producto.id);
+                    setFavoritosDetalle((actual) =>
+                      actual.filter((item) => item.id !== producto.id),
+                    );
+                  }}
+                >
+                  Quitar
+                </button>
+              </article>
+            ))}
+            {!favoritosDetalle.length && (
+              <p className="vacio">Todavía no guardaste productos favoritos.</p>
+            )}
           </div>
         </Modal>
       )}

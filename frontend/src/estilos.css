@@ -194,6 +194,7 @@
 .icono-accion-tienda--pedido { background-position-x: -62px; }
 .icono-accion-tienda--salir { background-position-x: -92px; }
 .icono-gestion-tienda { display: block; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; object-fit: contain; }
+.tienda__icono-favoritos { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: #c62828; background: var(--color-blanco); font-size: 1rem; }
 .tienda .modal__cerrar {
   width: 32px;
   height: 32px;
@@ -228,6 +229,88 @@
 .tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 0; text-align: center; }
 .tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(27px, 3vw, 40px); font-weight: 700; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
+.tienda__banner-promocion {
+  position: relative;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 20px;
+  max-width: 1232px;
+  min-height: 142px;
+  margin: 22px auto 0;
+  padding: 14px 24px;
+  overflow: hidden;
+  border-radius: 12px;
+  color: var(--color-blanco);
+  background: linear-gradient(115deg, var(--color-primario-900), var(--color-primario-700));
+  box-shadow: 0 10px 26px rgb(0 59 70 / 16%);
+}
+.tienda__banner-imagen { display: grid; place-items: center; width: 112px; height: 112px; border-radius: 9px; background: var(--color-blanco); }
+.tienda__banner-imagen img { width: 100%; height: 100%; object-fit: contain; }
+.tienda__banner-imagen span { color: var(--color-acento-500); font-size: 1.2rem; }
+.tienda__banner-promocion small { color: var(--color-acento-100); letter-spacing: .11em; }
+.tienda__banner-promocion h2 { margin: 4px 0; font-size: clamp(1.2rem, 2.2vw, 1.8rem); }
+.tienda__banner-promocion p { margin: 0; }
+.tienda__banner-promocion del { margin-right: 8px; color: var(--color-acento-100); }
+.tienda__banner-promocion strong { font-size: 1.35rem; }
+.tienda__banner-descuento { padding: 9px 15px; border-radius: 999px; color: var(--color-blanco); background: #c62828; font-size: 1.25rem; font-weight: 700; }
+.tienda__banner-promocion .boton { margin: 0; white-space: nowrap; }
+.tienda__foto { position: relative; }
+.tienda__foto .tienda__descuento-producto {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--color-blanco);
+  background: #c62828;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.tienda__productos article .tienda__favorito {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  right: 7px;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-gris-200);
+  border-radius: 50%;
+  color: var(--color-gris-500);
+  background: rgb(255 255 255 / 92%);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tienda__productos article .tienda__favorito.activo { color: #c62828; }
+.tienda__precio-promocional { display: flex; align-items: baseline; gap: 7px; }
+.tienda__precio-promocional del { color: var(--color-gris-500); font-size: .82rem; }
+.tienda__valoracion { display: flex; align-items: center; gap: 1px; margin-top: 7px; }
+.tienda__productos article .tienda__valoracion button {
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 1px;
+  border: 0;
+  color: #aab7b9;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.tienda__productos article .tienda__valoracion button.activa { color: #e0a100; }
+.tienda__valoracion small { margin-left: 5px; font-size: .72rem; }
+.tienda__productos article { min-height: 365px; }
+.tienda__favoritos-lista { display: grid; gap: 8px; }
+.tienda__favoritos-lista article { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--color-gris-200); }
+.tienda__favoritos-lista img,
+.tienda__favoritos-lista .miniatura-vacia { width: 52px; height: 52px; object-fit: contain; }
+.tienda__favoritos-lista h3 { margin: 0 0 3px; font-size: .9rem; }
+.tienda__favoritos-lista .boton { margin: 0; }
 .tienda__cuerpo aside button > img,
 .tienda__icono-categoria-vacio {
   flex: 0 0 auto;
@@ -255,6 +338,12 @@
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
   .tienda__hero-logo { width: min(430px, 88vw); margin: 0 auto; }
   .tienda__hero-texto { min-height: auto; }
+  .tienda__banner-promocion { grid-template-columns: 76px 1fr; gap: 10px; margin: 12px; padding: 10px; }
+  .tienda__banner-imagen { width: 70px; height: 70px; }
+  .tienda__banner-descuento { position: absolute; top: 7px; right: 7px; padding: 5px 8px; font-size: .85rem; }
+  .tienda__banner-promocion .boton { grid-column: 1 / -1; }
+  .tienda__favoritos-lista article { grid-template-columns: 46px 1fr; }
+  .tienda__favoritos-lista article .boton { width: 100%; }
 }
 .configuracion-ecommerce__introduccion {
   display: flex;

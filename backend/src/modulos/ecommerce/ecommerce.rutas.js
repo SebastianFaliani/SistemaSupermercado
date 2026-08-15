@@ -23,6 +23,11 @@ rutasEcommerce.get('/publico/pedidos/:codigo', ejecutar(async (s, r) => { const 
 rutasEcommerce.get('/cliente/perfil', requerirCliente, ejecutar(async (s, r) => r.json({ dato: await servicio.perfilClienteOnline(s.clienteId) })));
 rutasEcommerce.get('/cliente/pedidos', requerirCliente, ejecutar(async (s, r) => r.json({ datos: await servicio.pedidosCliente(s.clienteId) })));
 rutasEcommerce.post('/cliente/direcciones', requerirCliente, ejecutar(async (s, r) => { const d = validar(esquemas.esquemaDireccion, s.body, r); if (d) r.status(201).json({ dato: await servicio.guardarDireccion(s.clienteId, d) }); }));
+rutasEcommerce.get('/cliente/preferencias', requerirCliente, ejecutar(async (s, r) => r.json({ dato: await servicio.preferenciasClienteOnline(s.clienteId) })));
+rutasEcommerce.get('/cliente/favoritos', requerirCliente, ejecutar(async (s, r) => r.json({ datos: await servicio.listarFavoritosCliente(s.clienteId) })));
+rutasEcommerce.post('/cliente/favoritos/:productoId', requerirCliente, ejecutar(async (s, r) => r.status(201).json({ dato: await servicio.guardarFavorito(s.clienteId, Number(s.params.productoId)) })));
+rutasEcommerce.delete('/cliente/favoritos/:productoId', requerirCliente, ejecutar(async (s, r) => r.json({ dato: await servicio.quitarFavorito(s.clienteId, Number(s.params.productoId)) })));
+rutasEcommerce.put('/cliente/valoraciones/:productoId', requerirCliente, ejecutar(async (s, r) => { const d = validar(esquemas.esquemaValoracion, s.body, r); if (d) r.json({ dato: await servicio.guardarValoracion(s.clienteId, Number(s.params.productoId), d.puntuacion) }); }));
 
 rutasEcommerce.use('/admin', requerirAutenticacion);
 rutasEcommerce.get('/admin/configuracion', requerirPermiso('ecommerce.ver'), ejecutar(async (_s, r) => r.json({ dato: await servicio.obtenerConfiguracion() })));
