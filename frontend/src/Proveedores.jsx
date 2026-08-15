@@ -150,6 +150,8 @@ export function Proveedores({ token, permisos }) {
   const [mensaje, setMensaje] = useState('');
   const [cuenta, setCuenta] = useState(null);
   const [factura, setFactura] = useState(false);
+  const [ordenFacturaId, setOrdenFacturaId] = useState('');
+  const [totalFactura, setTotalFactura] = useState('');
   const [pagar, setPagar] = useState(false);
   const [errorPago, setErrorPago] = useState('');
   const [comprobante, setComprobante] = useState(null);
@@ -261,6 +263,8 @@ export function Proveedores({ token, permisos }) {
         }),
       });
       setFactura(false);
+      setOrdenFacturaId('');
+      setTotalFactura('');
       await Promise.all([abrirCuenta(cuenta), cargar()]);
       setMensaje('Factura registrada correctamente.');
     } catch (error) {
@@ -322,6 +326,11 @@ export function Proveedores({ token, permisos }) {
   const cerrarEdicion = () => {
     setModal(false);
     setEditado(undefined);
+  };
+  const abrirFactura = (orden = null) => {
+    setOrdenFacturaId(orden ? String(orden.id) : '');
+    setTotalFactura(orden ? String(Number(orden.total)) : '');
+    setFactura(true);
   };
   return (
     <section className="modulo">
@@ -512,7 +521,20 @@ export function Proveedores({ token, permisos }) {
                 <span>Pagos</span>
                 <strong>{cuenta.pagos.length}</strong>
               </div>
+              <div>
+                <span>Compras sin factura</span>
+                <strong>{cuenta.ordenes.length}</strong>
+              </div>
             </div>
+            <h3>Compras pendientes de facturación</h3>
+            {cuenta.ordenes.length ? (
+              <div className="tabla-contenedor tabla-cuenta">
+                <table>
+                  <thead><tr><th>Compra</th><th>Recepción</th><th>Productos</th><th>Total</th><th></th></tr></thead>
+                  <tbody>{cuenta.ordenes.map((orden) => <tr key={orden.id}><td>#{orden.id}</td><td>{orden.fecha_recepcion ? formatearFechaHora(orden.fecha_recepcion) : formatearFecha(orden.fecha_esperada)}</td><td>{orden.productos}</td><td>{moneda(orden.total)}</td><td>{gestionarCuenta&&<button className="boton-tabla" onClick={()=>abrirFactura(orden)}>Registrar factura</button>}</td></tr>)}</tbody>
+                </table>
+              </div>
+            ) : <p className="vacio">No hay compras recibidas pendientes de facturación.</p>}
             <h3>Facturas</h3>
             {cuenta.facturas.length ? (
               <div className="tabla-contenedor tabla-cuenta">
@@ -608,7 +630,7 @@ export function Proveedores({ token, permisos }) {
               {gestionarCuenta && (
                 <button
                   className="boton boton--secundario"
-                  onClick={() => setFactura(true)}
+                  onClick={() => abrirFactura()}
                 >
                   Nueva factura
                 </button>
@@ -625,12 +647,12 @@ export function Proveedores({ token, permisos }) {
       <Modal
         abierto={factura}
         titulo="Nueva factura de proveedor"
-        alCerrar={() => setFactura(false)}
+        alCerrar={() => { setFactura(false); setOrdenFacturaId(''); setTotalFactura(''); }}
       >
         <form className="formulario-modal" onSubmit={guardarFactura}>
           <div>
             <label>Orden de compra relacionada</label>
-            <select name="orden_compra_id">
+            <select name="orden_compra_id" value={ordenFacturaId} onChange={(e) => { const valor=e.target.value; const orden=cuenta?.ordenes.find((item)=>String(item.id)===valor); setOrdenFacturaId(valor); setTotalFactura(orden ? String(Number(orden.total)) : ''); }}>
               <option value="">Sin orden relacionada</option>
               {cuenta?.ordenes.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -677,6 +699,8 @@ export function Proveedores({ token, permisos }) {
                 type="number"
                 min="0.01"
                 step="0.01"
+                value={totalFactura}
+                onChange={(e) => setTotalFactura(e.target.value)}
                 onFocus={(e) => e.currentTarget.select()}
                 required
               />
@@ -690,7 +714,7 @@ export function Proveedores({ token, permisos }) {
             <button
               type="button"
               className="boton boton--secundario"
-              onClick={() => setFactura(false)}
+              onClick={() => { setFactura(false); setOrdenFacturaId(''); setTotalFactura(''); }}
             >
               Cancelar
             </button>

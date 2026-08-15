@@ -72,7 +72,9 @@ export async function obtenerCuentaProveedor(id) {
       u.nombre_usuario, ct.nombre AS cuenta_tesoreria FROM pagos_proveedores pp JOIN usuarios u ON u.id = pp.usuario_id
       LEFT JOIN cuentas_tesoreria ct ON ct.id = pp.cuenta_tesoreria_id
       WHERE pp.proveedor_id = ? ORDER BY pp.fecha_creacion DESC LIMIT 200`, [id]),
-    baseDatos.query(`SELECT oc.id, oc.total, oc.fecha_recepcion FROM ordenes_compra oc
+    baseDatos.query(`SELECT oc.id, oc.total, oc.fecha_esperada, oc.fecha_recepcion,
+      (SELECT COUNT(*) FROM ordenes_compra_detalles d WHERE d.orden_compra_id = oc.id) AS productos
+      FROM ordenes_compra oc
       WHERE oc.proveedor_id = ? AND oc.estado = 'recibida'
       AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id)
       ORDER BY oc.id DESC LIMIT 100`, [id]),
