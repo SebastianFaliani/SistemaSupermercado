@@ -590,6 +590,14 @@ th { color: var(--color-gris-500); font-size: .86rem; letter-spacing: .05em; tex
 .resumen-pedido-online { display: grid; gap: 5px; margin: 14px 0; padding: 10px 0; border-top: 1px solid var(--color-gris-200); border-bottom: 1px solid var(--color-gris-200); }
 .resumen-pedido-online span { display: flex; justify-content: space-between; gap: 18px; }
 .resumen-pedido-online span:last-child { color: var(--color-primario-900); font-size: 1.05rem; }
+.carrito__linea > span:first-child small, .carrito__importe { display: grid; gap: 2px; }
+.carrito__linea > span:first-child small { margin-top: 3px; color: var(--color-gris-500); }
+.carrito__importe { justify-items: end; }
+.carrito__importe del { color: var(--color-gris-500); font-size: .78rem; }
+.carrito__importe small, .carrito__descuento { color: var(--color-exito, #28724f); }
+.carrito > .carrito__resumen { display: grid; grid-template-columns: 1fr; gap: 5px; padding-top: 8px; border-top: 1px solid var(--color-gris-200); }
+.carrito__resumen p { display: flex; justify-content: space-between; gap: 18px; margin: 0; }
+.carrito__resumen .carrito__total { margin-top: 3px; padding-top: 7px; border-top: 1px solid var(--color-gris-200); font-size: 1rem; }
 .promocion-formulario { display: grid; gap: 12px; }
 .selector-productos-promocion { position: relative; display: grid; gap: 6px; }
 .selector-productos-promocion .resultados-productos { position: static; max-height: 220px; }
