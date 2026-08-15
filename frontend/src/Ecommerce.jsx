@@ -21,6 +21,7 @@ export function Ecommerce({ token, permisos }) {
     [config, setConfig] = useState(null),
     [cuentas, setCuentas] = useState([]),
     [cobrando, setCobrando] = useState(false),
+    [reembolsando, setReembolsando] = useState(false),
     [confirmacion, setConfirmacion] = useState(false);
   const api = async (r, o = {}) => {
     const x = await fetch(`/api/ecommerce/admin${r}`, {
@@ -115,6 +116,32 @@ export function Ecommerce({ token, permisos }) {
       setMensaje(x.message);
     }
   };
+  const reembolsar = async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const pago = detalle.pagos.find((item) => item.estado === 'aprobado');
+    if (!pago) {
+      setMensaje('No existe un pago aprobado para reembolsar.');
+      return;
+    }
+    try {
+      await api(`/pagos/${pago.id}/reembolsos`, {
+        method: 'POST',
+        body: JSON.stringify({
+          monto: Number(f.get('monto')),
+          motivo: f.get('motivo'),
+          cuenta_tesoreria_id: Number(f.get('cuenta')),
+          referencia_externa: f.get('referencia'),
+        }),
+      });
+      setReembolsando(false);
+      setMensaje('Reembolso registrado correctamente.');
+      await ver(detalle.id);
+      cargar();
+    } catch (x) {
+      setMensaje(x.message);
+    }
+  };
   const publicar = async (p) => {
     await api(`/productos/${p.id}`, {
       method: 'PUT',
@@ -179,6 +206,14 @@ export function Ecommerce({ token, permisos }) {
       setMensaje(x.message);
     }
   };
+  const totalPagado = (detalle?.pagos || [])
+    .filter((pago) => pago.estado === 'aprobado')
+    .reduce((suma, pago) => suma + Number(pago.monto_bruto), 0);
+  const totalReembolsado = (detalle?.reembolsos || [])
+    .filter((item) => item.estado === 'aprobado')
+    .reduce((suma, item) => suma + Number(item.monto), 0);
+  const saldoReembolsable = Math.max(0, totalPagado - totalReembolsado);
+
   return (
     <section className="ecommerce-admin">
       <div className="encabezado-pagina">
@@ -380,6 +415,49 @@ export function Ecommerce({ token, permisos }) {
               Total <strong>{dinero(detalle.total)}</strong>
             </span>
           </div>
+          {detalle.pagos.length > 0 && (
+            <>
+              <h3>Pagos y reembolsos</h3>
+              <div className="tabla-contenedor">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Movimiento</th>
+                      <th>Cuenta</th>
+                      <th>Referencia</th>
+                      <th>Importe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalle.pagos.map((pago) => (
+                      <tr key={`pago-${pago.id}`}>
+                        <td>{fecha(pago.fecha_aprobacion || pago.fecha_creacion)}</td>
+                        <td>Pago · {pago.proveedor}</td>
+                        <td>—</td>
+                        <td>{pago.referencia_externa || '—'}</td>
+                        <td className="importe-ingreso">+{dinero(pago.monto_bruto)}</td>
+                      </tr>
+                    ))}
+                    {(detalle.reembolsos || []).map((item) => (
+                      <tr key={`reembolso-${item.id}`}>
+                        <td>{fecha(item.fecha_creacion)}</td>
+                        <td>Reembolso · {item.motivo}</td>
+                        <td>{item.cuenta_tesoreria || '—'}</td>
+                        <td>{item.referencia_externa || '—'}</td>
+                        <td className="importe-egreso">-{dinero(item.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="resumen-pedido-admin">
+                <span>Pagado <strong>{dinero(totalPagado)}</strong></span>
+                <span>Reembolsado <strong>{dinero(totalReembolsado)}</strong></span>
+                <span>Pendiente de reintegro <strong>{dinero(saldoReembolsable)}</strong></span>
+              </div>
+            </>
+          )}
           {cobrando && !['cancelado', 'entregado'].includes(detalle.estado) && (
             <form className="formulario formulario--grilla" onSubmit={cobrar}>
               <label>
@@ -426,6 +504,50 @@ export function Ecommerce({ token, permisos }) {
               <button className="boton">Registrar cobro</button>
             </form>
           )}
+          {reembolsando &&
+            detalle.estado === 'cancelado' &&
+            saldoReembolsable > 0 && (
+              <form className="formulario formulario--grilla" onSubmit={reembolsar}>
+                <label>
+                  Cuenta de devolución
+                  <select name="cuenta" required>
+                    {cuentas.map((cuenta) => (
+                      <option key={cuenta.id} value={cuenta.id}>
+                        {cuenta.nombre} · {dinero(cuenta.saldo)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Importe
+                  <input
+                    name="monto"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={saldoReembolsable}
+                    defaultValue={saldoReembolsable}
+                    required
+                  />
+                </label>
+                <label>
+                  Motivo
+                  <input
+                    name="motivo"
+                    defaultValue="Cancelación del pedido"
+                    required
+                  />
+                </label>
+                <label>
+                  Referencia
+                  <input
+                    name="referencia"
+                    defaultValue={`REEMBOLSO-${detalle.codigo}`}
+                  />
+                </label>
+                <button className="boton">Registrar reembolso</button>
+              </form>
+            )}
           <div className="acciones-modal">
             {detalle.estado_pago !== 'aprobado' &&
               !['cancelado', 'entregado'].includes(detalle.estado) &&
@@ -467,6 +589,16 @@ export function Ecommerce({ token, permisos }) {
             {!['entregado', 'cancelado'].includes(detalle.estado) && (
               <button onClick={() => avanzar('cancelado')}>Cancelar</button>
             )}
+            {detalle.estado === 'cancelado' &&
+              saldoReembolsable > 0 &&
+              permisos.includes('ecommerce.pagos') && (
+                <button
+                  className="boton"
+                  onClick={() => setReembolsando(!reembolsando)}
+                >
+                  {reembolsando ? 'Ocultar reembolso' : 'Registrar reembolso'}
+                </button>
+              )}
           </div>
         </Modal>
       )}
