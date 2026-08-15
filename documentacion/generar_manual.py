@@ -8,7 +8,7 @@ from docx.oxml.ns import qn
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.11.docx'
+OUT = ROOT / 'documentacion' / 'Manual_de_Usuario_La_91_v0.12.docx'
 LOGO = ROOT / 'frontend' / 'public' / 'marca' / 'logo-horizontal-claro.png'
 CAPTURAS = ROOT / 'documentacion' / 'capturas_manual'
 CAPTURA = CAPTURAS / '01-acceso.png'
@@ -113,7 +113,7 @@ def screenshot_placeholder(modulo):
 
 # Encabezado y pie
 h=sec.header.paragraphs[0]; h.alignment=WD_ALIGN_PARAGRAPH.LEFT; font(h.add_run('LA 91 SUPERMERCADO  |  MANUAL DE USUARIO'),8.5,VERDE,True)
-f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.11 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
+f=sec.footer.paragraphs[0]; f.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(f.add_run('Versión preliminar 0.12 · Agosto 2026 · Uso interno y capacitación'),8,GRIS)
 
 # Portada editorial
 doc.add_paragraph().paragraph_format.space_after=Pt(70)
@@ -123,19 +123,20 @@ p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('MA
 p=doc.add_paragraph(); p.style='Title'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Sistema de Gestión\nLa 91 Supermercado')
 p=doc.add_paragraph(); p.style='Subtitle'; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Guía operativa para administración, supervisión y caja')
 doc.add_paragraph().paragraph_format.space_after=Pt(90)
-p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.11'),11,VERDE,True)
+p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('VERSIÓN PRELIMINAR 0.12'),11,VERDE,True)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; font(p.add_run('Agosto de 2026'),10,GRIS)
 note('Estado del documento.', 'Esta edición incorpora capturas reales obtenidas con los datos de la prueba funcional. Se actualizará cuando cambien pantallas o circuitos.', 'EAF4F6')
 
 page(); heading('Control del documento')
 table(['Campo','Detalle'],[
- ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.11 – preliminar ilustrada'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Cuando cambien pantallas o circuitos operativos')],[1.65,4.85])
+ ('Documento','Manual de usuario del Sistema de Gestión La 91 Supermercado'),('Versión','0.12 – preliminar ilustrada'),('Fecha','Agosto de 2026'),('Destinatarios','Administrador, supervisor, cajero y personal autorizado'),('Objetivo','Explicar la operación habitual y los controles necesarios'),('Próxima revisión','Cuando cambien pantallas o circuitos operativos')],[1.65,4.85])
 heading('Cómo utilizar este manual',2)
 doc.add_paragraph('Cada capítulo describe el objetivo del módulo, el procedimiento habitual y los controles que deben respetarse. Los nombres de botones y opciones aparecen tal como se muestran en el sistema.')
 note('Regla general.', 'Nunca comparta su contraseña. No elimine ni corrija movimientos financieros por fuera del procedimiento autorizado. Ante una diferencia, registre lo ocurrido y comuníquelo al supervisor.')
 heading('Contenido')
-contents=['1. Acceso y navegación','2. Roles y responsabilidades','3. Inicio y tablero','4. Catálogo de productos','5. Inventario','6. Proveedores y compras','7. Clientes y cuentas corrientes','8. Punto de venta','9. Cambios y devoluciones','10. Caja','11. Gastos y servicios','12. Empleados y sueldos','13. Tesorería','14. Reportes','15. Cierre diario y controles','16. Problemas frecuentes','17. Lista de verificación para puesta en marcha']
-for item in contents: doc.add_paragraph(item,style='List Number')
+contents=['1. Acceso y navegación','2. Roles y responsabilidades','3. Inicio y tablero','4. Catálogo de productos','5. Inventario','6. Proveedores y compras','7. Clientes y cuentas corrientes','8. Punto de venta','9. Cambios y devoluciones','10. Caja','11. Gastos y servicios','12. Empleados y sueldos','13. Tesorería','14. Reportes','15. Tienda online y e-commerce','16. Cierre diario y controles','17. Problemas frecuentes','18. Lista de verificación para puesta en marcha']
+for item in contents:
+    p=doc.add_paragraph(); p.paragraph_format.space_after=Pt(2); font(p.add_run(item),9.5,AZUL)
 
 page(); heading('1. Acceso y navegación')
 heading('1.1 Iniciar sesión',2)
@@ -270,27 +271,49 @@ bullets(['Compare ventas con costo y margen.','Revise productos y categorías m�
 note('Alcance.', 'Los reportes son herramientas de gestión. No sustituyen libros contables, declaraciones impositivas ni documentación fiscal oficial.')
 screenshot_placeholder('Reportes')
 
-page(); heading('15. Cierre diario y controles')
-heading('15.1 Cajero',2)
+page(); heading('15. Tienda online y e-commerce')
+doc.add_paragraph('El canal online utiliza el mismo catálogo, los mismos clientes, las existencias y la Tesorería del sistema de gestión. Los pedidos reservan mercadería al confirmarse y se convierten en ventas cuando son entregados.')
+heading('15.1 Publicar productos',2)
+steps(['Abra E-commerce y seleccione Productos.','Busque el artículo.','Utilice Publicar para mostrarlo en la tienda u Ocultar para retirarlo del canal online.','Revise precio, disponibilidad, stock de seguridad, cantidad máxima y modalidades de entrega habilitadas.'])
+note('Stock online.', 'La disponibilidad se obtiene de la existencia del local menos las unidades reservadas y el stock de seguridad. No se mantiene un inventario físico separado para Internet.')
+heading('15.2 Crear y administrar promociones',2)
+steps(['Abra E-commerce y seleccione Promociones.','Seleccione Nueva promoción o Editar.','Defina nombre, tipo, valor, monto mínimo y vigencia.','Elija el alcance: pedido completo, categoría o productos específicos.','Active Aplicar también en el supermercado solamente si el descuento debe utilizarse en Punto de venta.','Guarde y compruebe el canal y el estado mostrados en la lista.'])
+bullets(['Solo online: se aplica únicamente en la tienda.','Online + supermercado: también se calcula automáticamente en Punto de venta.','Desactivar conserva el historial e impide nuevas aplicaciones.','Programada aún no comenzó; Vencida finalizó; Inactiva fue deshabilitada manualmente.','Los cupones y el envío gratis pertenecen exclusivamente al canal online.'])
+note('Orden de descuentos.', 'Primero se aplican las promociones por producto o categoría. Después se calcula la promoción general sobre el subtotal ya rebajado. El cliente debe ver precio original, ahorro, subtotal promocionado y descuento general por separado.')
+heading('15.3 Comprar desde la tienda',2)
+steps(['Abra Visitar la tienda.','Busque productos por nombre o navegue por categorías.','Seleccione Agregar y abra el carrito.','Revise precio original, precio promocional, ahorro y subtotal.','Seleccione Continuar.','Complete cliente, modalidad de entrega y medio de pago.','Si posee un cupón, escríbalo y seleccione Aplicar.','Revise el resumen y el importe del botón Confirmar pedido.','Confirme y conserve el código de seguimiento.'])
+note('Importe antes de confirmar.', 'El resumen debe incluir subtotal original, descuentos, envío y total a pagar. El botón Confirmar pedido debe mostrar exactamente el mismo total que se registrará.')
+heading('15.4 Reserva y vencimiento',2)
+doc.add_paragraph('Al crear el pedido, las unidades quedan reservadas: todavía no disminuye el stock físico. Si el pago no se registra dentro del plazo configurado, el pedido pasa a Cancelado y la reserva se libera automáticamente.')
+bullets(['Un pedido cancelado no puede cobrarse: el cliente debe crear uno nuevo.','Cancelar antes de pagar no genera movimientos de Tesorería ni ventas.','El plazo de reserva se configura desde E-commerce > Configuración.'])
+heading('15.5 Cobrar y preparar el pedido',2)
+steps(['Abra E-commerce y seleccione Pedidos.','Abra Ver y controle productos, precios, descuentos, envío y total.','Seleccione Registrar pago.','Elija cuenta de Tesorería, medio, importe, comisión y referencia.','Verifique que el pago quede Aprobado y el pedido Confirmado.','Seleccione Preparar y luego Preparación completa.','Controle que el pedido quede Listo.'])
+note('Tesorería.', 'Registrar el pago genera un único ingreso en la cuenta seleccionada. Preparar o entregar no debe generar un segundo ingreso.')
+heading('15.6 Entregar y registrar la venta',2)
+steps(['Con el pedido Listo y el pago aprobado, seleccione Entregar y registrar venta.','Compruebe que el pedido quede Entregado.','Revise que el stock físico disminuya y la reserva vuelva a cero.','Abra Punto de venta y seleccione Historial para consultar la venta con canal e-commerce.'])
+bullets(['La venta online aparece como Venta online y no requiere una caja física.','Los reportes incorporan la venta, el costo y el margen.','El movimiento de Tesorería proviene del cobro, no de la entrega.'])
+
+page(); heading('16. Cierre diario y controles')
+heading('16.1 Cajero',2)
 bullets(['Finalizar ventas pendientes.','Revisar devoluciones y diferencias.','Contar efectivo.','Cerrar su caja.','Cerrar sesión.'])
-heading('15.2 Supervisor o administrador',2)
+heading('16.2 Supervisor o administrador',2)
 bullets(['Verificar que no queden cajas abiertas sin responsable.','Revisar diferencias de cierre.','Controlar ventas y cobranzas del día.','Revisar stock bajo mínimo.','Controlar vencimientos próximos.','Confirmar movimientos relevantes de Tesorería.','Verificar que la copia de seguridad se haya completado cuando esté configurada.'])
 table(['Control','Frecuencia','Responsable'],[
  ('Cierre de cada caja','Diaria / por turno','Cajero y supervisor'),('Stock bajo mínimo','Diaria','Compras o supervisor'),('Cuentas vencidas','Diaria','Administración'),('Tesorería y bancos','Diaria','Administrador'),('Conteo físico selectivo','Semanal','Supervisor'),('Respaldo restaurable','Según política definida','Responsable técnico')],[2.7,1.4,2.4])
 
-heading('16. Problemas frecuentes')
+heading('17. Problemas frecuentes')
 table(['Situación','Qué revisar'],[
- ('No aparece un módulo','Permisos del usuario y necesidad de volver a iniciar sesión.'),('No encuentra un producto','Código, nombre, estado activo, precio de venta y existencia.'),('No permite pagar en efectivo','El usuario debe tener una caja abierta.'),('No permite abrir una caja','Puede estar ocupada por otra sesión.'),('El saldo no coincide','Revise pagos parciales, devoluciones, cobranzas y filtros.'),('La venta quedó a crédito','Revise cliente seleccionado, pagos cargados y saldo pendiente.'),('Hay diferencia al cerrar','Vuelva a contar y revise devoluciones, gastos, sueldos, adelantos y movimientos manuales.'),('El sistema muestra un error','Copie el mensaje, anote la operación y comuníquelo sin repetirla varias veces.')],[2.2,4.3])
+ ('No aparece un módulo','Permisos del usuario y necesidad de volver a iniciar sesión.'),('No encuentra un producto','Código, nombre, estado activo, precio de venta y existencia.'),('No permite pagar en efectivo','El usuario debe tener una caja abierta.'),('No permite abrir una caja','Puede estar ocupada por otra sesión.'),('El saldo no coincide','Revise pagos parciales, devoluciones, cobranzas y filtros.'),('La venta quedó a crédito','Revise cliente seleccionado, pagos cargados y saldo pendiente.'),('Hay diferencia al cerrar','Vuelva a contar y revise devoluciones, gastos, sueldos, adelantos y movimientos manuales.'),('Pedido online cancelado','Venció el plazo de reserva. El stock fue liberado y debe generarse un pedido nuevo.'),('El total online no coincide','Revise promociones, cupón, modalidad de entrega y costo de zona antes de confirmar.'),('El sistema muestra un error','Copie el mensaje, anote la operación y comuníquelo sin repetirla varias veces.')],[2.2,4.3])
 
-page(); heading('17. Lista de verificación para puesta en marcha')
-for x in ['Usuarios y roles revisados','Cajas físicas identificadas','Productos, precios y códigos verificados','Stock inicial controlado','Proveedores cargados','Clientes con crédito autorizados','Empleados y modalidades revisados','Cuentas de Tesorería conciliadas','Prueba de compra realizada','Prueba de venta y devolución realizada','Prueba de cuenta corriente y cobranza realizada','Prueba de gasto, sueldo y adelanto realizada','Cierre de caja comprobado','Reportes revisados','Procedimiento de respaldo y restauración probado']:
+page(); heading('18. Lista de verificación para puesta en marcha')
+for x in ['Usuarios y roles revisados','Cajas físicas identificadas','Productos, precios y códigos verificados','Stock inicial controlado','Proveedores cargados','Clientes con crédito autorizados','Empleados y modalidades revisados','Cuentas de Tesorería conciliadas','Prueba de compra realizada','Prueba de venta y devolución realizada','Prueba de cuenta corriente y cobranza realizada','Prueba de gasto, sueldo y adelanto realizada','Promociones online y locales verificadas','Pedido online, reserva, cobro, preparación y entrega comprobados','Venta online visible en historial y reportes','Cierre de caja comprobado','Reportes revisados','Procedimiento de respaldo y restauración probado']:
     doc.add_paragraph('☐ '+x)
 note('Criterio de salida.', 'La versión 1.0 del manual se emitirá después de la puesta en marcha controlada y de incorporar cualquier corrección detectada durante el uso real.')
 heading('Registro de incidencias de la prueba',2)
 table(['Fecha','Módulo','Situación observada','Prioridad','Resolución'],[('','','','',''),('','','','',''),('','','','',''),('','','','','')],[.8,1.05,2.75,.8,1.1])
 
 doc.core_properties.title='Manual de Usuario - Sistema de Gestión La 91 Supermercado'
-doc.core_properties.subject='Guía operativa ilustrada, versión 0.11'
+doc.core_properties.subject='Guía operativa ilustrada, versión 0.12'
 doc.core_properties.author='La 91 Supermercado'
 doc.core_properties.keywords='supermercado, manual, usuario, caja, inventario, tesorería'
 OUT.parent.mkdir(parents=True,exist_ok=True)
