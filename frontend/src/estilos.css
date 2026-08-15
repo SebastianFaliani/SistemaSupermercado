@@ -586,6 +586,8 @@ th { color: var(--color-gris-500); font-size: .86rem; letter-spacing: .05em; tex
 .paginacion button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 10px; color: var(--color-primario-700); background: var(--color-blanco); font: inherit; cursor: pointer; }
 .paginacion button:disabled { cursor: default; opacity: .4; }
 .cantidad-baja { color: var(--color-error); font-weight: 700; }
+.pendiente-facturacion { color: #8a5a00; font-weight: 600; }
+.pendiente-facturacion .dato-secundario { color: inherit; }
 .selector-vista { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--color-gris-200); }
 .selector-vista button { padding: 8px 11px; border: 0; border-bottom: 2px solid transparent; color: var(--color-gris-500); background: transparent; font: inherit; font-weight: 400; cursor: pointer; }
 .selector-vista button.activo { border-bottom-color: var(--color-primario-700); color: var(--color-primario-900); }

@@ -361,6 +361,7 @@ export function Proveedores({ token, permisos }) {
           <option value="todas">Todas las cuentas</option>
           <option value="deuda">Con deuda</option>
           <option value="vencida">Con deuda vencida</option>
+          <option value="sin_facturar">Con compras sin facturar</option>
         </select>
         <select
           value={estado}
@@ -394,6 +395,7 @@ export function Proveedores({ token, permisos }) {
                   <th>CUIT</th>
                   <th>Contacto</th>
                   <th>Saldo</th>
+                  <th>Sin facturar</th>
                   <th>Estado</th>
                   <th></th>
                 </tr>
@@ -421,6 +423,9 @@ export function Proveedores({ token, permisos }) {
                       }
                     >
                       {moneda(proveedor.saldo)}
+                    </td>
+                    <td className={Number(proveedor.compras_sin_factura) > 0 ? 'pendiente-facturacion' : ''}>
+                      {Number(proveedor.compras_sin_factura) > 0 ? <>{moneda(proveedor.importe_sin_factura)}<small className="dato-secundario">{Number(proveedor.compras_sin_factura).toLocaleString('es-AR')} {Number(proveedor.compras_sin_factura) === 1 ? 'compra' : 'compras'}</small></> : '—'}
                     </td>
                     <td>
                       <span

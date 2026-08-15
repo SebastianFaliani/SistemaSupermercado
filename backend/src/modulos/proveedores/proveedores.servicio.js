@@ -19,13 +19,20 @@ export async function listarProveedores(consulta) {
   }
   if (consulta.cuenta === 'deuda') condiciones.push("EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.saldo_pendiente > 0 AND fp.estado <> 'anulada')");
   if (consulta.cuenta === 'vencida') condiciones.push("EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.saldo_pendiente > 0 AND fp.fecha_vencimiento < CURRENT_DATE() AND fp.estado <> 'anulada')");
+  if (consulta.cuenta === 'sin_facturar') condiciones.push(`EXISTS (SELECT 1 FROM ordenes_compra oc
+    WHERE oc.proveedor_id = proveedores.id AND oc.estado = 'recibida'
+    AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id))`);
   const donde = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
   const desplazamiento = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [conteo]] = await Promise.all([
     baseDatos.query(
       `SELECT id, ${campos.join(', ')}, esta_activo,
        (SELECT COALESCE(SUM(fp.saldo_pendiente), 0) FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.estado <> 'anulada') AS saldo,
-       (SELECT COALESCE(SUM(fp.saldo_pendiente), 0) FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.estado <> 'anulada' AND fp.fecha_vencimiento < CURRENT_DATE()) AS vencido
+       (SELECT COALESCE(SUM(fp.saldo_pendiente), 0) FROM facturas_proveedores fp WHERE fp.proveedor_id = proveedores.id AND fp.estado <> 'anulada' AND fp.fecha_vencimiento < CURRENT_DATE()) AS vencido,
+       (SELECT COUNT(*) FROM ordenes_compra oc WHERE oc.proveedor_id = proveedores.id AND oc.estado = 'recibida'
+         AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id)) AS compras_sin_factura,
+       (SELECT COALESCE(SUM(oc.total), 0) FROM ordenes_compra oc WHERE oc.proveedor_id = proveedores.id AND oc.estado = 'recibida'
+         AND NOT EXISTS (SELECT 1 FROM facturas_proveedores fp WHERE fp.orden_compra_id = oc.id)) AS importe_sin_factura
        FROM proveedores ${donde}
        ORDER BY COALESCE(nombre_fantasia, razon_social), razon_social LIMIT ? OFFSET ?`,
       [...parametros, consulta.limite, desplazamiento],
