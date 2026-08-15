@@ -46,6 +46,7 @@ export const esquemaVenta = z.object({
     contexto.addIssue({ code: 'custom', path: ['efectivo_recibido'], message: 'No corresponde efectivo recibido sin pago en efectivo' });
   }
 });
+export const esquemaCotizacionVenta = z.object({ detalles: esquemaVenta.shape.detalles });
 
 export const esquemaConsultaVentas = z.object({
   buscar: z.string().trim().max(120).optional(),

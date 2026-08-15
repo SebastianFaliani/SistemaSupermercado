@@ -25,6 +25,7 @@ export function Ventas({ token, permisos }) {
   const [cuentasEfectivo, setCuentasEfectivo] = useState([]);
   const [buscar, setBuscar] = useState('');
   const [carrito, setCarrito] = useState([]);
+  const [cotizacionVenta, setCotizacionVenta] = useState(null);
   const [modalCaja, setModalCaja] = useState(false);
   const [modalCobro, setModalCobro] = useState(false);
   const [pagosVenta, setPagosVenta] = useState({
@@ -166,10 +167,16 @@ export function Ventas({ token, permisos }) {
         .getElementById(`resultado-venta-${resultados[resultadoActivo]?.id}`)
         ?.scrollIntoView({ block: 'nearest' });
   }, [resultadoActivo, resultados]);
-  const total = carrito.reduce(
+  const subtotalVenta = carrito.reduce(
     (suma, item) => suma + Number(item.cantidad) * Number(item.precio_venta),
     0,
   );
+  useEffect(() => {
+    if (!carrito.length) { setCotizacionVenta(null); return; }
+    const temporizador=setTimeout(()=>pedir('/api/ventas/cotizacion',token,{method:'POST',body:JSON.stringify({detalles:carrito.map((item)=>({producto_id:item.id,cantidad:Number(item.cantidad)}))})}).then((respuesta)=>setCotizacionVenta(respuesta.dato)).catch((error)=>setMensaje(error.message)),120);
+    return () => clearTimeout(temporizador);
+  }, [carrito, token]);
+  const total = Number(cotizacionVenta?.total ?? subtotalVenta);
   const totalPagado = Object.values(pagosVenta).reduce(
     (suma, importe) => suma + Number(importe || 0),
     0,
@@ -750,7 +757,7 @@ export function Ventas({ token, permisos }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {carrito.map((item) => (
+                    {carrito.map((item) => { const promocion=cotizacionVenta?.detalles.find((detalle)=>Number(detalle.producto_id)===Number(item.id)); return (
                       <tr key={item.id}>
                         <td>
                           {item.nombre}
@@ -772,18 +779,17 @@ export function Ventas({ token, permisos }) {
                           />
                         </td>
                         <td>
-                          $
-                          {Number(item.precio_venta).toLocaleString('es-AR', {
+                          {Number(promocion?.descuento_producto)>0&&<del className="precio-anterior">${Number(item.precio_venta).toLocaleString('es-AR',{minimumFractionDigits:2})}</del>}
+                          $ {Number(promocion?.precio_promocional??item.precio_venta).toLocaleString('es-AR', {
                             minimumFractionDigits: 2,
                           })}
                         </td>
                         <td>
                           $
-                          {(
-                            Number(item.cantidad) * Number(item.precio_venta)
-                          ).toLocaleString('es-AR', {
+                          {Number(promocion?.subtotal??Number(item.cantidad)*Number(item.precio_venta)).toLocaleString('es-AR', {
                             minimumFractionDigits: 2,
                           })}
+                          {Number(promocion?.descuento)>0&&<small className="dato-secundario importe-descuento">Ahorrás ${Number(promocion.descuento).toLocaleString('es-AR',{minimumFractionDigits:2})}</small>}
                         </td>
                         <td>
                           <button
@@ -798,7 +804,7 @@ export function Ventas({ token, permisos }) {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -806,7 +812,7 @@ export function Ventas({ token, permisos }) {
               <p className="vacio">Todavía no agregaste productos.</p>
             )}
             <div className="pie-venta">
-              <span>Total</span>
+              <span>{Number(cotizacionVenta?.descuento_productos)+Number(cotizacionVenta?.descuento_pedido)>0?`Total · Ahorrás $${(Number(cotizacionVenta.descuento_productos)+Number(cotizacionVenta.descuento_pedido)).toLocaleString('es-AR',{minimumFractionDigits:2})}`:'Total'}</span>
               <strong>
                 ${total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </strong>

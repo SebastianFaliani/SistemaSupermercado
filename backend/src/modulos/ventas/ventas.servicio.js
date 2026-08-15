@@ -339,7 +339,7 @@ export async function obtenerVenta(id, usuarioId = null) {
   if (!ventas[0]) return null;
   const [[detalles], [pagos], [devoluciones], [detallesDevoluciones]] = await Promise.all([
     baseDatos.query(`SELECT vd.producto_id, p.nombre, p.es_pesable, pcb.codigo_barra,
-      vd.cantidad, vd.precio_unitario, vd.subtotal,
+      vd.cantidad, vd.precio_unitario, vd.descuento, vd.subtotal,
       COALESCE((SELECT SUM(dvd.cantidad) FROM devoluciones_ventas_detalles dvd
         JOIN devoluciones_ventas dv ON dv.id = dvd.devolucion_id
         WHERE dv.venta_id = vd.venta_id AND dvd.producto_id = vd.producto_id
@@ -418,7 +418,7 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
     const [[ubicacion]] = await conexion.query("SELECT id FROM ubicaciones_stock WHERE codigo = 'LOCAL_PRINCIPAL'");
     const devueltos = []; let totalDevuelto = 0;
     for (const item of datos.devueltos) {
-      const [[vendido]] = await conexion.query(`SELECT vd.cantidad, vd.precio_unitario, p.nombre,
+      const [[vendido]] = await conexion.query(`SELECT vd.cantidad, vd.subtotal / vd.cantidad AS precio_unitario, p.nombre,
         COALESCE((SELECT SUM(dvd.cantidad) FROM devoluciones_ventas_detalles dvd
           JOIN devoluciones_ventas dv ON dv.id = dvd.devolucion_id
           WHERE dv.venta_id = ? AND dvd.producto_id = ? AND dvd.tipo = 'devuelto'), 0) AS ya_devuelto
@@ -484,6 +484,18 @@ export async function crearDevolucion(ventaId, usuarioId, datos) {
   } catch (error) { await conexion.rollback(); throw error; } finally { conexion.release(); }
 }
 
+const redondearVenta = (valor) => Math.round((Number(valor) + Number.EPSILON) * 100) / 100;
+
+async function aplicarPromocionesLocales(conexion, detalles) {
+  const [promociones]=await conexion.query("SELECT * FROM promociones_ecommerce WHERE esta_activa=TRUE AND aplica_supermercado=TRUE AND codigo_cupon IS NULL AND ambito<>'envio' AND fecha_desde<=CURRENT_TIMESTAMP(3) AND fecha_hasta>=CURRENT_TIMESTAMP(3) ORDER BY es_acumulable,porcentaje DESC");
+  const ids=promociones.length?promociones.map((p)=>p.id):[0];const [[productos],[categorias]]=await Promise.all([conexion.query('SELECT promocion_id,producto_id FROM promociones_ecommerce_productos WHERE promocion_id IN (?)',[ids]),conexion.query('SELECT promocion_id,categoria_id FROM promociones_ecommerce_categorias WHERE promocion_id IN (?)',[ids])]);
+  const porProducto=new Map(),porCategoria=new Map();for(const r of productos){if(!porProducto.has(r.promocion_id))porProducto.set(r.promocion_id,new Set());porProducto.get(r.promocion_id).add(Number(r.producto_id));}for(const r of categorias){if(!porCategoria.has(r.promocion_id))porCategoria.set(r.promocion_id,new Set());porCategoria.get(r.promocion_id).add(Number(r.categoria_id));}
+  let subtotal=0,descuentoProductos=0;for(const detalle of detalles){const precio=Number(detalle.precio_venta),bruto=redondearVenta(precio*detalle.cantidad);let descuentoUnitario=0;for(const promo of promociones.filter((p)=>p.ambito==='productos'&&(porProducto.get(p.id)?.has(Number(detalle.producto_id))||porCategoria.get(p.id)?.has(Number(detalle.categoria_id))))){const candidato=promo.tipo==='precio_fijo'?Math.max(0,precio-Number(promo.precio_fijo)):precio*Number(promo.porcentaje||0)/100;descuentoUnitario=Math.max(descuentoUnitario,candidato);if(!promo.es_acumulable)break;}detalle.descuento_producto=redondearVenta(Math.min(bruto,descuentoUnitario*detalle.cantidad));detalle.descuento=detalle.descuento_producto;detalle.subtotal=redondearVenta(bruto-detalle.descuento);detalle.precio_promocional=redondearVenta(precio-descuentoUnitario);subtotal+=bruto;descuentoProductos+=detalle.descuento_producto;}
+  subtotal=redondearVenta(subtotal);descuentoProductos=redondearVenta(descuentoProductos);let descuentoPedido=0;for(const promo of promociones.filter((p)=>p.ambito==='pedido'&&subtotal>=Number(p.monto_minimo))){let valor=(subtotal-descuentoProductos-descuentoPedido)*Number(promo.porcentaje||0)/100;if(promo.descuento_maximo)valor=Math.min(valor,Number(promo.descuento_maximo));descuentoPedido=redondearVenta(descuentoPedido+valor);if(!promo.es_acumulable)break;}if(descuentoPedido>0){const base=detalles.reduce((s,d)=>s+d.subtotal,0);let restante=descuentoPedido;detalles.forEach((d,i)=>{const parte=i===detalles.length-1?restante:redondearVenta(descuentoPedido*d.subtotal/base);d.descuento=redondearVenta(d.descuento+parte);d.subtotal=redondearVenta(d.subtotal-parte);restante=redondearVenta(restante-parte);});}return{subtotal,descuento_productos:descuentoProductos,subtotal_promocional:redondearVenta(subtotal-descuentoProductos),descuento_pedido:descuentoPedido,total:redondearVenta(subtotal-descuentoProductos-descuentoPedido),detalles};
+}
+
+export async function cotizarVenta(items) { const detalles=[];for(const item of items){const [[producto]]=await baseDatos.query('SELECT id producto_id,nombre,categoria_id,precio_venta FROM productos WHERE id=? AND esta_activo=TRUE',[item.producto_id]);if(!producto)continue;detalles.push({...producto,cantidad:item.cantidad});}return aplicarPromocionesLocales(baseDatos,detalles); }
+
 export async function crearVenta(usuarioId, datos) {
   const conexion = await baseDatos.getConnection();
   try {
@@ -493,14 +505,14 @@ export async function crearVenta(usuarioId, datos) {
     const [[ubicacion]] = await conexion.query("SELECT id FROM ubicaciones_stock WHERE codigo = 'LOCAL_PRINCIPAL'");
     const detalles = []; let total = 0;
     for (const item of datos.detalles) {
-      const [[producto]] = await conexion.query(`SELECT p.nombre, p.precio_venta, p.precio_costo, p.es_pesable,
+      const [[producto]] = await conexion.query(`SELECT p.nombre, p.categoria_id, p.precio_venta, p.precio_costo, p.es_pesable,
         COALESCE(e.cantidad, 0) AS stock FROM productos p LEFT JOIN existencias e
         ON e.producto_id = p.id AND e.ubicacion_id = ? WHERE p.id = ? AND p.esta_activo = TRUE FOR UPDATE`, [ubicacion.id, item.producto_id]);
       if (!producto || Number(producto.stock) < item.cantidad) { const error = new Error(`Stock insuficiente para ${producto?.nombre || 'un producto'}`); error.codigoPublico = 'STOCK_INSUFICIENTE'; throw error; }
       if (!producto.es_pesable && !Number.isInteger(item.cantidad)) { const error = new Error(`La cantidad de ${producto.nombre} debe ser entera`); error.codigoPublico = 'CANTIDAD_ENTERA'; throw error; }
-      const subtotal = item.cantidad * Number(producto.precio_venta); total += subtotal;
-      detalles.push({ ...item, ...producto, subtotal });
+      detalles.push({ ...item, ...producto });
     }
+    const cotizacion=await aplicarPromocionesLocales(conexion,detalles);total=cotizacion.total;
     const totalPagos = datos.pagos.reduce((suma, pago) => suma + pago.monto, 0);
     if (totalPagos - total > 0.009) { const error = new Error('Los pagos no pueden superar el total de la venta'); error.codigoPublico = 'PAGO_INVALIDO'; throw error; }
     const saldoPendiente = total - totalPagos; let cliente = null;
@@ -523,7 +535,7 @@ export async function crearVenta(usuarioId, datos) {
       VALUES (?, ?, 'salida_venta', ?, 'venta', ?)`, [ubicacion.id, usuarioId, `Venta #${venta.insertId}`, venta.insertId]);
     for (const detalle of detalles) {
       const anterior = Number(detalle.stock); const nueva = anterior - detalle.cantidad;
-      await conexion.query('INSERT INTO ventas_detalles (venta_id, producto_id, cantidad, precio_unitario, costo_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?)', [venta.insertId, detalle.producto_id, detalle.cantidad, detalle.precio_venta, detalle.precio_costo, detalle.subtotal]);
+      await conexion.query('INSERT INTO ventas_detalles (venta_id, producto_id, cantidad, precio_unitario, costo_unitario, descuento, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)', [venta.insertId, detalle.producto_id, detalle.cantidad, detalle.precio_venta, detalle.precio_costo, detalle.descuento, detalle.subtotal]);
       await conexion.query('UPDATE existencias SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', [nueva, detalle.producto_id, ubicacion.id]);
       await conexion.query(`INSERT INTO movimientos_stock_detalles
         (movimiento_stock_id, producto_id, cantidad_anterior, variacion, cantidad_nueva)
