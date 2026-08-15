@@ -306,6 +306,9 @@
 .controles-en-linea { display: flex; gap: 8px; }
 .controles-en-linea > * { flex: 1; min-width: 0; }
 .controles-en-linea label { margin: 0; color: var(--color-gris-500); font-size: .76rem; font-weight: 400; }
+.coordenadas-ecommerce { display: grid; gap: 6px; }
+.boton--ubicacion { justify-self: start; margin: 0; }
+.ayuda-ubicacion { color: var(--color-gris-500); font-size: .76rem; line-height: 1.3; }
 .controles-en-linea label input { margin-top: 4px; }
 .campo-con-unidad {
   display: flex;

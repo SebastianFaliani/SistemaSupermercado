@@ -8,6 +8,32 @@ function Interruptor({ nombre, etiqueta, activo }) {
 
 export function ConfiguracionEcommerce({ datos, alGuardar }) {
   const c=datos.configuracion;
+  const [latitud, setLatitud] = useState(c.latitud_origen ?? '');
+  const [longitud, setLongitud] = useState(c.longitud_origen ?? '');
+  const [estadoUbicacion, setEstadoUbicacion] = useState('');
+
+  useEffect(() => {
+    setLatitud(c.latitud_origen ?? '');
+    setLongitud(c.longitud_origen ?? '');
+  }, [c.latitud_origen, c.longitud_origen]);
+
+  function usarUbicacionActual() {
+    if (!navigator.geolocation) {
+      setEstadoUbicacion('Este navegador no permite obtener la ubicación.');
+      return;
+    }
+    setEstadoUbicacion('Obteniendo ubicación…');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLatitud(coords.latitude.toFixed(7));
+        setLongitud(coords.longitude.toFixed(7));
+        setEstadoUbicacion('Ubicación actual cargada. Guardá los cambios para aplicarla.');
+      },
+      () => setEstadoUbicacion('No se pudo obtener la ubicación. Revisá el permiso del navegador.'),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+    );
+  }
+
   return <form className="configuracion-ecommerce" onSubmit={alGuardar}>
     <header className="configuracion-ecommerce__introduccion"><div><h2>Configuración de la tienda</h2><p>Administrá cómo funciona el canal online. Los cambios no afectan el punto de venta local.</p></div><span className={`estado-tienda ${c.esta_activa?'estado-tienda--activa':''}`}>{c.esta_activa?'Tienda abierta':'Tienda cerrada'}</span></header>
 
@@ -20,7 +46,7 @@ export function ConfiguracionEcommerce({ datos, alGuardar }) {
 
     <section className="grupo-ajustes"><header><h3>Entregas</h3><p>Origen, cobertura y costo del reparto.</p></header><div>
       <CampoAjuste titulo="Dirección de origen" ayuda="Punto desde el que se calculan y despachan las entregas."><input name="direccion_origen" defaultValue={c.direccion_origen||''}/></CampoAjuste>
-      <CampoAjuste titulo="Coordenadas del negocio" ayuda="Ubicación precisa del punto de salida."><div className="controles-en-linea"><input aria-label="Latitud" name="latitud_origen" type="number" step="any" placeholder="Latitud" defaultValue={c.latitud_origen||''}/><input aria-label="Longitud" name="longitud_origen" type="number" step="any" placeholder="Longitud" defaultValue={c.longitud_origen||''}/></div></CampoAjuste>
+      <CampoAjuste titulo="Coordenadas del negocio" ayuda="Ubicación precisa del punto de salida."><div className="coordenadas-ecommerce"><div className="controles-en-linea"><input aria-label="Latitud" name="latitud_origen" type="number" step="any" placeholder="Latitud" value={latitud} onChange={(e)=>setLatitud(e.target.value)}/><input aria-label="Longitud" name="longitud_origen" type="number" step="any" placeholder="Longitud" value={longitud} onChange={(e)=>setLongitud(e.target.value)}/></div><button className="boton boton--secundario boton--ubicacion" type="button" onClick={usarUbicacionActual}>Usar mi ubicación actual</button>{estadoUbicacion&&<span className="ayuda-ubicacion">{estadoUbicacion}</span>}</div></CampoAjuste>
       <CampoAjuste titulo="Distancia máxima" ayuda="No se aceptarán entregas fuera de este límite."><div className="campo-con-unidad"><input name="distancia_maxima_km" type="number" min="0.1" step="0.1" defaultValue={c.distancia_maxima_km}/><span>km</span></div></CampoAjuste>
       <CampoAjuste titulo="Costo de envío" ayuda="Importe fijo más el adicional calculado por kilómetro."><div className="controles-en-linea"><label>Base<input name="costo_envio_base" type="number" min="0" step="0.01" defaultValue={c.costo_envio_base}/></label><label>Por km<input name="costo_por_km" type="number" min="0" step="0.01" defaultValue={c.costo_por_km}/></label></div></CampoAjuste>
       <CampoAjuste titulo="Opciones de entrega" ayuda="Elegí las modalidades que estarán disponibles en el checkout."><div className="lista-interruptores"><Interruptor nombre="permite_envio" etiqueta="Envío a domicilio" activo={c.permite_envio}/><Interruptor nombre="permite_retiro" etiqueta="Retiro en el local" activo={c.permite_retiro}/></div></CampoAjuste>
@@ -37,3 +63,4 @@ export function ConfiguracionEcommerce({ datos, alGuardar }) {
     <footer className="configuracion-ecommerce__acciones"><span>Los cambios se aplican inmediatamente.</span><button className="boton">Guardar cambios</button></footer>
   </form>;
 }
+import { useEffect, useState } from 'react';
