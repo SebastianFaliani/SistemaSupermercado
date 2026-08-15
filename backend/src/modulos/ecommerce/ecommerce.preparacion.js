@@ -17,7 +17,7 @@ export async function prepararPedido(id, usuarioId, datos) {
       if (item.producto_sustituto_id && !pedido.acepta_sustituciones) throw errorPublico('El cliente no aceptó sustituciones');
       const productoAnterior = detalle.producto_sustituto_id || detalle.producto_id;
       const productoNuevo = item.producto_sustituto_id || detalle.producto_id;
-      let precioUnitario = Number(detalle.precio_unitario); let costoUnitario = Number(detalle.costo_unitario); let descuento = Number(detalle.descuento);
+      let precioUnitario = Number(detalle.precio_unitario); let costoUnitario = Number(detalle.costo_unitario); let descuento = Number(detalle.descuento) * Number(item.cantidad_confirmada) / Number(detalle.cantidad_solicitada);
       await conexion.query('UPDATE existencias SET cantidad_reservada=GREATEST(0,cantidad_reservada-?) WHERE producto_id=? AND ubicacion_id=?', [detalle.cantidad_reservada, productoAnterior, ubicacion.id]);
       if (item.cantidad_confirmada > 0) {
         const [[existencia]] = await conexion.query(`SELECT e.cantidad,e.cantidad_reservada,COALESCE(pe.stock_seguridad,0) stock_seguridad FROM existencias e LEFT JOIN productos_ecommerce pe ON pe.producto_id=e.producto_id WHERE e.producto_id=? AND e.ubicacion_id=? FOR UPDATE`, [productoNuevo, ubicacion.id]);

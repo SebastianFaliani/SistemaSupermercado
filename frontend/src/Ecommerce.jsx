@@ -22,6 +22,7 @@ export function Ecommerce({ token, permisos }) {
     [cuentas, setCuentas] = useState([]),
     [cobrando, setCobrando] = useState(false),
     [reembolsando, setReembolsando] = useState(false),
+    [devolviendo, setDevolviendo] = useState(false),
     [confirmacion, setConfirmacion] = useState(false);
   const api = async (r, o = {}) => {
     const x = await fetch(`/api/ecommerce/admin${r}`, {
@@ -79,20 +80,59 @@ export function Ecommerce({ token, permisos }) {
       setMensaje(e.message);
     }
   };
-  const preparar = async () => {
-    await api(`/pedidos/${detalle.id}/preparacion`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        items: detalle.detalles.map((d) => ({
-          detalle_id: d.id,
-          cantidad_confirmada: Number(d.cantidad_solicitada),
-          producto_sustituto_id: null,
-          observaciones: '',
-        })),
-      }),
-    });
-    await ver(detalle.id);
-    cargar();
+  const preparar = async (evento) => {
+    evento.preventDefault();
+    const formulario = new FormData(evento.currentTarget);
+    try {
+      await api(`/pedidos/${detalle.id}/preparacion`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          items: detalle.detalles.map((d) => ({
+            detalle_id: d.id,
+            cantidad_confirmada: Number(formulario.get(`cantidad-${d.id}`)),
+            producto_sustituto_id: null,
+            observaciones: formulario.get(`observaciones-${d.id}`),
+          })),
+        }),
+      });
+      setMensaje('Preparación actualizada correctamente.');
+      await ver(detalle.id);
+      cargar();
+    } catch (error) {
+      setMensaje(error.message);
+    }
+  };
+  const devolver = async (evento) => {
+    evento.preventDefault();
+    const formulario = new FormData(evento.currentTarget);
+    const items = detalle.detalles
+      .map((d) => ({
+        detalle_id: d.id,
+        cantidad: Number(formulario.get(`devolver-${d.id}`)),
+        reintegra_stock: formulario.get(`stock-${d.id}`) === 'on',
+      }))
+      .filter((item) => item.cantidad > 0);
+    if (!items.length) {
+      setMensaje('Indicá al menos una cantidad para devolver.');
+      return;
+    }
+    try {
+      await api(`/pedidos/${detalle.id}/devoluciones`, {
+        method: 'POST',
+        body: JSON.stringify({
+          items,
+          cuenta_tesoreria_id: Number(formulario.get('cuenta')),
+          motivo: formulario.get('motivo'),
+          referencia_externa: formulario.get('referencia'),
+        }),
+      });
+      setDevolviendo(false);
+      setMensaje('Devolución parcial y reembolso registrados correctamente.');
+      await ver(detalle.id);
+      cargar();
+    } catch (error) {
+      setMensaje(error.message);
+    }
   };
   const cobrar = async (e) => {
     e.preventDefault();
@@ -212,7 +252,12 @@ export function Ecommerce({ token, permisos }) {
   const totalReembolsado = (detalle?.reembolsos || [])
     .filter((item) => item.estado === 'aprobado')
     .reduce((suma, item) => suma + Number(item.monto), 0);
-  const saldoReembolsable = Math.max(0, totalPagado - totalReembolsado);
+  const saldoReembolsable = Math.max(
+    0,
+    totalPagado -
+      totalReembolsado -
+      (detalle?.estado === 'cancelado' ? 0 : Number(detalle?.total || 0)),
+  );
 
   return (
     <section className="ecommerce-admin">
@@ -398,6 +443,42 @@ export function Ecommerce({ token, permisos }) {
               </tbody>
             </table>
           </div>
+          {detalle.estado === 'en_preparacion' && (
+            <form className="preparacion-pedido" onSubmit={preparar}>
+              <h3>Confirmar cantidades preparadas</h3>
+              <p className="dato-secundario">
+                Reducí la cantidad o ingresá cero para quitar un producto. El
+                stock reservado y el total se recalcularán automáticamente.
+              </p>
+              {detalle.detalles.map((item) => (
+                <div className="preparacion-pedido__item" key={item.id}>
+                  <span>{item.nombre_sustituto || item.nombre_producto}</span>
+                  <label>
+                    Cantidad
+                    <input
+                      name={`cantidad-${item.id}`}
+                      type="number"
+                      min="0"
+                      max={Number(item.cantidad_solicitada)}
+                      step="1"
+                      defaultValue={Number(item.cantidad_solicitada)}
+                      onFocus={(e) => e.target.select()}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Observación
+                    <input
+                      name={`observaciones-${item.id}`}
+                      defaultValue=""
+                      placeholder="Opcional"
+                    />
+                  </label>
+                </div>
+              ))}
+              <button className="boton">Confirmar preparación</button>
+            </form>
+          )}
           <div className="resumen-pedido-admin">
             <span>
               Subtotal original <strong>{dinero(detalle.subtotal)}</strong>
@@ -458,6 +539,27 @@ export function Ecommerce({ token, permisos }) {
               </div>
             </>
           )}
+          {(detalle.devoluciones || []).length > 0 && (
+            <section className="devoluciones-online-historial">
+              <h3>Devoluciones parciales</h3>
+              {detalle.devoluciones.map((devolucion) => (
+                <article key={devolucion.id}>
+                  <p>
+                    <strong>#{devolucion.id}</strong> · {fecha(devolucion.fecha_creacion)} ·{' '}
+                    {devolucion.motivo} · <strong>{dinero(devolucion.total)}</strong>
+                  </p>
+                  <ul>
+                    {devolucion.detalles.map((item) => (
+                      <li key={item.id}>
+                        {Number(item.cantidad)} × {item.producto}
+                        {item.reintegra_stock ? ' · volvió al stock' : ' · sin retorno al stock'}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </section>
+          )}
           {cobrando && !['cancelado', 'entregado'].includes(detalle.estado) && (
             <form className="formulario formulario--grilla" onSubmit={cobrar}>
               <label>
@@ -505,7 +607,7 @@ export function Ecommerce({ token, permisos }) {
             </form>
           )}
           {reembolsando &&
-            detalle.estado === 'cancelado' &&
+            detalle.estado !== 'entregado' &&
             saldoReembolsable > 0 && (
               <form className="formulario formulario--grilla" onSubmit={reembolsar}>
                 <label>
@@ -534,7 +636,11 @@ export function Ecommerce({ token, permisos }) {
                   Motivo
                   <input
                     name="motivo"
-                    defaultValue="Cancelación del pedido"
+                    defaultValue={
+                      detalle.estado === 'cancelado'
+                        ? 'Cancelación del pedido'
+                        : 'Ajuste de productos durante la preparación'
+                    }
                     required
                   />
                 </label>
@@ -548,6 +654,77 @@ export function Ecommerce({ token, permisos }) {
                 <button className="boton">Registrar reembolso</button>
               </form>
             )}
+          {devolviendo && detalle.estado === 'entregado' && (
+            <form className="devolucion-online" onSubmit={devolver}>
+              <h3>Devolución parcial del pedido entregado</h3>
+              <p className="dato-secundario">
+                Seleccioná únicamente los artículos que entrega el cliente.
+              </p>
+              {detalle.detalles.map((item) => {
+                const yaDevuelto = (detalle.devoluciones || [])
+                  .flatMap((devolucion) => devolucion.detalles)
+                  .filter(
+                    (devuelto) =>
+                      Number(devuelto.pedido_detalle_id) === Number(item.id),
+                  )
+                  .reduce((suma, devuelto) => suma + Number(devuelto.cantidad), 0);
+                const maximo =
+                  Number(item.cantidad_confirmada ?? item.cantidad_solicitada) -
+                  yaDevuelto;
+                return (
+                  <div className="devolucion-online__item" key={item.id}>
+                    <span>{item.nombre_sustituto || item.nombre_producto}</span>
+                    <small>Disponible para devolver: {maximo}</small>
+                    <label>
+                      Cantidad
+                      <input
+                        name={`devolver-${item.id}`}
+                        type="number"
+                        min="0"
+                        max={maximo}
+                        step="1"
+                        defaultValue="0"
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </label>
+                    <label className="fila-check">
+                      <input
+                        name={`stock-${item.id}`}
+                        type="checkbox"
+                        defaultChecked
+                      />
+                      Reintegrar al stock
+                    </label>
+                  </div>
+                );
+              })}
+              <div className="formulario formulario--grilla">
+                <label>
+                  Cuenta de devolución
+                  <select name="cuenta" required>
+                    {cuentas.map((cuenta) => (
+                      <option key={cuenta.id} value={cuenta.id}>
+                        {cuenta.nombre} · {dinero(cuenta.saldo)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Motivo
+                  <input
+                    name="motivo"
+                    defaultValue="Devolución parcial del cliente"
+                    required
+                  />
+                </label>
+                <label>
+                  Referencia
+                  <input name="referencia" defaultValue={`DEV-${detalle.codigo}`} />
+                </label>
+              </div>
+              <button className="boton">Calcular y registrar devolución</button>
+            </form>
+          )}
           <div className="acciones-modal">
             {detalle.estado_pago !== 'aprobado' &&
               !['cancelado', 'entregado'].includes(detalle.estado) &&
@@ -563,9 +740,6 @@ export function Ecommerce({ token, permisos }) {
               <button onClick={() => avanzar('en_preparacion')}>
                 Preparar
               </button>
-            )}
-            {detalle.estado === 'en_preparacion' && (
-              <button onClick={preparar}>Preparación completa</button>
             )}
             {detalle.estado === 'listo' &&
               detalle.modalidad_entrega === 'envio' && (
@@ -597,6 +771,30 @@ export function Ecommerce({ token, permisos }) {
                   onClick={() => setReembolsando(!reembolsando)}
                 >
                   {reembolsando ? 'Ocultar reembolso' : 'Registrar reembolso'}
+                </button>
+              )}
+            {detalle.estado !== 'cancelado' &&
+              detalle.estado !== 'entregado' &&
+              saldoReembolsable > 0 &&
+              permisos.includes('ecommerce.pagos') && (
+                <button
+                  className="boton"
+                  onClick={() => setReembolsando(!reembolsando)}
+                >
+                  {reembolsando
+                    ? 'Ocultar reintegro'
+                    : 'Reintegrar diferencia'}
+                </button>
+              )}
+            {detalle.estado === 'entregado' &&
+              permisos.includes('ecommerce.pagos') && (
+                <button
+                  className="boton"
+                  onClick={() => setDevolviendo(!devolviendo)}
+                >
+                  {devolviendo
+                    ? 'Ocultar devolución'
+                    : 'Devolución parcial'}
                 </button>
               )}
           </div>

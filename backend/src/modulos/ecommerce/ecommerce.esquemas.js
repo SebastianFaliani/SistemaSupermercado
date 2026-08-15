@@ -23,3 +23,4 @@ export const esquemaPreparacion = z.object({ items: z.array(z.object({ detalle_i
 export const esquemaPagoPedido = z.object({ proveedor: z.enum(['efectivo', 'transferencia', 'mercado_pago']), monto_bruto: z.coerce.number().positive(), comision: dinero.default(0), referencia_externa: opcional(120), cuenta_tesoreria_id: id, idempotencia: z.string().trim().min(8).max(100) });
 export const esquemaReembolso = z.object({ monto: z.coerce.number().positive(), motivo: z.string().trim().min(3).max(255), cuenta_tesoreria_id: id, referencia_externa: opcional(120) });
 export const esquemaValoracion = z.object({ puntuacion: z.coerce.number().int().min(1).max(5) });
+export const esquemaDevolucionPedido = z.object({ motivo: z.string().trim().min(3).max(255), cuenta_tesoreria_id: id, referencia_externa: opcional(120), items: z.array(z.object({ detalle_id: id, cantidad: z.coerce.number().positive(), reintegra_stock: z.boolean().default(true) })).min(1).max(200) });
