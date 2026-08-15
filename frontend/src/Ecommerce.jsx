@@ -14,6 +14,7 @@ export function Ecommerce({ token, permisos }) {
   const [vista, setVista] = useState('pedidos'),
     [datos, setDatos] = useState([]),
     [total, setTotal] = useState(0),
+    [pagina, setPagina] = useState(1),
     [buscar, setBuscar] = useState(''),
     [filtro, setFiltro] = useState(''),
     [detalle, setDetalle] = useState(null),
@@ -45,8 +46,8 @@ export function Ecommerce({ token, permisos }) {
       if (vista === 'promociones') return;
       const r =
           vista === 'productos'
-            ? `/productos?buscar=${encodeURIComponent(buscar)}&estado=${filtro || 'todos'}&limite=50`
-            : `/pedidos?buscar=${encodeURIComponent(buscar)}&estado=${filtro}&limite=50`,
+            ? `/productos?buscar=${encodeURIComponent(buscar)}&estado=${filtro || 'todos'}&pagina=${pagina}&limite=25`
+            : `/pedidos?buscar=${encodeURIComponent(buscar)}&estado=${filtro}&pagina=${pagina}&limite=25`,
         d = await api(r);
       setDatos(d.datos);
       setTotal(d.total);
@@ -60,7 +61,7 @@ export function Ecommerce({ token, permisos }) {
     return () => clearTimeout(t);
     // La recarga depende exclusivamente de los filtros visibles.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vista, buscar, filtro]);
+  }, [vista, buscar, filtro, pagina]);
   const ver = async (id) => {
     setDetalle((await api(`/pedidos/${id}`)).dato);
     const r = await fetch('/api/tesoreria/cuentas', {
@@ -258,6 +259,7 @@ export function Ecommerce({ token, permisos }) {
       totalReembolsado -
       (detalle?.estado === 'cancelado' ? 0 : Number(detalle?.total || 0)),
   );
+  const paginas = Math.max(1, Math.ceil(total / 25));
 
   return (
     <section className="ecommerce-admin">
@@ -281,6 +283,7 @@ export function Ecommerce({ token, permisos }) {
             onClick={() => {
               setVista(v);
               setFiltro('');
+              setPagina(1);
             }}
             key={v}
           >
@@ -294,9 +297,18 @@ export function Ecommerce({ token, permisos }) {
           <input
             placeholder="Buscar…"
             value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
+            onChange={(e) => {
+              setBuscar(e.target.value);
+              setPagina(1);
+            }}
           />
-          <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          <select
+            value={filtro}
+            onChange={(e) => {
+              setFiltro(e.target.value);
+              setPagina(1);
+            }}
+          >
             <option value="">Todos</option>
             {vista === 'productos' ? (
               <>
@@ -386,6 +398,25 @@ export function Ecommerce({ token, permisos }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {['pedidos', 'productos'].includes(vista) && (
+        <div className="paginacion ecommerce-paginacion">
+          <span>
+            Página {pagina} de {paginas}
+          </span>
+          <button
+            disabled={pagina === 1}
+            onClick={() => setPagina((actual) => actual - 1)}
+          >
+            Anterior
+          </button>
+          <button
+            disabled={pagina >= paginas}
+            onClick={() => setPagina((actual) => actual + 1)}
+          >
+            Siguiente
+          </button>
         </div>
       )}
       {vista === 'promociones' && <PromocionesEcommerce token={token} />}

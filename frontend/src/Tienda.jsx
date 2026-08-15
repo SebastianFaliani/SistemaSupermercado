@@ -551,6 +551,9 @@ export function Tienda() {
                   >
                     {favoritos.includes(Number(p.id)) ? '♥' : '♡'}
                   </button>
+                  {Number(p.disponible_online) <= 0 && (
+                    <span className="tienda__sin-stock">SIN STOCK</span>
+                  )}
                   {p.imagen_url ? (
                     <img src={p.imagen_url} alt={p.nombre} />
                   ) : (

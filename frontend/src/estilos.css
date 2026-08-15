@@ -312,7 +312,7 @@
 }
 .tienda__productos article .tienda__favorito {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   top: 6px;
   right: 7px;
   width: 30px;
@@ -329,6 +329,23 @@
   cursor: pointer;
 }
 .tienda__productos article .tienda__favorito.activo { color: #c62828; }
+.tienda__foto .tienda__sin-stock {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  width: 135%;
+  padding: 9px 0;
+  color: var(--color-blanco);
+  background: rgb(73 84 87 / 88%);
+  box-shadow: 0 2px 7px rgb(0 0 0 / 22%);
+  font-size: .86rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  line-height: 1;
+  text-align: center;
+  transform: translate(-50%, -50%) rotate(-14deg);
+}
 .tienda__precio-promocional { display: flex; align-items: baseline; gap: 7px; }
 .tienda__precio-promocional del { color: var(--color-gris-500); font-size: .82rem; }
 .tienda__valoracion { display: flex; align-items: center; gap: 1px; margin-top: 7px; }
@@ -730,6 +747,8 @@ th { color: var(--color-gris-500); font-size: .86rem; letter-spacing: .05em; tex
 .miniatura-vacia { border: 1px dashed var(--color-gris-200); }
 .boton-tabla { border: 0; border-radius: 6px; padding: 6px 9px; color: var(--color-primario-700); background: var(--color-acento-100); font: inherit; font-weight: 400; cursor: pointer; }
 .paginacion { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.ecommerce-paginacion { align-items: center; }
+.ecommerce-paginacion span { margin-right: 5px; color: var(--color-gris-500); }
 .paginacion button { border: 1px solid var(--color-acento-500); border-radius: 6px; padding: 6px 10px; color: var(--color-primario-700); background: var(--color-blanco); font: inherit; cursor: pointer; }
 .paginacion button:disabled { cursor: default; opacity: .4; }
 .cantidad-baja { color: var(--color-error); font-weight: 700; }
