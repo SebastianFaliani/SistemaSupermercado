@@ -590,6 +590,12 @@ th { color: var(--color-gris-500); font-size: .86rem; letter-spacing: .05em; tex
 .resumen-pedido-online { display: grid; gap: 5px; margin: 14px 0; padding: 10px 0; border-top: 1px solid var(--color-gris-200); border-bottom: 1px solid var(--color-gris-200); }
 .resumen-pedido-online span { display: flex; justify-content: space-between; gap: 18px; }
 .resumen-pedido-online span:last-child { color: var(--color-primario-900); font-size: 1.05rem; }
+.promocion-formulario { display: grid; gap: 12px; }
+.selector-productos-promocion { position: relative; display: grid; gap: 6px; }
+.selector-productos-promocion .resultados-productos { position: static; max-height: 220px; }
+.productos-promocion-elegidos { display: flex; flex-wrap: wrap; gap: 5px; }
+.productos-promocion-elegidos > span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid var(--color-acento-100); border-radius: 5px; color: var(--color-primario-900); background: var(--color-gris-50); font-size: .78rem; }
+.productos-promocion-elegidos button { padding: 0; border: 0; color: var(--color-error); background: transparent; font: inherit; font-size: 1rem; cursor: pointer; }
 .pendiente-facturacion { color: #8a5a00; font-weight: 600; }
 .pendiente-facturacion .dato-secundario { color: inherit; }
 .selector-vista { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--color-gris-200); }

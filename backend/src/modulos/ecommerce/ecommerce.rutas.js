@@ -13,7 +13,7 @@ const ejecutar = (accion) => async (solicitud, respuesta, siguiente) => { try { 
 
 rutasEcommerce.get('/publico/configuracion', ejecutar(async (_s, r) => r.json({ dato: await servicio.obtenerConfiguracion(true) })));
 rutasEcommerce.get('/publico/productos', ejecutar(async (s, r) => { const d = validar(esquemas.esquemaConsultaPublica, s.query, r); if (d) r.json(await servicio.listarProductosOnline(d)); }));
-rutasEcommerce.get('/publico/promociones', ejecutar(async (_s, r) => r.json({ datos: (await servicio.listarPromociones()).filter((p) => p.esta_activa) })));
+rutasEcommerce.get('/publico/promociones', ejecutar(async (_s, r) => r.json({ datos: await servicio.listarPromociones(true) })));
 rutasEcommerce.post('/publico/clientes/registro', ejecutar(async (s, r) => { const d = validar(esquemas.esquemaRegistroClienteOnline, s.body, r); if (d) r.status(201).json(await servicio.registrarClienteOnline(d)); }));
 rutasEcommerce.post('/publico/clientes/acceso', ejecutar(async (s, r) => { const d = validar(esquemas.esquemaAccesoClienteOnline, s.body, r); if (d) r.json(await servicio.accederClienteOnline(d)); }));
 rutasEcommerce.post('/publico/pedidos', ejecutar(async (s, r) => { const d = validar(esquemas.esquemaPedidoPublico, s.body, r); if (d) r.status(201).json({ dato: await servicio.crearPedido(d) }); }));
@@ -33,6 +33,7 @@ for (const [recurso, esquema, guardar] of [['zonas', esquemas.esquemaZona, servi
 rutasEcommerce.get('/admin/productos', requerirPermiso('ecommerce.ver'), ejecutar(async (s, r) => { const d = validar(esquemas.esquemaConsultaAdmin, s.query, r); if (d) r.json(await servicio.listarProductosOnline(d, true)); }));
 rutasEcommerce.put('/admin/productos/:id', requerirPermiso('ecommerce.gestionar'), ejecutar(async (s, r) => { const d = validar(esquemas.esquemaProductoOnline, s.body, r); if (d) r.json({ dato: await servicio.actualizarProductoOnline(Number(s.params.id), d) }); }));
 rutasEcommerce.get('/admin/promociones', requerirPermiso('ecommerce.ver'), ejecutar(async (_s, r) => r.json({ datos: await servicio.listarPromociones() })));
+rutasEcommerce.get('/admin/promociones-referencias', requerirPermiso('ecommerce.ver'), ejecutar(async (_s, r) => r.json(await servicio.referenciasPromociones())));
 rutasEcommerce.post('/admin/promociones', requerirPermiso('ecommerce.gestionar'), ejecutar(async (s, r) => { const d = validar(esquemas.esquemaPromocion, s.body, r); if (d) r.status(201).json({ dato: await servicio.guardarPromocion(null, d) }); }));
 rutasEcommerce.put('/admin/promociones/:id', requerirPermiso('ecommerce.gestionar'), ejecutar(async (s, r) => { const d = validar(esquemas.esquemaPromocion, s.body, r); if (d) r.json({ dato: await servicio.guardarPromocion(Number(s.params.id), d) }); }));
 rutasEcommerce.get('/admin/pedidos', requerirPermiso('ecommerce.ver'), ejecutar(async (s, r) => { const d = validar(esquemas.esquemaConsultaPedidos, s.query, r); if (d) r.json(await servicio.listarPedidos(d)); }));
