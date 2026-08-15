@@ -31,10 +31,11 @@ export async function prepararPedido(id, usuarioId, datos) {
     }
     const [[totales]] = await conexion.query('SELECT COALESCE(SUM(subtotal),0) subtotal,COALESCE(SUM(descuento),0) descuento FROM pedidos_ecommerce_detalles WHERE pedido_id=?',[id]);
     const [[pedidoImportes]] = await conexion.query('SELECT costo_envio,estado_pago FROM pedidos_ecommerce WHERE id=?',[id]);
+    const subtotalBruto = Math.round((Number(totales.subtotal) + Number(totales.descuento)) * 100) / 100;
     const total = Math.round((Number(totales.subtotal) + Number(pedidoImportes.costo_envio)) * 100) / 100;
     const [[cobros]] = await conexion.query("SELECT COALESCE(SUM(monto_bruto),0)-(SELECT COALESCE(SUM(r.monto),0) FROM reembolsos_ecommerce r JOIN pagos_ecommerce px ON px.id=r.pago_id WHERE px.pedido_id=? AND r.estado='aprobado') pagado FROM pagos_ecommerce WHERE pedido_id=? AND estado='aprobado'",[id,id]);
     const estadoPago = Number(cobros.pagado) > total + 0.009 ? 'reembolso_pendiente' : pedidoImportes.estado_pago;
-    await conexion.query("UPDATE pedidos_ecommerce SET estado='listo',estado_pago=?,subtotal=?,descuento=?,total=?,asignado_usuario_id=? WHERE id=?", [estadoPago,totales.subtotal,totales.descuento,total,usuarioId,id]);
+    await conexion.query("UPDATE pedidos_ecommerce SET estado='listo',estado_pago=?,subtotal=?,descuento=?,total=?,asignado_usuario_id=? WHERE id=?", [estadoPago,subtotalBruto,totales.descuento,total,usuarioId,id]);
     await conexion.query("INSERT INTO pedidos_ecommerce_estados (pedido_id,estado_anterior,estado_nuevo,usuario_id,comentario) VALUES (?,?,'listo',?,'Preparación confirmada')", [id, pedido.estado, usuarioId]);
     await conexion.commit();
     return { id, estado: 'listo' };
