@@ -602,6 +602,9 @@ th { color: var(--color-gris-500); font-size: .86rem; letter-spacing: .05em; tex
 .resumen-pedido-admin span { display: flex; justify-content: space-between; gap: 35px; }
 .resumen-pedido-admin span:last-child { padding-top: 5px; border-top: 1px solid var(--color-gris-200); font-size: 1rem; }
 .importe-descuento { color: var(--color-exito, #28724f); }
+.campo-cupon-checkout { display: grid; grid-template-columns: 1fr auto; gap: 5px; align-items: end; }
+.campo-cupon-checkout label { grid-column: 1 / -1; }
+.campo-cupon-checkout input { min-width: 0; }
 .precio-anterior { display: block; color: var(--color-gris-500); font-size: .78rem; }
 .promocion-formulario { display: grid; gap: 12px; }
 .selector-productos-promocion { position: relative; display: grid; gap: 6px; }
