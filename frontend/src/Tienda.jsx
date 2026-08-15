@@ -392,37 +392,96 @@ export function Tienda() {
         </div>
       </header>
       {productoBanner && (
-        <section className="tienda__banner-promocion" aria-label="Oferta destacada">
-          <div className="tienda__banner-imagen">
-            {productoBanner.imagen_url ? (
-              <img src={productoBanner.imagen_url} alt={productoBanner.nombre} />
-            ) : (
-              <span>LA 91</span>
-            )}
-          </div>
-          <div>
-            <small>OFERTA DESTACADA</small>
-            <h2>{productoBanner.nombre}</h2>
-            <p>
-              <del>{dinero(productoBanner.precio)}</del>{' '}
-              <strong>
-                {dinero(
-                  Number(productoBanner.precio) *
-                    (1 - Number(productoBanner.descuento_porcentaje) / 100),
-                )}
-              </strong>
-            </p>
-          </div>
-          <span className="tienda__banner-descuento">
-            -{Math.round(Number(productoBanner.descuento_porcentaje))}%
-          </span>
-          <button
-            className="boton"
-            disabled={!abierta || Number(productoBanner.disponible_online) <= 0}
-            onClick={() => agregar(productoBanner)}
+        <section
+          className="tienda__carrusel-promociones"
+          aria-label="Ofertas destacadas"
+        >
+          {productosPromocion.length > 1 && (
+            <button
+              className="tienda__carrusel-flecha tienda__carrusel-flecha--anterior"
+              type="button"
+              aria-label="Oferta anterior"
+              onClick={() =>
+                setPromocionActiva(
+                  (actual) =>
+                    (actual - 1 + productosPromocion.length) %
+                    productosPromocion.length,
+                )
+              }
+            >
+              ‹
+            </button>
+          )}
+          <div
+            className="tienda__banner-promocion"
+            key={productoBanner.id}
           >
-            Agregar al carrito
-          </button>
+            <div className="tienda__banner-sello">OFERTA ONLINE</div>
+            <div className="tienda__banner-imagen">
+              {productoBanner.imagen_url ? (
+                <img
+                  src={productoBanner.imagen_url}
+                  alt={productoBanner.nombre}
+                />
+              ) : (
+                <span>LA 91</span>
+              )}
+            </div>
+            <div className="tienda__banner-contenido">
+              <small>SELECCIÓN DESTACADA</small>
+              <h2>{productoBanner.nombre}</h2>
+              <p className="tienda__banner-precios">
+                <span>
+                  Antes <del>{dinero(productoBanner.precio)}</del>
+                </span>
+                <strong>
+                  {dinero(
+                    Number(productoBanner.precio) *
+                      (1 - Number(productoBanner.descuento_porcentaje) / 100),
+                  )}
+                </strong>
+              </p>
+            </div>
+            <div className="tienda__banner-beneficio">
+              <span>AHORRÁ</span>
+              <strong>
+                {Math.round(Number(productoBanner.descuento_porcentaje))}%
+              </strong>
+            </div>
+            <button
+              className="tienda__banner-accion"
+              disabled={
+                !abierta || Number(productoBanner.disponible_online) <= 0
+              }
+              onClick={() => agregar(productoBanner)}
+            >
+              Aprovechar oferta
+            </button>
+          </div>
+          {productosPromocion.length > 1 && (
+            <button
+              className="tienda__carrusel-flecha tienda__carrusel-flecha--siguiente"
+              type="button"
+              aria-label="Oferta siguiente"
+              onClick={() =>
+                setPromocionActiva(
+                  (actual) => (actual + 1) % productosPromocion.length,
+                )
+              }
+            >
+              ›
+            </button>
+          )}
+          {productosPromocion.length > 1 && (
+            <div className="tienda__carrusel-indicadores" aria-hidden="true">
+              {productosPromocion.map((producto, indice) => (
+                <span
+                  className={indice === promocionActiva ? 'activo' : ''}
+                  key={producto.id}
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
       {!abierta && (

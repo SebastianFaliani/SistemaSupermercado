@@ -229,32 +229,57 @@
 .tienda__hero-texto { position: relative; z-index: 1; display: grid; grid-area: texto; place-items: center; align-self: center; min-height: 0; text-align: center; }
 .tienda__hero .tienda__hero-contenido h1 { max-width: none; margin: 0; font-size: clamp(27px, 3vw, 40px); font-weight: 700; letter-spacing: .025em; }
 .tienda__hero-contenido p { margin: 9px 0 0; color: var(--color-acento-100); font-size: .95rem; }
+.tienda__carrusel-promociones {
+  position: relative;
+  max-width: 1232px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgb(0 59 70 / 18%);
+}
 .tienda__banner-promocion {
   position: relative;
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) auto auto;
+  grid-template-columns: 170px minmax(0, 1fr) 165px 170px;
   align-items: center;
-  gap: 20px;
-  max-width: 1232px;
-  min-height: 142px;
-  margin: 22px auto 0;
-  padding: 14px 24px;
+  gap: 24px;
+  min-height: 190px;
+  padding: 22px 58px 22px 38px;
   overflow: hidden;
-  border-radius: 12px;
   color: var(--color-blanco);
-  background: linear-gradient(115deg, var(--color-primario-900), var(--color-primario-700));
-  box-shadow: 0 10px 26px rgb(0 59 70 / 16%);
+  background:
+    linear-gradient(105deg, transparent 0 66%, rgb(255 255 255 / 8%) 66% 67%, transparent 67%),
+    radial-gradient(circle at 82% 16%, rgb(196 223 230 / 30%), transparent 22%),
+    repeating-linear-gradient(135deg, transparent 0 22px, rgb(255 255 255 / 3%) 22px 44px),
+    linear-gradient(115deg, #003b46 0%, #07575b 58%, #0a6970 100%);
+  animation: entrada-oferta .48s ease-out both;
 }
-.tienda__banner-imagen { display: grid; place-items: center; width: 112px; height: 112px; border-radius: 9px; background: var(--color-blanco); }
+.tienda__banner-promocion::after { position: absolute; right: -70px; bottom: -150px; width: 310px; height: 310px; border: 42px solid rgb(196 223 230 / 9%); border-radius: 50%; content: ''; }
+.tienda__banner-sello { position: absolute; z-index: 3; top: 0; left: 0; padding: 7px 30px 7px 18px; color: var(--color-blanco); background: #d41f26; font-size: .75rem; font-weight: 700; letter-spacing: .09em; clip-path: polygon(0 0,100% 0,88% 100%,0 100%); }
+.tienda__banner-imagen { position: relative; z-index: 2; display: grid; place-items: center; width: 160px; height: 145px; margin-top: 8px; border-radius: 12px; background: var(--color-blanco); box-shadow: 0 8px 22px rgb(0 0 0 / 18%); transform: rotate(-1.5deg); }
 .tienda__banner-imagen img { width: 100%; height: 100%; object-fit: contain; }
 .tienda__banner-imagen span { color: var(--color-acento-500); font-size: 1.2rem; }
-.tienda__banner-promocion small { color: var(--color-acento-100); letter-spacing: .11em; }
-.tienda__banner-promocion h2 { margin: 4px 0; font-size: clamp(1.2rem, 2.2vw, 1.8rem); }
-.tienda__banner-promocion p { margin: 0; }
-.tienda__banner-promocion del { margin-right: 8px; color: var(--color-acento-100); }
-.tienda__banner-promocion strong { font-size: 1.35rem; }
-.tienda__banner-descuento { padding: 9px 15px; border-radius: 999px; color: var(--color-blanco); background: #c62828; font-size: 1.25rem; font-weight: 700; }
-.tienda__banner-promocion .boton { margin: 0; white-space: nowrap; }
+.tienda__banner-contenido { position: relative; z-index: 2; min-width: 0; }
+.tienda__banner-contenido small { color: var(--color-acento-100); font-weight: 600; letter-spacing: .13em; }
+.tienda__banner-contenido h2 { max-width: 580px; margin: 7px 0 13px; font-size: clamp(1.35rem, 2.5vw, 2.15rem); line-height: 1.08; }
+.tienda__banner-precios { display: flex; align-items: center; gap: 18px; margin: 0; }
+.tienda__banner-precios span { display: grid; color: var(--color-acento-100); font-size: .75rem; }
+.tienda__banner-precios del { font-size: .92rem; }
+.tienda__banner-precios strong { font-size: clamp(1.55rem, 2.8vw, 2.45rem); line-height: 1; }
+.tienda__banner-beneficio { position: relative; z-index: 2; display: grid; justify-items: center; padding: 13px 12px 10px; border: 2px solid rgb(255 255 255 / 75%); color: var(--color-blanco); background: #d41f26; box-shadow: 7px 7px 0 #c4dfe6; transform: rotate(2deg); }
+.tienda__banner-beneficio span { font-size: .72rem; font-weight: 700; letter-spacing: .12em; }
+.tienda__banner-beneficio strong { font-size: 3rem; line-height: 1; }
+.tienda__banner-accion { position: relative; z-index: 3; padding: 12px 16px; border: 2px solid var(--color-blanco); border-radius: 6px; color: var(--color-primario-900); background: var(--color-blanco); font: inherit; font-weight: 600; cursor: pointer; }
+.tienda__banner-accion:hover { color: var(--color-blanco); background: transparent; }
+.tienda__banner-accion:disabled { cursor: default; opacity: .5; }
+.tienda__carrusel-flecha { position: absolute; z-index: 6; top: 50%; display: grid; place-items: center; width: 34px; height: 54px; padding: 0; border: 0; color: var(--color-blanco); background: rgb(0 38 45 / 52%); font-size: 2rem; line-height: 1; cursor: pointer; transform: translateY(-50%); }
+.tienda__carrusel-flecha:hover { background: rgb(0 38 45 / 82%); }
+.tienda__carrusel-flecha--anterior { left: 0; border-radius: 0 6px 6px 0; }
+.tienda__carrusel-flecha--siguiente { right: 0; border-radius: 6px 0 0 6px; }
+.tienda__carrusel-indicadores { position: absolute; z-index: 6; right: 50%; bottom: 9px; display: flex; gap: 6px; transform: translateX(50%); }
+.tienda__carrusel-indicadores span { width: 19px; height: 4px; border-radius: 2px; background: rgb(255 255 255 / 40%); }
+.tienda__carrusel-indicadores span.activo { width: 32px; background: var(--color-blanco); }
+@keyframes entrada-oferta { from { opacity: .3; transform: translateX(55px); } to { opacity: 1; transform: translateX(0); } }
 .tienda__foto { position: relative; }
 .tienda__foto .tienda__descuento-producto {
   position: absolute;
@@ -274,15 +299,16 @@
   z-index: 2;
   top: 6px;
   right: 7px;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--color-gris-200);
-  border-radius: 50%;
+  border: 0;
+  border-radius: 0;
   color: var(--color-gris-500);
-  background: rgb(255 255 255 / 92%);
-  font-size: 1.35rem;
+  background: transparent;
+  filter: drop-shadow(0 1px 1px rgb(255 255 255 / 95%));
+  font-size: 1.55rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -331,6 +357,13 @@
   .tienda__cuerpo aside button > img,
   .tienda__icono-categoria-vacio { width: 40px; height: 40px; }
 }
+@media (min-width: 621px) and (max-width: 980px) {
+  .tienda__carrusel-promociones { margin-inline: 18px; }
+  .tienda__banner-promocion { grid-template-columns: 125px minmax(0, 1fr) 120px; gap: 16px; padding-inline: 45px; }
+  .tienda__banner-imagen { width: 120px; height: 130px; }
+  .tienda__banner-beneficio strong { font-size: 2.25rem; }
+  .tienda__banner-accion { grid-column: 2 / 4; justify-self: end; margin-top: -20px; }
+}
 @media (max-width: 620px) {
   .tienda__hero { height: auto; min-height: 0; grid-template-columns: 1fr; grid-template-areas: "acciones" "logo" "texto"; gap: 6px; padding: 0; }
   .tienda__hero-nav { flex-wrap: wrap; justify-content: flex-end; }
@@ -338,10 +371,19 @@
   .tienda__hero-nav a { padding: 7px 8px; font-size: .82rem; }
   .tienda__hero-logo { width: min(430px, 88vw); margin: 0 auto; }
   .tienda__hero-texto { min-height: auto; }
-  .tienda__banner-promocion { grid-template-columns: 76px 1fr; gap: 10px; margin: 12px; padding: 10px; }
-  .tienda__banner-imagen { width: 70px; height: 70px; }
-  .tienda__banner-descuento { position: absolute; top: 7px; right: 7px; padding: 5px 8px; font-size: .85rem; }
-  .tienda__banner-promocion .boton { grid-column: 1 / -1; }
+  .tienda__carrusel-promociones { margin: 12px; border-radius: 10px; }
+  .tienda__banner-promocion { grid-template-columns: 86px 1fr 70px; gap: 10px; min-height: 158px; padding: 27px 32px 24px; }
+  .tienda__banner-sello { padding: 5px 22px 5px 11px; font-size: .64rem; }
+  .tienda__banner-imagen { width: 82px; height: 94px; }
+  .tienda__banner-contenido h2 { margin: 4px 0 8px; font-size: 1rem; }
+  .tienda__banner-contenido small { font-size: .62rem; }
+  .tienda__banner-precios { display: grid; gap: 2px; }
+  .tienda__banner-precios strong { font-size: 1.35rem; }
+  .tienda__banner-beneficio { padding: 8px 5px; box-shadow: 4px 4px 0 #c4dfe6; }
+  .tienda__banner-beneficio span { font-size: .56rem; }
+  .tienda__banner-beneficio strong { font-size: 1.7rem; }
+  .tienda__banner-accion { grid-column: 1 / -1; padding: 8px; }
+  .tienda__carrusel-flecha { width: 26px; height: 44px; }
   .tienda__favoritos-lista article { grid-template-columns: 46px 1fr; }
   .tienda__favoritos-lista article .boton { width: 100%; }
 }
