@@ -11,7 +11,7 @@ export async function listarCompras(consulta) {
   const desde = `FROM ordenes_compra oc JOIN proveedores p ON p.id = oc.proveedor_id JOIN usuarios u ON u.id = oc.usuario_id ${donde}`;
   const offset = (consulta.pagina - 1) * consulta.limite;
   const [[datos], [conteo]] = await Promise.all([
-    baseDatos.query(`SELECT oc.id, oc.estado, oc.fecha_esperada, oc.total, oc.fecha_creacion,
+    baseDatos.query(`SELECT oc.id, oc.estado, oc.fecha_esperada, oc.fecha_recepcion, oc.total, oc.fecha_creacion,
       COALESCE(p.nombre_fantasia, p.razon_social) AS proveedor, u.nombre_usuario,
       (SELECT COUNT(*) FROM ordenes_compra_detalles d WHERE d.orden_compra_id = oc.id) AS productos
       ${desde} ORDER BY oc.fecha_creacion DESC LIMIT ? OFFSET ?`, [...parametros, consulta.limite, offset]),
@@ -50,7 +50,7 @@ export async function crearCompra(datos, usuarioId) {
     const total = datos.detalles.reduce((suma, item) => suma + item.cantidad * item.costo_unitario, 0);
     const [orden] = await conexion.query(`INSERT INTO ordenes_compra
       (proveedor_id, usuario_id, fecha_esperada, observaciones, total, modalidad_entrega,
-       responsable_retiro, numero_comprobante) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       responsable_retiro, numero_comprobante) VALUES (?, ?, COALESCE(?, CURRENT_DATE), ?, ?, ?, ?, ?)`,
     [datos.proveedor_id, usuarioId, datos.fecha_esperada || null, datos.observaciones || null,
       total, datos.modalidad_entrega, datos.responsable_retiro || null, datos.numero_comprobante || null]);
     for (const item of datos.detalles) await conexion.query(`INSERT INTO ordenes_compra_detalles
